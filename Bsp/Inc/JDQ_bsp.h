@@ -27,6 +27,9 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent);
 void app_jdq_bus_keep_vol(unsigned  int sysTick,float keepVoltage);
 void app_jdq_get_laser_v(float *outVoltage);
 
+void jdq_reley_charge(unsigned char onOff);
+void jdq_reley_charge_ready(unsigned char onOff);
+
 #define LASER_PULSE_STOP  0
 
 #ifndef  ADS1110_JDQ_USED

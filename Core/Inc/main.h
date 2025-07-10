@@ -231,9 +231,9 @@ void Error_Handler(void);
 #define MAX_IBUS_MA 10000
 #define MIN_VBUS_MV 12000
 
+#define EEROM_DATA_ERR_CHECK_FLAG  20250707//有历史数据
 
-
-#ifndef DEBUG_MSG_UART 
+#ifdef DEBUG_MSG_UART 
 #define DEBUG_MSG_UART  /*use printf*/
 #define DEBUG_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else

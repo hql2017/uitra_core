@@ -8,6 +8,10 @@
  #ifndef IS31FL3193_BSP_H_
  #define IS31FL3193_BSP_H_
  
+ //0关闭//1待机绿色长亮2：准备OK紫色常亮；3脉冲输出紫色呼吸
+ #define RGB_G_STANDBY            1//ll
+ #define RGB_LASER_PREPARE_OK      2//激光准备OK
+ #define RGB_LASER_WORK_STATUS     3//激光工作指示灯
  #ifndef  FL3236_USED//12路
  #define  FL3236_USED
  

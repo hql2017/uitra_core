@@ -301,9 +301,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 1 */
   if (htim->Instance == TIM3)  
   {//100us timer for 1064 (100~310us) 
- 
-    HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
-   //pulse计数
+    u_sys_param.sys_config_param.laser1064PulseCount++;//用光电管更好    
   }	 
   if (htim->Instance == TIM7)  app_steps_pulse(0xFFFFFFFF);
   /* USER CODE END Callback 1 */

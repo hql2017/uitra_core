@@ -243,7 +243,7 @@ void jdq_init(void)
 	JDQ_RS485_RX;
 	app_high_voltage_solenoid(ENABLE);//打开交流接触器
 	HAL_Delay(20);
-    app_jdq_bus_power_on_off(0);//关闭输出
+  app_jdq_bus_power_on_off(0);//关闭输出
 
 }
 //***************************AD5541ABRMZ********����ʽdac***************************************//
@@ -396,21 +396,21 @@ HAL_StatusTypeDef app_jdq_write_req_frame(uint16_t regStart,uint16_t data)
 { 
 	HAL_StatusTypeDef err=HAL_OK;
 	UART1_TX_BUFF[0]=STS_1200_DEVICE_ADDV;
-	if(jdq_rs485_sta.frame_regStart!=0) 
-	{
-		jdq_rs485_sta.frame_timeout++;
-		if(jdq_rs485_sta.frame_timeout>2)//多次超时，清除等待
-		{
-			jdq_rs485_sta.frame_regStart=0;
-			jdq_rs485_sta.frame_timeout=0;
-			return HAL_BUSY;
-		}		
-	}
-	if(regStart<STS_1200_REG_SET_VOLTAGE||regStart>STS_1200_REG_RUN_STOP)
-	{	
-		jdq_rs485_sta.frame_regStart=0;
-		return HAL_ERROR;		
-	}
+//	if(jdq_rs485_sta.frame_regStart!=0) 
+//	{
+//		jdq_rs485_sta.frame_timeout++;
+//		if(jdq_rs485_sta.frame_timeout>2)//多次超时，清除等待
+//		{
+//			jdq_rs485_sta.frame_regStart=0;
+//			jdq_rs485_sta.frame_timeout=0;		
+//		}	
+//		return HAL_BUSY;		
+//	}
+//	if(regStart<STS_1200_REG_SET_VOLTAGE||regStart>STS_1200_REG_RUN_STOP)
+//	{	
+//		jdq_rs485_sta.frame_regStart=0;
+//		return HAL_ERROR;		
+//	}
 	UART1_TX_BUFF[1]=0x06;
 	UART1_TX_BUFF[2]=(regStart>>8)&0xFF;
 	UART1_TX_BUFF[3]=regStart&0xFF;		
@@ -434,21 +434,8 @@ HAL_StatusTypeDef app_jdq_write_req_frame(uint16_t regStart,uint16_t data)
 HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
 { 
 	HAL_StatusTypeDef err=HAL_OK;	
-	if(jdq_rs485_sta.frame_regStart!=0) 
-	{
-		jdq_rs485_sta.frame_timeout++;
-		if(jdq_rs485_sta.frame_timeout>2)//多次超时，清除等待
-		{
-			jdq_rs485_sta.frame_regStart=0;
-			jdq_rs485_sta.frame_timeout=0;
-			return HAL_BUSY;
-		}	 
-	}
-	if(regStart<STS_1200_REG_SET_VOLTAGE||regStart>STS_1200_REG_RUN_STOP)
-	{	
-		jdq_rs485_sta.frame_regStart=0;
-		return HAL_ERROR;		
-	}	
+//
+	
 	UART1_TX_BUFF[0]=STS_1200_DEVICE_ADDV;  
 	UART1_TX_BUFF[1]=0x03;
 	UART1_TX_BUFF[2]=(regStart>>8)&0xFF;
@@ -536,7 +523,7 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
 	int sendBuff;
 	if(voltage<12.0) sendBuff=120;
 	else if(voltage>220.0) sendBuff=2200; 
-	else sendBuff=(int)(voltage*10);
+	else sendBuff=(int)(voltage*100);//100倍
 	err= app_jdq_write_req_frame(STS_1200_REG_SET_VOLTAGE,(uint16_t)sendBuff);		
  }
    /************************************************************************//**
@@ -724,30 +711,7 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
 	jdq_reley_charge(1);
 	jdq_reley_charge_ready(1);
  }
- /************************************************************************//**
-  * @brief 消耗剩余电量
-  * @param 无
-  * @note   通过负载消耗剩余电量
-  * @retval 
-  *****************************************************************************/
- void app_jdq_consume_remaining_power_160v(void)
- {
-	unsigned  int timeOut;	
-	timeOut=0;	
-	do
-	{
-		app_jdq_bus_power_on_off(0);//关闭激光电源输出
-		HAL_Delay(50);
-		timeOut+=50;
-		if(timeOut>2000)//2秒断开接触器
-		{
-			app_high_voltage_solenoid(DISABLE);
-			break;
-		}				
-	}while(app_jdq_get_vbus_sta()!=0);	
-	jdq_reley_charge(0);//释放剩余电量	
-	jdq_reley_charge_ready(0);//	
- }
+ 
 
 
 
