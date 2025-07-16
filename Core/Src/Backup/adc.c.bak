@@ -170,7 +170,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
     hdma_adc1.Init.Mode = DMA_CIRCULAR;
     hdma_adc1.Init.Priority = DMA_PRIORITY_LOW;
     hdma_adc1.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-    hdma_adc1.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+    hdma_adc1.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_HALFFULL;
     hdma_adc1.Init.MemBurst = DMA_MBURST_SINGLE;
     hdma_adc1.Init.PeriphBurst = DMA_PBURST_SINGLE;
     if (HAL_DMA_Init(&hdma_adc1) != HAL_OK)
@@ -240,7 +240,7 @@ void app_start_multi_channel_adc(void)
 void filter_ad(void)
 {
   long unsigned int sum=0;
-  unsigned int i,ch;
+  unsigned int i,ch;	
   for(ch=0;ch<5;ch++)
   {
     sum=0;
@@ -249,9 +249,25 @@ void filter_ad(void)
       sum+=adBuff[i*5+ch];
     }    
     advalue[ch]=( unsigned short int)(sum>>6);
-  }
+  }	
+	SCB_InvalidateDCache_by_Addr(adBuff, MAX_AD_BUFF_LENGTH); 
 }
  
+/**
+  * @brief HAL_ADC_ConvCpltCallback
+  * @param void
+  *         
+  * @note   
+  * @retval None 
+  */
+void  HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
+{ 
+  if(hadc->Instance==ADC1)
+  { 
+    filter_ad();  
+    //send message    
+  }
+}
 /**
   * @brief HAL_ADC_ConvCpltCallback
   * @param void
@@ -263,12 +279,10 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 { 
   if(hadc->Instance==ADC1)
   {
-    //filter   
     filter_ad();  
-    //send message    
+   
   }
 }
-
 /**
   * @brief NTC_T cal
   * @param void
@@ -313,6 +327,7 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 void app_get_adc_value(unsigned char adChannel,float *vBuff)
 {  
   unsigned  int temp;
+	
   if(adChannel==AD1_NTC_INDEX)
   {
     temp=((advalue[AD1_NTC_INDEX]*AD_VREF_VOLTAGE)>>16);
@@ -344,6 +359,7 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
     temp=((((advalue[AD1_AIR_PRESSER_INDEX]-D_A_MIN)*AD_VREF_VOLTAGE)>>16) +22);
     *vBuff=temp*0.150723+P_A_MIN;//(441/3000);//air pressure  ,dio
     //DEBUG_PRINTF("air_pressure=%.2f\r\n", *vBuff);
-  }   
+  } 
+ 
 }
 /* USER CODE END 1 */

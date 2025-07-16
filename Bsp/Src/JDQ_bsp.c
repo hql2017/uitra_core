@@ -435,7 +435,6 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
 { 
 	HAL_StatusTypeDef err=HAL_OK;	
 //
-	
 	UART1_TX_BUFF[0]=STS_1200_DEVICE_ADDV;  
 	UART1_TX_BUFF[1]=0x03;
 	UART1_TX_BUFF[2]=(regStart>>8)&0xFF;
@@ -538,6 +537,17 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
 	err= app_jdq_read_req_frame(STS_1200_REG_VOLTAGE_DISPLAY,2);
  }
    /************************************************************************//**
+  * @brief 读总电源电压输出状态请求
+  * @param 
+  * @note   
+  * @retval 
+  *****************************************************************************/
+ void app_jdq_bus_power_onoff_sta_req(void)
+ {
+	HAL_StatusTypeDef err;	
+	err= app_jdq_read_req_frame(STS_1200_REG_RUN_STOP,1);
+ }
+   /************************************************************************//**
   * @brief 读总电源电流设定值
   * @param  *voltage 电压设定, *current 电流设定
   * @note   
@@ -554,9 +564,10 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
   * @note   
   * @retval 
   *****************************************************************************/
- void app_jdq_get_laser_v(float *outVoltage)
+float app_jdq_get_laser_v(void)
  {
-	*outVoltage=jdq_sts_reg_value[2]*0.1;
+	float outVoltage=jdq_sts_reg_value[2]*0.1;
+	return outVoltage;
  }
   /************************************************************************//**
   * @brief 读电源输出状态
@@ -568,46 +579,7 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
  {		
 	return jdq_sts_reg_value[7];
  }
-  
 
-   /************************************************************************//**
-  * @brief 维持固定电压
-  * @param 
-  * @note   
-  * @retval 
-  *****************************************************************************/
- void app_jdq_bus_keep_vol(unsigned  int sysTick,float keepVoltage)
- {
-	HAL_StatusTypeDef err;
-	static unsigned  int localTime,flag=0;	
-    static float regVoltage,regCurrent;	
-	if(sysTick>localTime+50)
-	{
-		localTime=sysTick;
-		app_jdq_bus_get_v_c(&regVoltage,&regCurrent);
-		if(regVoltage+5.0<keepVoltage||regVoltage>keepVoltage+5.0)
-		{
-			if(flag==0)
-			{
-				flag=1;
-				app_jdq_bus_voltage_set(keepVoltage);
-			}
-			else  
-			{
-				flag=0;
-				err = app_jdq_read_req_frame(STS_1200_REG_SET_VOLTAGE,7);//req
-			}			
-		}
-		else
-		{			
-			err = app_jdq_read_req_frame(STS_1200_REG_SET_VOLTAGE,7);			
-		}		
-	}
-	else 
-	{
-		localTime=sysTick;
-	}	
- }
   /************************************************************************//**
   * @brief 开启总电源
   * @param 0；关闭 1：开启
@@ -627,9 +599,7 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
 	}		
  }
 //JDQ 继电器 逻辑 (LL HL  LH LL) (stand ,ready)
-
 //***************************laser pulse (100us~500us) timer3***************************************//
-
 /**
   * @brief app_laser_pulse_start 
   * @param  
@@ -669,24 +639,22 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
  {
 	float retVoltage,cvolt;
 	static float historyVoltage=0;
-	//延时osDelay(2000);
-	//读取转换状态;
+	//延时osDelay(2000);	
 	if(ads1110_available()==TRUE1)
 	{		 
 		if(ads1110_read_mv(&cvolt)==TRUE1)
 		{		
-			retVoltage=cvolt*91.9*0.001+12.0;//12.0V隔离地偏差			
-			historyVoltage=retVoltage;
+			retVoltage = cvolt*91.9*0.001+12.0;//12.0V隔离地偏差			
+			historyVoltage = retVoltage;
 		}
-		else retVoltage=historyVoltage;
+		else retVoltage = historyVoltage;
 	}
 	else
 	{		 
-		retVoltage=historyVoltage;
+		retVoltage = historyVoltage;
 	} 	
 	return retVoltage;
- }
- 
+ } 
   /************************************************************************//**
   * @brief 激光电源限流充电
   * @param 无
@@ -695,10 +663,9 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
   *****************************************************************************/
  void app_jdq_current_limit_charge(void)
  {	
-	jdq_reley_charge(1);//限流充电
-	jdq_reley_charge_ready(0);//	
-	delay_us(150);//等待继电器开启完成
-	
+	jdq_reley_charge(1);
+	jdq_reley_charge_ready(0);	
+	delay_us(150);	
  }
    /************************************************************************//**
   * @brief 激光充电完成，电源直连

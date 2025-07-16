@@ -20,15 +20,16 @@ void app_jdq_bus_power_in(unsigned short int powerVolotage);
 void app_jdq_bus_current_set(float  powerCurrent);
 void app_jdq_bus_voltage_set(float  voltage);
 void app_jdq_bus_get_v_c_req(void);
+void app_jdq_bus_power_onoff_sta_req();
 void app_jdq_bus_get_v_c(float *voltage,float *current);
 unsigned short int  app_jdq_get_vbus_sta(void );
 void app_jdq_bus_power_on_off(unsigned char flag);
 void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent);
-void app_jdq_bus_keep_vol(unsigned  int sysTick,float keepVoltage);
-void app_jdq_get_laser_v(float *outVoltage);
+float app_jdq_get_laser_v(void);
 
 void jdq_reley_charge(unsigned char onOff);
 void jdq_reley_charge_ready(unsigned char onOff);
+
 
 #define LASER_PULSE_STOP  0
 

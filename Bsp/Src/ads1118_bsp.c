@@ -539,9 +539,9 @@ static float tmprature_cal(short int adValue)
  float  app_ads1118_channel_get_value(unsigned char adChannel)
  {
     float ret_tmprature;
-     // Monitor DRDY
+    // Monitor DRDY
     // and hold CS low
-     //setCS(LOW);   
+    //setCS(LOW);   
     // HAL_Delay(1); 
     // waitForDRDYinterrupt(1000);
     // HAL_Delay(2);
@@ -549,7 +549,6 @@ static float tmprature_cal(short int adValue)
     // Read conversion results
 
     registerMap[CONVERSION_ADDRESS] = readSingleRegister(CONVERSION_ADDRESS);  
-    //if(registerMap[CONVERSION_ADDRESS]==0xFFFF) return ERR_T_FLOAT_VALUE;// ret_tmprature=0xFFFFFFFF;//err
     if(adChannel==0)
     {         
         tmprature_T0_cold_junction=((int16_t) registerMap[CONVERSION_ADDRESS]>>2)*0.03125;//冷端补偿

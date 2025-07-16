@@ -37,7 +37,6 @@
   
   #define RF24L01_GET_IRQ_STATUS( )		HAL_GPIO_ReadPin(RF24_IRQ_in_GPIO_Port, RF24_IRQ_in_Pin)
   
-  
   typedef enum ModeType
   {
     MODE_TX = 0,
@@ -58,7 +57,6 @@
     POWER_F6DBM,
     POWER_0DBM
   }nRf24l01PowerType;
-  
   
   /** NRF24L01定义 */
   //////////////////////////////////////////////////////////////////////////////////////////////////////////

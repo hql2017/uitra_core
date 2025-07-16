@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    tim.h
+  * @file    iwdg.h
   * @brief   This file contains all the function prototypes for
-  *          the tim.c file
+  *          the iwdg.c file
   ******************************************************************************
   * @attention
   *
@@ -18,8 +18,8 @@
   */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __TIM_H__
-#define __TIM_H__
+#ifndef __IWDG_H__
+#define __IWDG_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,32 +32,21 @@ extern "C" {
 
 /* USER CODE END Includes */
 
-extern TIM_HandleTypeDef htim1;
-
-extern TIM_HandleTypeDef htim3;
-
-extern TIM_HandleTypeDef htim7;
-
-extern TIM_HandleTypeDef htim16;
+extern IWDG_HandleTypeDef hiwdg1;
 
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
 
-void MX_TIM1_Init(void);
-void MX_TIM3_Init(void);
-void MX_TIM7_Init(void);
-void MX_TIM16_Init(void);
-
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+void MX_IWDG1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-extern  void app_auxiliary_bulb_pwm(unsigned char lightLevel,FunctionalState flag);
+
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __TIM_H__ */
+#endif /* __IWDG_H__ */
 

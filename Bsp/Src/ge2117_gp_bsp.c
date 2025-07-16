@@ -14,7 +14,7 @@ static unsigned char UART_GE_TX_BUFF[MAX_GE_UART_BUFF_LENTH]={0};
 static unsigned char UART_GE_RX_BUFF[MAX_GE_UART_BUFF_LENTH]={0};
 
 typedef struct {
-	unsigned short int idle;//0空闲：1正处于应带侦听端口
+	unsigned short int listenReg;//0空闲：1正处于应带侦听端口
 	unsigned char frame_length;// 侦听长度
 	unsigned char frame_err;// 数据报错
 	unsigned char frame_bus_timeOut;// 等待超时
@@ -86,7 +86,7 @@ void app_ge2117_receive_data_handle(void)
 	uint8_t readDataLen;  
 	if(UART_GE_RX_BUFF[0]==GE2117_PACKAGE_HEAD)//私有控制协议else 
 	{
-		ge_run_sta.idle=0;
+		ge_run_sta.listenReg=0;
 		ge_run_sta.frame_length = 0;
 		ge_run_sta.frame_bus_timeOut=0;
 		ge_run_sta.frame_err=0;
@@ -116,7 +116,7 @@ void app_ge2117_receive_data_handle(void)
 				if(crcValue==ge_crc16_modbus(UART_GE_RX_BUFF, 6))
 				{	 
 					DEBUG_PRINTF("regWriteOk\r\n");
-					ge_run_sta.idle=0;
+					ge_run_sta.listenReg=0;
 					ge_run_sta.frame_length = 0;
 					ge_run_sta.frame_bus_timeOut=0;
 					ge_run_sta.frame_err=0;
@@ -126,11 +126,11 @@ void app_ge2117_receive_data_handle(void)
 			}
 			else 
 			{	
-				if(ge_run_sta.idle<0x2000)//配置寄存器
+				if(ge_run_sta.listenReg<0x2000)//配置寄存器
 				{
 					#if 1
 					ge_run_sta.frame_err=0;
-					ge_run_sta.idle=0;
+					ge_run_sta.listenReg=0;
 					ge_run_sta.frame_length =0;
 					ge_run_sta.frame_err=0;	
 					ge_run_sta.frame_bus_timeOut=0;
@@ -160,17 +160,17 @@ void app_ge2117_receive_data_handle(void)
 				}
 				else //状态寄存器
 				{
-					regStart=ge_run_sta.idle-GE2117_REG_STATUS1;//ge_run_sta.idle-GE2117_REG_MODBUS_ADDR;	//读状态		
+					regStart=ge_run_sta.listenReg-GE2117_REG_STATUS1;//ge_run_sta.idle-GE2117_REG_MODBUS_ADDR;	//读状态		
 					readDataLen=UART_GE_RX_BUFF[2];	//14			
 					crcValue=UART_GE_RX_BUFF[readDataLen+3]|(UART_GE_RX_BUFF[readDataLen+4]<<8);			
 					if(crcValue==ge_crc16_modbus(UART_GE_RX_BUFF, readDataLen+3))
 					{ 
 						regNum=readDataLen>>1;	
-						//DEBUG_PRINTF("regRead:");
+						DEBUG_PRINTF("regRead:");
 						for(uint8_t i=0;i<regNum;i++)
 						{
 							ge2117_reg_sta[regStart+i]=UART_GE_RX_BUFF[3+2*i]<<8|UART_GE_RX_BUFF[4+2*i];						
-							//DEBUG_PRINTF("  %04x",ge2117_reg_sta[regStart+i]);	
+							DEBUG_PRINTF("  %04x",ge2117_reg_sta[regStart+i]);	
 						}
 						geWksta.workStaus      =    ge2117_reg_sta[0];//工作状态
 						geWksta.compressorRunSpd  = ge2117_reg_sta[1];						
@@ -180,7 +180,7 @@ void app_ge2117_receive_data_handle(void)
 						geWksta.driverTemprature  = ge2117_reg_sta[6];				
 						geWksta.wkTimeOut=0;
 						//DEBUG_PRINTF(" regend\r\n");
-						ge_run_sta.idle=0;
+						ge_run_sta.listenReg=0;
 						ge_run_sta.frame_length =0;
 						ge_run_sta.frame_err=0;	
 						ge_run_sta.frame_bus_timeOut=0;			
@@ -191,7 +191,7 @@ void app_ge2117_receive_data_handle(void)
 		}
 	    else 
 		{
-			ge_run_sta.idle=0;
+			ge_run_sta.listenReg=0;
 			ge_run_sta.frame_length = 0;
 			ge_run_sta.frame_bus_timeOut=0;
 			ge_run_sta.frame_err=0;
@@ -254,12 +254,10 @@ void ge2117_gp_init(void)
 *******************************************************************************/
 void app_ge_lisen(uint16_t listenReg,uint16_t dataLen)
 {	
-	ge_run_sta.idle=listenReg;
+	ge_run_sta.listenReg=listenReg;
 	ge_run_sta.frame_length =dataLen;
-
-
 	ge_run_sta.frame_bus_timeOut=0;		
-	HAL_UART_Receive_IT(&huart5,UART_GE_TX_BUFF, dataLen);//切换进入侦听状态	
+	HAL_UART_Receive_IT(&huart5,UART_GE_RX_BUFF, dataLen);//切换进入侦听状态	
 }
 /***************************************************************************//**
  * @brief 问询帧
@@ -270,17 +268,17 @@ void app_ge_lisen(uint16_t listenReg,uint16_t dataLen)
 HAL_StatusTypeDef app_ge_write_req_frame(uint16_t regStart,uint16_t data)
 { 
 	HAL_StatusTypeDef err=HAL_OK;
-	
-	if(ge_run_sta.idle!=0) 
+	if(ge_run_sta.listenReg!=0)
 	{
 		ge_run_sta.frame_bus_timeOut++;
 		if(ge_run_sta.frame_bus_timeOut>2)
 		{
-			ge_run_sta.idle=0;
+			ge_run_sta.listenReg=0;
 			ge_run_sta.frame_bus_timeOut=0;
-			return HAL_BUSY;
-		}		
-	} 
+			ge_run_sta.frame_err=1;
+		}
+		return HAL_BUSY;
+	}
 	UART_GE_TX_BUFF[0]=GE2117_SLAVE_ADD; 
 	UART_GE_TX_BUFF[1]=GE2117_SINGLE_WRITE_CODE;
 	UART_GE_TX_BUFF[2]=(regStart>>8)&0xFF;
@@ -288,7 +286,7 @@ HAL_StatusTypeDef app_ge_write_req_frame(uint16_t regStart,uint16_t data)
 	if(regStart==GE2117_REG_SPD||regStart==GE2117_REG_SPD_STRAT) 
 	{
 		geWksta.compressorSetSpd=data;
-		if(geWksta.compressorSetSpd<1600) geWksta.compressorSetSpd=1600;
+		if(geWksta.compressorSetSpd<3000) geWksta.compressorSetSpd=3000;
 		if(geWksta.compressorSetSpd>7000) geWksta.compressorSetSpd=7000;
 	}
 	UART_GE_TX_BUFF[4]=(data>>8)&0xFF;
@@ -297,7 +295,7 @@ HAL_StatusTypeDef app_ge_write_req_frame(uint16_t regStart,uint16_t data)
 	UART_GE_TX_BUFF[7]=(ge_crc16_modbus(UART_GE_TX_BUFF,6)>>8)&0xFF;
 	err = HAL_UART_Transmit(&huart5,UART_GE_TX_BUFF, 8, 100);	
 	if(err==HAL_OK) app_ge_lisen(regStart,8);
-	else ge_run_sta.idle=0;
+	else ge_run_sta.listenReg=0;
 	return err;
 }
 /***************************************************************************//**
@@ -308,18 +306,18 @@ HAL_StatusTypeDef app_ge_write_req_frame(uint16_t regStart,uint16_t data)
 *******************************************************************************/
 HAL_StatusTypeDef app_ge_read_req_frame(uint16_t regStart,uint16_t regOffset)
 { 
-	HAL_StatusTypeDef err=HAL_OK;
-		
-	if(ge_run_sta.idle!=0) 
+	HAL_StatusTypeDef err=HAL_OK;	
+	if(ge_run_sta.listenReg!=0)
 	{
 		ge_run_sta.frame_bus_timeOut++;
 		if(ge_run_sta.frame_bus_timeOut>2)
 		{
-			ge_run_sta.idle = 0;
-			ge_run_sta.frame_bus_timeOut = 0;
-			return HAL_BUSY;
-		}		 
-	}	
+			ge_run_sta.listenReg=0;
+			ge_run_sta.frame_bus_timeOut=0;
+			ge_run_sta.frame_err=1;
+		}
+		return HAL_BUSY;
+	}
 	UART_GE_TX_BUFF[0]=GE2117_SLAVE_ADD;	
 	UART_GE_TX_BUFF[1]=GE2117_REDA_CODE;
 	UART_GE_TX_BUFF[2]=(regStart>>8)&0xFF;
@@ -330,7 +328,7 @@ HAL_StatusTypeDef app_ge_read_req_frame(uint16_t regStart,uint16_t regOffset)
 	UART_GE_TX_BUFF[7]=(ge_crc16_modbus(UART_GE_TX_BUFF,6)>>8)&0xFF;
 	err = HAL_UART_Transmit(&huart5,UART_GE_TX_BUFF, 8, 100);	
 	if(err==HAL_OK) app_ge_lisen(regStart,regOffset*2+5);
-	else ge_run_sta.idle=0;
+	else ge_run_sta.listenReg=0;
 	return err;
 }
  /***************************************************************************//**
@@ -341,15 +339,15 @@ HAL_StatusTypeDef app_ge_read_req_frame(uint16_t regStart,uint16_t regOffset)
 *******************************************************************************/
 void ge2117_start_up_set(unsigned short int startFlag)
 {	
-	if(startFlag==3)	
+	if(startFlag==GE2117_START_CMD)	
 	{
 		//app_ge_write_req_frame(GE2117_REG_START_STOP,3);//启动	
-		if(geWksta.compressorSetSpd<2500)		geWksta.compressorSetSpd=2500;
+		if(geWksta.compressorSetSpd<3000)		geWksta.compressorSetSpd=3000;
 		if(geWksta.compressorSetSpd>7000) geWksta.compressorSetSpd=7000;
 		app_ge_write_req_frame(GE2117_REG_SPD_STRAT,geWksta.compressorSetSpd);//启动
-	}
+	}	
 	else app_ge_write_req_frame(GE2117_REG_START_STOP,4);//停止
-	//geWksta.startUpStaus=startFlag;
+	
 }
  /***************************************************************************//**
  * @brief 压缩机速度设置
@@ -360,7 +358,6 @@ void ge2117_start_up_set(unsigned short int startFlag)
 void ge2117_speed_set(unsigned short int spd)
 {	
 	app_ge_write_req_frame(GE2117_REG_SPD,spd);
-	//geWksta.compressorSetSpd=spd;
 }
 
  /***************************************************************************//**
@@ -405,57 +402,77 @@ void app_ge2117_gp_ctr_frame(void)
 *******************************************************************************/
 void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 {	
-	unsigned char bus_idle_flag;
-	static unsigned char  runFlag=0;		
+	static unsigned char bus_idle_flag=0,runFlag=0;		
 	static unsigned int geRunTime=0;//压缩机持续时间
 	geWksta.geTimeS++;	
 	if(geWksta.geTimeS>10)//10秒后开始通讯
 	{ 	
 		if(runFlag==0)	
-		{
-			if(circleWaterTmprature>MAX_TEMPRATURE_LASER)
+		{				
+			if(geWksta.workStaus!=0) //start ok
 			{
 				runFlag=1;
-				ge2117_start_up_set(GE2117_START_CMD);
-				bus_idle_flag=1;
-			}
-		}
-		else
-		{
-			geRunTime++;	
-			if(circleWaterTmprature<MID_TEMPRATURE_LASER) 
-			{				
-				if(geWksta.workStaus!=0)
-				{
-					runFlag=0;
-					ge2117_start_up_set(GE2117_STOP_CMD);
-					bus_idle_flag=1;
-				}							
-			}
-			if(geWksta.workStaus!=0)	
-			{		
-				if(geRunTime>120&&(circleWaterTmprature>MAX_TEMPRATURE_LASER))	//2分钟还没降下来，增加制冷功率	 
-				{
-					geRunTime=0;
-					geWksta.compressorSetSpd=geWksta.compressorRunSpd+500;
-					geWksta.compressorSetSpd%=7000;					
-					ge2117_start_up_set(GE2117_START_CMD);//改变速度
-					//ge2117_speed_set(geWksta.compressorSetSpd);
-					bus_idle_flag=1;
-				}	
 			}
 			else 
 			{
-				if(geRunTime>5)//5秒重启
+				if(circleWaterTmprature>MAX_TEMPRATURE_LASER&&bus_idle_flag==0&&geWksta.ge_seriel_err==0)
 				{
 					ge2117_start_up_set(GE2117_START_CMD);
-					bus_idle_flag=1;
-				}
-			}			
+					bus_idle_flag=2;					
+				}					
+			}					
 		}
-		if(bus_idle_flag!=0) 	 bus_idle_flag=0;
+		else
+		{
+			geRunTime++;
+			if(geWksta.workStaus==0)
+			{
+				runFlag=0;
+			}	
+			else
+			{
+				if(geRunTime>120&&(circleWaterTmprature>MAX_TEMPRATURE_LASER))	//2分钟还没降下来，增加制冷功率	 
+				{					
+					geRunTime=0;	
+					geWksta.compressorSetSpd=geWksta.compressorRunSpd+500;				
+					if(geWksta.compressorSetSpd>7000) //温度失控
+					{
+						geWksta.compressorSetSpd=7000;	
+						geWksta.ge_seriel_err=2;					
+						ge2117_start_up_set(GE2117_STOP_CMD);
+						bus_idle_flag=2;
+					}
+					else 
+					{
+						if(bus_idle_flag==0)	
+						{						
+							ge2117_speed_set(geWksta.compressorSetSpd);//改变速度						
+							bus_idle_flag=2;
+						}
+					}	
+				}
+				else 	
+				{					
+					if(circleWaterTmprature<MID_TEMPRATURE_LASER&&bus_idle_flag==0)
+					{
+						ge2117_start_up_set(GE2117_STOP_CMD);
+						bus_idle_flag=2;
+					}
+				}					
+			}							
+				
+		}
+		if(bus_idle_flag==2)
+		{ 
+			bus_idle_flag=1;
+		}
+		else if(bus_idle_flag==1)
+		{
+			app_ge2117_gp_ctr_frame();
+			bus_idle_flag=0;
+		}
 		else app_ge2117_gp_ctr_frame();//status req			
-		if(geWksta.wkTimeOut>10 ) //10秒没数据报错
+		if(geWksta.wkTimeOut>60 ) //60秒没数据报错
 		{
 			geWksta.ge_seriel_err=1;			
 		} 			

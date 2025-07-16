@@ -59,12 +59,11 @@ extern void app_mcu_power_switch(FunctionalState flag);
 extern void app_lcd_power_12V_switch(FunctionalState flag);
 extern void app_air_pump_switch( FunctionalState flag);
 extern void app_circle_water_pump_switch( FunctionalState flag);
-extern void app_PTC_en_switch(FunctionalState flag);
 extern void app_laser1064_AD_sampling_sw(FunctionalState flag);
 extern ErrorStatus app_get_io_status(genaration_IONum  IoNum);
 extern unsigned int  app_IO_key_scan(unsigned short int timeMs);
 extern app_key_message  app_key_value_analysis(unsigned  int keyValue);
-extern   void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTime);
+extern  void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTimeS);
 extern void app_intake_valve_air_solenoid(FunctionalState flag);
 void app_deflate_air_solenoid(FunctionalState flag);
 /* USER CODE END Prototypes */

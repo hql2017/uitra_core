@@ -29,10 +29,10 @@
 #define  GE2117_REG_RE2  	        0x1002//保留寄存器2
 #define  GE2117_REG_RE3 	        0x1003//保留寄存器3
 #define  GE2117_REG_START_STOP	    0x1004//通信寄存器地址 3压缩机启动，4压缩机停止
-#define  GE2117_REG_RE4	                0x1005//保留寄存器3
-#define  GE2117_REG_SPD                0x1006//速度：0~7000
+#define  GE2117_REG_RE4	            0x1005//保留寄存器3
+#define  GE2117_REG_SPD             0x1006//速度：0~7000
 
-#define  GE2117_REG_SPD_STRAT                0x6000//速度启动指令
+#define  GE2117_REG_SPD_STRAT       0x6000//速度启动指令
 //0x1006~0x103F  保持默认
 
 #define  GE2117_REG_STATUS1	        0x2000//0待机；!0工作

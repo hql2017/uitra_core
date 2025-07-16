@@ -25,7 +25,7 @@
 #define AD_VREF_VOLTAGE  3000
 
 #define MAX_AD_BUFF_LENGTH  320
-
+#define MAX_AD_BUFF_BYTES_LENGTH  640//MAX_AD_BUFF_LENGTH*2 //字节长度
 /* USER CODE END 0 */
 
 ADC_HandleTypeDef hadc1;
@@ -240,7 +240,8 @@ void app_start_multi_channel_adc(void)
 void filter_ad(void)
 {
   long unsigned int sum=0;
-  unsigned int i,ch;
+  unsigned int i,ch;	
+	SCB_InvalidateDCache_by_Addr(adBuff, MAX_AD_BUFF_BYTES_LENGTH);
   for(ch=0;ch<5;ch++)
   {
     sum=0;
@@ -249,9 +250,8 @@ void filter_ad(void)
       sum+=adBuff[i*5+ch];
     }    
     advalue[ch]=( unsigned short int)(sum>>6);
-  }
-}
- 
+  }		 
+} 
 /**
   * @brief HAL_ADC_ConvCpltCallback
   * @param void
@@ -263,12 +263,9 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 { 
   if(hadc->Instance==ADC1)
   {
-    //filter   
-    filter_ad();  
-    //send message    
+    filter_ad();     
   }
 }
-
 /**
   * @brief NTC_T cal
   * @param void
@@ -313,6 +310,7 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 void app_get_adc_value(unsigned char adChannel,float *vBuff)
 {  
   unsigned  int temp;
+	
   if(adChannel==AD1_NTC_INDEX)
   {
     temp=((advalue[AD1_NTC_INDEX]*AD_VREF_VOLTAGE)>>16);
@@ -344,6 +342,7 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
     temp=((((advalue[AD1_AIR_PRESSER_INDEX]-D_A_MIN)*AD_VREF_VOLTAGE)>>16) +22);
     *vBuff=temp*0.150723+P_A_MIN;//(441/3000);//air pressure  ,dio
     //DEBUG_PRINTF("air_pressure=%.2f\r\n", *vBuff);
-  }   
+  } 
+ 
 }
 /* USER CODE END 1 */

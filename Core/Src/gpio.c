@@ -252,37 +252,37 @@ void app_air_pump_switch( FunctionalState flag)
   /************************************************************************//**
   * @brief 循环水水加热管理  water 
   * @param circleWaterTmprature 冷却液温度
-  * @note    冷却水需维持24~26摄氏度，最佳25℃
+  * @note    冷却水需维持22~26摄氏度，最佳23℃, 1秒调用一次
   * @retval None
   *****************************************************************************/
-void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTime)
+void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTimeS)
 {
-  static unsigned  int localtime;
   static unsigned  int ptcRunTime;
   static unsigned  char  PTC_flag;
-  if(circleWaterTmprature<MIN_TEMPRATURE_LASER&PTC_flag==0)  
+  if(PTC_flag==0)
   {
-    PTC_flag=1;
-    app_PTC_en_switch(ENABLE);
-  }
-  if(circleWaterTmprature>=MID_TEMPRATURE_LASER&&PTC_flag!=0) 
-  {
-    PTC_flag=0;
-    app_PTC_en_switch(DISABLE);
-  }
-  if(sysTime>localtime+1000)//加热5秒大概升温1摄氏度
-  {  
-    localtime=sysTime;
-    if(PTC_flag!=0 ) ptcRunTime++;
-    else ptcRunTime=0;
-    if(ptcRunTime>360)//6分钟关一次
+    if(circleWaterTmprature<MIN_TEMPRATURE_LASER)  
     {
-      ptcRunTime=0;
+      PTC_flag=1;
+      app_PTC_en_switch(ENABLE);
+    }
+  }
+  else 
+  {
+    if(circleWaterTmprature+4>MID_TEMPRATURE_LASER) //加热到18度停止加热
+    {
       PTC_flag=0;
       app_PTC_en_switch(DISABLE);
     }
-  } 
-  else localtime=sysTime;
+  }    
+  if(PTC_flag!=0 ) ptcRunTime++;
+  else ptcRunTime=0;
+  if(ptcRunTime>360)//6分钟关一次
+  {
+    ptcRunTime=0;
+    PTC_flag=0;
+    app_PTC_en_switch(DISABLE);
+  }
 }
   /************************************************************************//**
   * @brief l064激光 AD采集开关
