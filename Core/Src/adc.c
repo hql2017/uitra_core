@@ -285,7 +285,7 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     //B=TtT0*log(Rt/R0)/(T0-Tt);
     //Tt = (1.0/(log(Rt/R0)/B + 1/T0) )-273.15;
     Rt=(3300*2.0/voltage)-2.00;//r=2k 
-    if(Rt>4.917) B=3380;//<50
+    if(Rt>4.917)      B=3380;//<50
     else if(Rt>1.669) B=3428;//<80
     else if(Rt>1.452) B=3434;//<85
     else if(Rt>0.974) B=3455;//<100
@@ -309,8 +309,7 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
   */
 void app_get_adc_value(unsigned char adChannel,float *vBuff)
 {  
-  unsigned  int temp;
-	
+  unsigned  int temp;	
   if(adChannel==AD1_NTC_INDEX)
   {
     temp=((advalue[AD1_NTC_INDEX]*AD_VREF_VOLTAGE)>>16);
@@ -325,9 +324,7 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
   }
   else  if(adChannel==AD1_OCP_Ibus_INDEX)
   {
-    temp=(((advalue[AD1_OCP_Ibus_INDEX]*AD_VREF_VOLTAGE)>>16))*4;
-
-    
+    temp=(((advalue[AD1_OCP_Ibus_INDEX]*AD_VREF_VOLTAGE)>>16))*4;    
     *vBuff=temp*0.657894736842105; //I_bus,I*0.005*50=Value  mV   :I=value/0.25   mA ;//calibration
     //DEBUG_PRINTF("iBus=%dmA\r\n", temp);
   }
@@ -342,7 +339,6 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
     temp=((((advalue[AD1_AIR_PRESSER_INDEX]-D_A_MIN)*AD_VREF_VOLTAGE)>>16) +22);
     *vBuff=temp*0.150723+P_A_MIN;//(441/3000);//air pressure  ,dio
     //DEBUG_PRINTF("air_pressure=%.2f\r\n", *vBuff);
-  } 
- 
+  }  
 }
 /* USER CODE END 1 */

@@ -44,11 +44,14 @@
 #include  "jdq_bsp.h"
 #include "drv_RF24L01.h"
 #include "user_can1.h"
+#ifdef ONE_WIRE_BUS_SLAVE
 #include "one_wire_bus.h"
+#endif
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
+typedef StaticTask_t osStaticThreadDef_t;
 typedef StaticEventGroup_t osStaticEventGroupDef_t;
 /* USER CODE BEGIN PTD */
 
@@ -85,7 +88,16 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
 
 
 //laserEvent02Handle  
-#define EVENTS_LASER_GX_TEST_PREPARE_OK_BIT  			0x01     //光纤激活
+#define EVENTS_LASER_GX_TEST_PREPARE_OK_BIT  			0x01
+
+
+
+
+
+
+
+
+//光纤激活
 #define EVENTS_LASER_980_PREPARE_OK_BIT  					0x01<<1  //980laser
 #define EVENTS_LASER_1064_PREPARE_OK_BIT        	0x01<<2   //1064laser
 #define EVENTS_LASER_JT_ENABLE_BIT        	      0x01<<3   //脚踏开放
@@ -122,13 +134,18 @@ osThreadId_t myTask02Handle;
 const osThreadAttr_t myTask02_attributes = {
   .name = "myTask02",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal2,
+  .priority = (osPriority_t) osPriorityNormal3,
 };
 /* Definitions for myTask03 */
 osThreadId_t myTask03Handle;
+uint32_t myTask03Buffer[ 128 ];
+osStaticThreadDef_t myTask03ControlBlock;
 const osThreadAttr_t myTask03_attributes = {
   .name = "myTask03",
-  .stack_size = 128 * 4,
+  .cb_mem = &myTask03ControlBlock,
+  .cb_size = sizeof(myTask03ControlBlock),
+  .stack_mem = &myTask03Buffer[0],
+  .stack_size = sizeof(myTask03Buffer),
   .priority = (osPriority_t) osPriorityNormal7,
 };
 /* Definitions for myTask04 */
@@ -143,7 +160,7 @@ osThreadId_t myTask05Handle;
 const osThreadAttr_t myTask05_attributes = {
   .name = "myTask05",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal6,
+  .priority = (osPriority_t) osPriorityNormal5,
 };
 /* Definitions for myTask06 */
 osThreadId_t myTask06Handle;
@@ -244,6 +261,9 @@ void app_air_pump_manage(unsigned char air_level);
 void app_pwr_gx_semo(unsigned char code);
 void app_fresh_laser_status_param(void);
 unsigned short int  app_laser_1064_energe_to_voltage(unsigned short int energe);
+#ifdef ONE_WIRE_BUS_SLAVE
+unsigned int  app_owb_key_scan(unsigned short int timeMs);
+#endif
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -662,7 +682,9 @@ void StartDefaultTask(void *argument)
       app_lcd_power_12V_switch(ENABLE);    
       sys_load_sta.hmiLcdLoadFlag=1;
     }
-		MX_IWDG1_Init();
+    #ifdef IWDG_USED
+    MX_IWDG1_Init(); 
+    #endif	
     osThreadTerminate(defaultTaskHandle);    
    //osDelay(1);
   }
@@ -745,24 +767,29 @@ void auxTask02(void *argument)
 void keyScanTask03(void *argument)
 {
   /* USER CODE BEGIN keyScanTask03 */
-   unsigned int recKeyValue,rf24KeyValue; 	
+  unsigned int recKeyValue,rf24KeyValue; 	
 	app_key_message key_message;   
 	RF24_init();
+  #ifdef ONE_WIRE_BUS_SLAVE
+  one_wire_bus_intit();
+  #endif
 	/* Infinite loop */    
 	for(;;)
 	{  
-		HAL_IWDG_Refresh(&hiwdg1);
-		osDelay(10);  
-		//HAL_IWDG_Refresh(&hiwdg1);		
-		recKeyValue = app_IO_key_scan(10);  //io-KEY	
+    #ifdef IWDG_USED
+    HAL_IWDG_Refresh(&hiwdg1); 
+    #endif
+		osDelay(20); 
+    #ifdef ONE_WIRE_BUS_SLAVE
+    recKeyValue=  app_owb_key_scan(20);
+    #else 
+    recKeyValue = app_IO_key_scan(20);  //io-KEY
+    #endif
+    rf24KeyValue  = app_RF24_key_scan(20);//RF24_key 20ms间隔			
 		if((recKeyValue&0XFF)==IO_KEY_IDLE)
-		{			
-			if(HAL_GPIO_ReadPin(RF24_IRQ_in_GPIO_Port,RF24_IRQ_in_Pin)==GPIO_PIN_RESET)//&&sta==osOK)
-			{ 		
-				rf24KeyValue  =  app_RF24_key_scan(10);//RF24_key 100ms间隔 	       
-			} 
-			//recKeyValue|=rf24KeyValue;			 			
-		}		
+		{	
+      recKeyValue|=rf24KeyValue;		
+    }  
 		key_message=app_key_value_analysis(recKeyValue);		
 		if(key_message==key_pwr_long_press)
 		{
@@ -1108,6 +1135,10 @@ void powerOffTask08(void *argument)
 			DEBUG_PRINTF("please release power key\r\n");	
 			//看门狗				
 			HAL_Delay(1000);
+      #ifdef IWDG_USED
+      HAL_IWDG_Refresh(&hiwdg1); 
+      #endif
+      	
 		}	
    // osDelay(1);
   }
@@ -1219,20 +1250,19 @@ void ge2117ManageTask10(void *argument)
   * @retval None
   */
  void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
- {
+ {  
    if(GPIO_Pin==LASER_1064_count_in_Pin)
   {
    //u_sys_param.sys_config_param.laser1064PulseCount++;
   }
   if(GPIO_Pin==RF24_IRQ_in_Pin)
-  {
-    osSemaphoreRelease(RF24_JT_BinarySem01Handle) ;//SPI  
-    //DEBUG_PRINTF("RF24\r\n");  
+  {    
+    osSemaphoreRelease(RF24_JT_BinarySem01Handle) ;//SPI
     //JT RF24;
   }
 	#ifdef ONE_WIRE_BUS_SLAVE 
   if(GPIO_Pin==FOOT_SWITCH_IN_Pin)
-  {
+  {    
     owb_dq_falling_callback();
   }
 	#endif
@@ -1336,7 +1366,6 @@ void app_set_default_sys_config_param(void)
   * @param 无
   * @note   
   * @retval 
-  * 
   *****************************************************************************/
   void app_sys_param_load(void)
   {
@@ -1373,6 +1402,8 @@ void app_set_default_sys_config_param(void)
  /************************************************************************//**
   * @brief 气泵管理
   * @param air_level 气泵气压等级
+  * 
+
   * @note   
   * @retval 
   *****************************************************************************/
@@ -1443,11 +1474,37 @@ void app_set_default_sys_config_param(void)
   {
     unsigned short int ret_vol;
   // ret_vol=energe*30+8000;//?	 
-    ret_vol=energe*32+8000;//?	非线性，后期增加校准 
+    ret_vol=energe*32+8000;//?需要校准
     if(ret_vol<LASER_1064_MIN_ENERGE_V) ret_vol=LASER_1064_MIN_ENERGE_V;
     if(ret_vol>LASER_1064_MAX_ENERGE_V) ret_vol=LASER_1064_MAX_ENERGE_V;
     return ret_vol;
   }
+  #ifdef ONE_WIRE_BUS_SLAVE
+   /************************************************************************//**
+  * @brief key 信号,按键扫描单总线
+  * @param 按键扫描间隔时间ms
+  * @note   4个字节，4个按键值，1byte一个按键
+  * @retval 键值
+  *****************************************************************************/
+ unsigned int  app_owb_key_scan(unsigned short int timeMs)
+ { 
+  unsigned short int recLen,owb_key_value=0;
+  unsigned char owb_buff[8];
+  recLen= app_owb_get_receive_pack_len();
+  if(recLen!=0)
+  {    
+    app_owb_receive_handle(owb_buff,recLen);     
+   // DEBUG_PRINTF("JT owb recLen= %d %d %d %d %d %d",recLen,owb_buff[0],owb_buff[1],owb_buff[2],owb_buff[3],owb_buff[4]);
+    if(owb_buff[0]=='[' && owb_buff[3]==']')
+    {      
+      owb_key_value  = owb_buff[1];    
+    }
+    else owb_key_value=0;
+  }
+  else owb_key_value=0;
+  return   owb_key_value;
+ }
+ #endif
  /***************************extern api**********************************************************/
  /************************************************************************//**
   * @brief 给出canBus数据接收信号量

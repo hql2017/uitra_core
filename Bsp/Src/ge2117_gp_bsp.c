@@ -415,7 +415,7 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 			}
 			else 
 			{
-				if(circleWaterTmprature>MAX_TEMPRATURE_LASER&&bus_idle_flag==0&&geWksta.ge_seriel_err==0)
+				if(circleWaterTmprature>MAX_TEMPRATURE_LASER&&bus_idle_flag==0)
 				{
 					ge2117_start_up_set(GE2117_START_CMD);
 					bus_idle_flag=2;					
@@ -435,21 +435,12 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 				{					
 					geRunTime=0;	
 					geWksta.compressorSetSpd=geWksta.compressorRunSpd+500;				
-					if(geWksta.compressorSetSpd>7000) //温度失控
-					{
-						geWksta.compressorSetSpd=7000;	
-						geWksta.ge_seriel_err=2;					
-						ge2117_start_up_set(GE2117_STOP_CMD);
+					if(geWksta.compressorSetSpd>7000)  geWksta.compressorSetSpd=7000;					
+					if(bus_idle_flag==0)	
+					{						
+						ge2117_speed_set(geWksta.compressorSetSpd);					
 						bus_idle_flag=2;
-					}
-					else 
-					{
-						if(bus_idle_flag==0)	
-						{						
-							ge2117_speed_set(geWksta.compressorSetSpd);//改变速度						
-							bus_idle_flag=2;
-						}
-					}	
+					}						
 				}
 				else 	
 				{					
@@ -459,8 +450,7 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 						bus_idle_flag=2;
 					}
 				}					
-			}							
-				
+			}	
 		}
 		if(bus_idle_flag==2)
 		{ 
@@ -478,7 +468,6 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 		} 			
 		geWksta.wkTimeOut++;
 	}
-
 }
 
 

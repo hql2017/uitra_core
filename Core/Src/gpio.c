@@ -109,11 +109,11 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : RF24_IRQ_in_Pin */
-  GPIO_InitStruct.Pin = RF24_IRQ_in_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  /*Configure GPIO pins : RF24_IRQ_in_Pin H_AIR_ERROR_Pin */
+  GPIO_InitStruct.Pin = RF24_IRQ_in_Pin|H_AIR_ERROR_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(RF24_IRQ_in_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : H_AIR_EN_Pin DAC_LD_Pin DAC_CS_Pin TEMPRATURE_ALERT_Pin
                            RS485_DIR_Pin */
@@ -123,12 +123,6 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : H_AIR_ERROR_Pin */
-  GPIO_InitStruct.Pin = H_AIR_ERROR_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(H_AIR_ERROR_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LASER_1064_count_in_Pin */
   GPIO_InitStruct.Pin = LASER_1064_count_in_Pin;
@@ -179,13 +173,10 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(MCU_SYS_health_LED_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI0_IRQn, 7, 0);
-  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
-
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 8, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }

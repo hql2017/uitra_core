@@ -14,11 +14,11 @@
 #define  OWB_FRAME_START_TIM     	5 //帧起始信号>1us
 #define  OWB_FRAME_MINI_L_TIM     	15 //us,帧间隔最小低电平,15us后从机回复，等待释放总线
 #define  OWB_FRAME_ACK_L_TIM      	240//60 //60~240us
-#define  OWB_FRAME_MAX_DELAY_TIM  	480 //us
+#define  OWB_FRAME_MAX_DELAY_TIM  	485 //us
 
 #define  OWB_DQ_OUT_H   HAL_GPIO_WritePin(FOOT_SWITCH_IN_GPIO_Port,FOOT_SWITCH_IN_Pin,GPIO_PIN_SET)
 #define  OWB_DQ_OUT_L   HAL_GPIO_WritePin(FOOT_SWITCH_IN_GPIO_Port,FOOT_SWITCH_IN_Pin,GPIO_PIN_RESET)
-#define  OWB_DQ_READ    HAL_GPIO_ReadPin (FOOT_SWITCH_IN_GPIO_Port, FOOT_SWITCH_IN_Pin)
+#define  OWB_DQ_READ    HAL_GPIO_ReadPin(FOOT_SWITCH_IN_GPIO_Port, FOOT_SWITCH_IN_Pin)
 
 typedef struct {	
 	unsigned char busIdleFlag;//0总线空闲,1 ack;2tx;3rx
@@ -32,7 +32,6 @@ static ONE_BUS_FRAME owb_frame;
 
 #define OWB_MAX_FRAME_LENGTH 16
 static unsigned char owb_rxBuff[OWB_MAX_FRAME_LENGTH+1]={0};
-static unsigned char owb_txrxLength;//接收发送字节长度=16;
 static unsigned char owb_txBuff[OWB_MAX_FRAME_LENGTH+1]={0};
 
 /************************************************************************//**
@@ -46,9 +45,13 @@ void one_wire_bus_intit(void)
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 	__HAL_RCC_GPIOD_CLK_ENABLE();
 	GPIO_InitStruct.Pin = FOOT_SWITCH_IN_Pin;
+	#ifdef ONE_WIRE_BUS_SLAVE 
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+	#else 
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	#endif
+	GPIO_InitStruct.Pull = GPIO_PULLUP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 	HAL_GPIO_Init(FOOT_SWITCH_IN_GPIO_Port, &GPIO_InitStruct);
 	//tim
 }
@@ -62,23 +65,21 @@ void one_wire_bus_intit(void)
   *****************************************************************************/
  unsigned short int  app_owb_get_receive_pack_len(void)
  {	
-	if(owb_frame.err!=HAL_OK)
-	{
-	return 0;
-	}
-	return owb_txrxLength;
+	return owb_frame.rxLength;
  }
 /************************************************************************//**
 	* @brief receive data handlehandle
   * @param 
-  * @note  
+  * @note  采用定长数据，调用一次清空缓存
   * @retval  
   *****************************************************************************/
  void app_owb_receive_handle(unsigned char *pData,unsigned short int length)
  {
 	if(length!=0)
-	{		
-     memcpy(pData,owb_rxBuff,length);
+	{	
+		memcpy(pData,owb_rxBuff,length);	
+	 	owb_frame.rxLength=0;
+		owb_frame.busIdleFlag=0;
 	}
  }
 /************************************************************************//**
@@ -88,45 +89,64 @@ void one_wire_bus_intit(void)
   * @retval  
   *****************************************************************************/
 void owb_dq_falling_callback(void)
-{
+{	
 	if(owb_frame.busIdleFlag==0) 
-	{
-		owb_frame.busAck=0;
-		owb_frame.busIdleFlag=1;//reset信号判定
-		//tim16 start
-		HAL_TIM_Base_Start_IT(&htim16);
+	{	
+		owb_frame.busTime=0;//next bit	
+		owb_frame.busAck=0;		
+		owb_frame.busIdleFlag=1;//reset	
+		owb_frame.rxLength=0;
+		__HAL_TIM_SetAutoreload(&htim16,29);
+		HAL_TIM_Base_Start_IT(&htim16);		
+	
 	}
-	else if(owb_frame.busIdleFlag==2) 
-	{
-		//tim16 start;//数据信号判定
+	else if(owb_frame.busIdleFlag==3) 
+	{	
+		owb_frame.busTime=0;//next bit	
+		__HAL_TIM_SetAutoreload(&htim16,29);
 		HAL_TIM_Base_Start_IT(&htim16);
 	}
 }
 /************************************************************************//**
-	* @brief 写0
+* @brief 写0
   * @param 
   * @note  
   * @retval  
   *****************************************************************************/
- void owb_tim_callback(unsigned char timeUs)
+ void owb_tim_callback(unsigned int timeUs)
  {	
-	static unsigned char txrxData,txrxBit,startFlag;
+	static unsigned char txrxData,txrxBit=0;	
 	owb_frame.busTime += timeUs;
+	if (owb_frame.busTime>OWB_FRAME_MAX_DELAY_TIM)
+	{		
+		HAL_TIM_Base_Stop_IT(&htim16);	
+		owb_frame.busTime=0;						
+		txrxBit=0;							
+		txrxData=0;
+		owb_frame.busIdleFlag=0;		
+	}	
 	 switch(owb_frame.busIdleFlag)
 	 {	
 		case 1://ack		
 			if(owb_frame.busAck==0)
 			{				
-				if(owb_frame.busTime>=OWB_FRAME_RESET_TIM-OWB_FRAME_WIDTH_TIM)//reset semr
+				if(owb_frame.busTime>=OWB_FRAME_RESET_TIM)//reset semr
 				{
+					HAL_TIM_Base_Stop_IT(&htim16);
 					if(OWB_DQ_READ==GPIO_PIN_RESET)
 					{
-						owb_frame.busAck=1;//reset info					
+						//owb_frame.busAck=1;//reset info														
+						owb_frame.busAck=3;//no ack
+						owb_frame.busTime=0;
+						owb_frame.busIdleFlag=3;
+						txrxData=0;
+						txrxBit=0;
+						owb_frame.rxLength=0;
 					}
 					else 
 					{	
 						owb_frame.busIdleFlag=0;	//err						
-					}					
+					}				
 				}				
 			}
 			else  if(owb_frame.busAck==1)
@@ -147,8 +167,7 @@ void owb_dq_falling_callback(void)
 					owb_frame.busTime=0;
 					owb_frame.busIdleFlag=3;//等待数据
 					txrxData=0;
-					txrxBit=0;
-					owb_txrxLength=0;
+					txrxBit=0;								
 					HAL_TIM_Base_Stop_IT(&htim16);					
 				}
 			}	
@@ -162,38 +181,30 @@ void owb_dq_falling_callback(void)
 			break;
 		 case 3://rx
 			if(owb_frame.busTime>OWB_FRAME_MINI_L_TIM)//15us后读取
-			{				
+			{
 				if(OWB_DQ_READ)	
 				{
 					txrxData|=(0x01<<txrxBit);	
-				}		
-				txrxBit++;			
-				owb_frame.busTime=0;//等待下一bit数据			
+				}	
+				txrxBit+=1;		
+				owb_frame.busTime=0;
 				HAL_TIM_Base_Stop_IT(&htim16);	
-				if(txrxBit>=8) 
+				if(txrxBit>7) 
 				{
 					txrxBit=0;	
-					owb_txrxLength%=OWB_MAX_FRAME_LENGTH;	
-					owb_rxBuff[owb_txrxLength]=txrxData;
-					owb_txrxLength++;//=1;
-					if(owb_txrxLength>=owb_frame.rxLength)
-					{
-						owb_frame.busIdleFlag=0;
-						owb_frame.busTime=0;	
-						owb_frame.busAck=0;
-						owb_frame.err=HAL_OK;	
-					}
-
-				}		
+					owb_rxBuff[owb_frame.rxLength]=txrxData;			
+					txrxData=0;
+					owb_frame.rxLength+=1;//=1;	
+					owb_frame.busTime=0;			 	
+				}	
 			}
 			break;
 		default :
-			{				
+			{	//接收结束		
 				HAL_TIM_Base_Stop_IT(&htim16);	
-				owb_frame.busTime=0;
-				startFlag=0;						
-				txrxBit=0;
-				owb_frame.err=HAL_TIMEOUT;					
+				owb_frame.busTime=0;						
+				txrxBit=0;							
+				txrxData=0;
 				owb_frame.busIdleFlag=0;
 			}			
 			break;
@@ -243,9 +254,9 @@ void owb_dq_falling_callback(void)
   * @note  busIdleFlag 0空闲;1；发送复位脉冲：2发送数据；
   * @retval  
   *****************************************************************************/
-void owb_tim_callback(unsigned char timeUs)
+void owb_tim_callback(unsigned int timeUs)
 {
-	static unsigned char startFlag,txrxData,txrxBit;
+	static unsigned char startFlag,txrxData,txrxBit,owb_txrxLength;
 	owb_frame.busTime += timeUs;
 	switch(owb_frame.busIdleFlag)
 	{		
@@ -319,8 +330,7 @@ void owb_tim_callback(unsigned char timeUs)
 				{
 					if(startFlag==0)
 					{ 	
-						startFlag=1;		
-						owb_txrxLength%=(OWB_MAX_FRAME_LENGTH+1);				
+						startFlag=1;	
 						if((owb_txBuff[owb_txrxLength]>>txrxBit)&0x01)
 						{
 							OWB_DQ_OUT_H;//写1
@@ -345,6 +355,8 @@ void owb_tim_callback(unsigned char timeUs)
 								OWB_DQ_OUT_H;							
 								owb_frame.busIdleFlag=0;
 								owb_frame.busAck=0;
+								owb_frame.txLength=0;
+								owb_txrxLength=0;
 								owb_frame.err=HAL_OK;							
 							}
 							else 

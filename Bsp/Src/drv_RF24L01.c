@@ -18,8 +18,6 @@
 #include "drv_RF24L01.h"
 #include "spi.h"
 
-extern SPI_HandleTypeDef hspi6;
-
 const char *g_ErrorString = "RF24L01 is not find !...";
 
 uint8_t drv_spi_read_write_byte(uint8_t TxByte)
@@ -75,7 +73,7 @@ void NRF24L01_Read_Buf( uint8_t RegAddr, uint8_t *pBuf, uint8_t len )
     drv_spi_read_write_byte( NRF_READ_REG | RegAddr );	//读命令 地址	
     for( btmp = 0; btmp < len; btmp ++ )
     {
-        *( pBuf + btmp ) = drv_spi_read_write_byte( 0xFF );	//读数据
+      *( pBuf + btmp ) = drv_spi_read_write_byte( 0xFF );	//读数据
     }
     RF24L01_SET_CS_HIGH( );		//取消片选
 }
@@ -620,8 +618,8 @@ uint8_t NRF24L01_RxPacket( uint8_t *rxbuf )
 		if( 300 == l_100MsTimes )		//3s没接收过数据，重新初始化模块
 		{
       l_100MsTimes=0;
-			NRF24L01_Gpio_Init( );
-			RF24L01_Init( );
+			//NRF24L01_Gpio_Init( );
+			//RF24L01_Init( );
 			RF24L01_Set_Mode( MODE_RX );
 		}
 	}	
@@ -661,7 +659,7 @@ void RF24L01_Init( void )
 {
   uint8_t addr[5] = {INIT_ADDR};
 
-  RF24L01_SET_CE_HIGH( );
+ // RF24L01_SET_CE_HIGH( );
   NRF24L01_Clear_IRQ_Flag( IRQ_ALL );
 #if DYNAMIC_PACKET == 1
 
@@ -671,9 +669,7 @@ void RF24L01_Init( void )
   NRF24L01_Read_Reg( FEATRUE );
 	
 #elif DYNAMIC_PACKET == 0
-    
-    L01_WriteSingleReg( L01REG_RX_PW_P0, FIXED_PACKET_LEN );	//固定数据长度
-	
+  L01_WriteSingleReg( L01REG_RX_PW_P0, FIXED_PACKET_LEN );	//固定数据长度
 #endif	//DYNAMIC_PACKET
 
   NRF24L01_Write_Reg( CONFIG, /*( 1<<MASK_RX_DR ) |*/		//接收中断
@@ -689,6 +685,7 @@ void RF24L01_Init( void )
 
   NRF24L01_Set_TxAddr( &addr[0], 5 );                      //设置TX地址
   NRF24L01_Set_RxAddr( 0, &addr[0], 5 );                   //设置RX地址
+  RF24L01_SET_CE_HIGH( );
 }
 /************************************************************************//**
   * @brief 来自RF24 无线脚踏
@@ -700,15 +697,20 @@ void RF24L01_Init( void )
  {
     unsigned short int rf24_rxLen;
     unsigned  int retKey=0;
-    unsigned char g_RF24L01RxBuffer[8]={0};
-    
+    unsigned char g_RF24L01RxBuffer[8]={0};   
     rf24_rxLen = NRF24L01_RxPacket( g_RF24L01RxBuffer );		
     if( 0 != rf24_rxLen )
-    {	
-			 DEBUG_PRINTF("leng=%d RF0=%d RF1=%dRF2=%dRF3=%d\r\n",rf24_rxLen,g_RF24L01RxBuffer[0],g_RF24L01RxBuffer[1],g_RF24L01RxBuffer[2],g_RF24L01RxBuffer[3]); 			
+    {	 	
+     // DEBUG_PRINTF("leng=%d RF0~3=%d %d %d %d\r\n",rf24_rxLen,g_RF24L01RxBuffer[0],g_RF24L01RxBuffer[1],g_RF24L01RxBuffer[2],g_RF24L01RxBuffer[3]);	
       if(g_RF24L01RxBuffer[0]=='['&&g_RF24L01RxBuffer[3]==']')
       {       
-        retKey=g_RF24L01RxBuffer[1];          
+        if(g_RF24L01RxBuffer[2]<30)
+        {
+          DEBUG_PRINTF("f24 Low POWER%d",g_RF24L01RxBuffer[2]);	
+          retKey=4;
+          sGenSta.laser_param_B456_jt_status=4;
+        }        
+        else  retKey=g_RF24L01RxBuffer[1];          
       }
       else retKey=0; 
     }
@@ -726,5 +728,5 @@ void RF24_init(void )
 	NRF24L01_Gpio_Init( );
 	//NRF24L01_check( );			
 	RF24L01_Init( );	
-	RF24L01_Set_Mode( MODE_RX );		
+	RF24L01_Set_Mode( MODE_RX );	
 }

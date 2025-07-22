@@ -476,12 +476,11 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
        Error_Handler();			
      }			
    }	
-  else  if(UartHandle->Instance==huart5.Instance)	
-  {   	    
-    //app_mer_receive_data_handle();
-     app_ge2117_receive_data_handle();
+ if(UartHandle->Instance==huart5.Instance)	
+  {  
+    app_ge2117_receive_data_handle();
   }
-  else  if(UartHandle->Instance==huart1.Instance)	
+  if(UartHandle->Instance==huart1.Instance)	
   {   	    
     app_jdq_sts_1200_receive_handle();
   }

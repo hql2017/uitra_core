@@ -96,7 +96,7 @@ int main(void)
 
   /* Enable D-Cache---------------------------------------------------------*/
   SCB_EnableDCache();
- 
+
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
@@ -135,8 +135,8 @@ int main(void)
   MX_TIM3_Init();
   MX_ADC1_Init();
   MX_TIM7_Init();
- // MX_IWDG1_Init();
   MX_TIM16_Init();
+  MX_IWDG1_Init();
   /* USER CODE BEGIN 2 */
   DWT_Init(); 
   #ifdef DEBUG_MSG_UART
@@ -306,12 +306,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-  if (htim->Instance == TIM3)  
-  {//100us timer for 1064 (100~310us) 
-    u_sys_param.sys_config_param.laser1064PulseCount++;//用光电管更好    
-  }	 
+  if (htim->Instance == TIM3)  u_sys_param.sys_config_param.laser1064PulseCount++;//用光电管更好  
+ 
   if (htim->Instance == TIM7)  app_steps_pulse(0xFFFFFFFF);
-  if (htim->Instance == TIM16) owb_tim_callback(5);
+  if (htim->Instance == TIM16) owb_tim_callback(30);
   /* USER CODE END Callback 1 */
 }
 

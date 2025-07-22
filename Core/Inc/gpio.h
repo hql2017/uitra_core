@@ -42,6 +42,7 @@ typedef enum{
   In6_Hyperbaria_OFF_Signal,//气泵过压
   In7_water_ready_ok,//治疗水状态ok
   In8_water_circle_ok,//循环水状态OK
+  In9_emergency_ok,//急停开关,无异常
   IN_GENERATION_All
 }genaration_IONum;
 

@@ -70,7 +70,7 @@
   #define REUSE_TX_PL     0xE3	//重新使用上一包数据，CE为高，数据包被不断发送
   #define R_RX_PL_WID     0x60
   #define NOP             0xFF	//空操作，可以用来读状态寄存器
-  #define W_ACK_PLOAD		0xA8
+  #define W_ACK_PLOAD		  0xA8
   #define WR_TX_PLOAD_NACK 0xB0
   //SPI(NRF24L01)寄存器地址
   #define CONFIG          0x00	//配置寄存器地址，bit0:1接收模式,0发射模式;bit1:电选择;bit2:CRC模式;bit3:CRC使能;
@@ -104,7 +104,7 @@
   #define RX_PW_P5        0x16	//接收数据通道5有效数据宽度(1~32字节),设置为0则非法
   #define NRF_FIFO_STATUS 0x17	//FIFO状态寄存器;bit0:RX FIFO寄存器空标志;bit1:RX FIFO满标志;bit2~3保留
                   //bit4:TX FIFO 空标志;bit5:TX FIFO满标志;bit6:1,循环发送上一数据包.0,不循环								
-  #define DYNPD			0x1C
+  #define DYNPD			  0x1C
   #define FEATRUE			0x1D
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
   

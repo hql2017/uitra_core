@@ -94,7 +94,6 @@ void Error_Handler(void);
 #define RF24_SDN_out_GPIO_Port GPIOC
 #define RF24_IRQ_in_Pin GPIO_PIN_0
 #define RF24_IRQ_in_GPIO_Port GPIOB
-#define RF24_IRQ_in_EXTI_IRQn EXTI0_IRQn
 #define H_AIR_EN_Pin GPIO_PIN_1
 #define H_AIR_EN_GPIO_Port GPIOB
 #define H_AIR_ERROR_Pin GPIO_PIN_2
@@ -199,12 +198,13 @@ void Error_Handler(void);
 #define MCU_SYS_health_LED_GPIO_Port GPIOE
 #define water_ready_ok_in_Pin GPIO_PIN_1
 #define water_ready_ok_in_GPIO_Port GPIOE
+#define water_ready_ok_in_EXTI_IRQn EXTI1_IRQn
 
 /* USER CODE BEGIN Private defines */
 /* USER CODE BEGIN Private defines */
 //激光工作环境温度，冷却液温度
-#define MIN_TEMPRATURE_LASER   20.0f
-#define MID_TEMPRATURE_LASER   23.0f//最佳工作温度
+#define MIN_TEMPRATURE_LASER   11.0f
+#define MID_TEMPRATURE_LASER   22.0f//最佳工作温度
 #define MAX_TEMPRATURE_LASER   24.0f
 
 //air pump 气泵 kPa,绝对值
@@ -232,6 +232,12 @@ void Error_Handler(void);
 #define MIN_VBUS_MV 12000
 
 #define EEROM_DATA_ERR_CHECK_FLAG  20250707//有历史数据
+
+
+
+#ifdef IWDG_USED
+#define IWDG_USED  
+#endif
 
 #ifndef DEBUG_MSG_UART 
 #define DEBUG_MSG_UART  /*use printf*/

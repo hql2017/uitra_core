@@ -94,7 +94,6 @@ void Error_Handler(void);
 #define RF24_SDN_out_GPIO_Port GPIOC
 #define RF24_IRQ_in_Pin GPIO_PIN_0
 #define RF24_IRQ_in_GPIO_Port GPIOB
-#define RF24_IRQ_in_EXTI_IRQn EXTI0_IRQn
 #define H_AIR_EN_Pin GPIO_PIN_1
 #define H_AIR_EN_GPIO_Port GPIOB
 #define H_AIR_ERROR_Pin GPIO_PIN_2
@@ -233,7 +232,13 @@ void Error_Handler(void);
 
 #define EEROM_DATA_ERR_CHECK_FLAG  20250707//有历史数据
 
-#ifdef DEBUG_MSG_UART 
+
+
+#ifdef IWDG_USED
+#define IWDG_USED  
+#endif
+
+#ifndef DEBUG_MSG_UART 
 #define DEBUG_MSG_UART  /*use printf*/
 #define DEBUG_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
