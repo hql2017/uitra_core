@@ -21,7 +21,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "main.h"
-#include "cmsis_os.h"
+#include "cmsis_os2.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -75,12 +75,12 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
 #define EVENTS_AUX_STATUS_IO6_BIT  0x01<<5
 #define EVENTS_AUX_STATUS_IO7_BIT  0x01<<6
 #define EVENTS_AUX_STATUS_IO8_BIT  0x01<<7                                            
-#define EVENTS_AUX_STATUS_9_NTC_BIT                          0x0001<<8
-#define EVENTS_AUX_STATUS_10_IBUS_BIT                        0x0001<<9
-#define EVENTS_AUX_STATUS_11_VBUS_BIT                        0x0001<<10
+#define EVENTS_AUX_STATUS_9_NTC_BIT                         0x0001<<8
+#define EVENTS_AUX_STATUS_10_IBUS_BIT                       0x0001<<9
+#define EVENTS_AUX_STATUS_11_VBUS_BIT                       0x0001<<10
 #define EVENTS_AUX_STATUS_12_K1_TEMPRATURE_BIT           		0x0001<<11
-#define EVENTS_AUX_STATUS_13_K2_TEMPRATURE_BIT           			0x0001<<12
-#define EVENTS_AUX_STATUS_14_EMERGENCY_KEY_BIT               0x0001<<13
+#define EVENTS_AUX_STATUS_13_K2_TEMPRATURE_BIT           		0x0001<<12
+#define EVENTS_AUX_STATUS_14_EMERGENCY_KEY_BIT              0x0001<<13
 
 #define EVENTS_AUX_STATUS_ALL_BITS     (EVENTS_AUX_STATUS_IO1_BIT|EVENTS_AUX_STATUS_IO2_BIT|EVENTS_AUX_STATUS_IO3_BIT|EVENTS_AUX_STATUS_IO4_BIT|EVENTS_AUX_STATUS_IO5_BIT\
 			|EVENTS_AUX_STATUS_IO6_BIT|EVENTS_AUX_STATUS_IO7_BIT|EVENTS_AUX_STATUS_IO8_BIT|EVENTS_AUX_STATUS_9_NTC_BIT|EVENTS_AUX_STATUS_10_IBUS_BIT|EVENTS_AUX_STATUS_11_VBUS_BIT\
@@ -89,14 +89,6 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
 
 //laserEvent02Handle  
 #define EVENTS_LASER_GX_TEST_PREPARE_OK_BIT  			0x01
-
-
-
-
-
-
-
-
 //光纤激活
 #define EVENTS_LASER_980_PREPARE_OK_BIT  					0x01<<1  //980laser
 #define EVENTS_LASER_1064_PREPARE_OK_BIT        	0x01<<2   //1064laser
@@ -1275,6 +1267,7 @@ void ge2117ManageTask10(void *argument)
   *****************************************************************************/
 void app_sys_genaration_status_manage(void)
 { //高压电磁阀
+
   if(app_get_io_status(In1_high_voltage_solenoid)==SUCCESS)
   {      
     osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO1_BIT);//更新状态正常事件标志
@@ -1429,7 +1422,7 @@ void app_set_default_sys_config_param(void)
     }
 		else 
 		{
-			if(sEnvParam.air_pump_pressure+20<air_pressure)
+			if(sEnvParam.air_pump_pressure+10<air_pressure)
 			{				
 				app_air_pump_switch(ENABLE);
 			}

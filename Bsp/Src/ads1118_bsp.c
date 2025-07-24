@@ -49,9 +49,9 @@ static const float k_temprature_voltage_list[191]={
 
 
 
-static float tmprature_T0_cold_junction=25.0; //冷端补偿
-static float tmprature_T1_cool_water;//冷却循环水
-static float tmprature_T2_laser; //激光器温度
+static float tmprature_T0_cold_junction=25.0f,history_tmprature_T0=25.0f; //冷端补偿
+static float tmprature_T1_cool_water,history_tmprature_T1;//冷却循环水
+static float tmprature_T2_laser,history_tmprature_T2; //激光器温度
 
  //****************************************************************************
  //
@@ -110,8 +110,9 @@ static float tmprature_cal(short int adValue)
     {
         if((temp<k_temprature_voltage_list[i+1])&&(temp>=k_temprature_voltage_list[i])) 
         {
-            if(temp>k_temprature_voltage_list[i]+0.016)  T=((short int)i)*1.0-39.5;//half
-            else T=((short int)i)*1.0-40.0;//
+            //if(temp>k_temprature_voltage_list[i]+0.016)  T=((short int)i)*1.0-39.5;//half
+            //else T=((short int)i)*1.0-40.0;//
+            T=((short int)i)*1.0-40+(temp-k_temprature_voltage_list[i])*0.1 ;//half            
             break;
         }          
     }      
@@ -518,15 +519,15 @@ static float tmprature_cal(short int adValue)
     uint16_t regValue = 0; 
 	if(adChannel==0)//le
     {     
-        regValue=CONFIG_SS_CONV_START |CONFIG_PGA_0p256V |CONFIG_DR_860SPS| registerMap[CONFIG_ADDRESS]|TS_MODE_TS;//冷端温度           
+        regValue=CONFIG_SS_CONV_START |CONFIG_PGA_0p256V |CONFIG_DR_250SPS| registerMap[CONFIG_ADDRESS]|TS_MODE_TS;//冷端温度           
     }
     else  if(adChannel==1)
     {   
-        regValue=CONFIG_SS_CONV_START | CONFIG_PGA_0p256V|CONFIG_DR_860SPS|CONFIG_MUX_AIN0_AIN1|(registerMap[CONFIG_ADDRESS])&0xFFEF;//CONFIG_MUX_AIN0_AIN1         
+        regValue=CONFIG_SS_CONV_START | CONFIG_PGA_0p256V|CONFIG_DR_250SPS|CONFIG_MUX_AIN0_AIN1|(registerMap[CONFIG_ADDRESS])&0xFFEF;//CONFIG_MUX_AIN0_AIN1         
     }
     else
     {    
-        regValue=CONFIG_SS_CONV_START | CONFIG_PGA_0p256V|CONFIG_DR_860SPS|registerMap[CONFIG_ADDRESS]|TS_MODE_ADC|CONFIG_MUX_AIN2_AIN3;//ADC2, 3      
+        regValue=CONFIG_SS_CONV_START | CONFIG_PGA_0p256V|CONFIG_DR_250SPS|registerMap[CONFIG_ADDRESS]|TS_MODE_ADC|CONFIG_MUX_AIN2_AIN3;//ADC2, 3      
     }   
     writeSingleRegister(CONFIG_ADDRESS, regValue);   
  }
@@ -552,20 +553,36 @@ static float tmprature_cal(short int adValue)
     if(adChannel==0)
     {         
         tmprature_T0_cold_junction=((int16_t) registerMap[CONVERSION_ADDRESS]>>2)*0.03125;//冷端补偿
-       // DEBUG_PRINTF("T0=%.1fad=%d\r\n", tmprature_T0_cold_junction,(int16_t) registerMap[CONVERSION_ADDRESS]);  
-        ret_tmprature = tmprature_T0_cold_junction;   
+       // DEBUG_PRINTF("T0=%.1fad=%d\r\n", tmprature_T0_cold_junction,(int16_t) registerMap[CONVERSION_ADDRESS]); 
+       if(fabs(history_tmprature_T0-tmprature_T0_cold_junction)>0.2) 
+       {
+        ret_tmprature = tmprature_T0_cold_junction;
+        history_tmprature_T0=tmprature_T0_cold_junction;         
+       }
+       else  ret_tmprature = history_tmprature_T0;  
     }
     else  if(adChannel==1)
     {  
         tmprature_T1_cool_water=tmprature_cal((int16_t) registerMap[CONVERSION_ADDRESS]);//循环水温度
-       //DEBUG_PRINTF("T1=%.1fad=%d\r\n", tmprature_T1_cool_water,(int16_t) registerMap[CONVERSION_ADDRESS]);
-        ret_tmprature=tmprature_T1_cool_water;
+       //DEBUG_PRINTF("T1=%.1fad=%d\r\n", tmprature_T1_cool_water,(int16_t) registerMap[CONVERSION_ADDRESS]);       
+        if(fabs(history_tmprature_T1-tmprature_T1_cool_water)>0.2) 
+        {
+         ret_tmprature = tmprature_T1_cool_water;
+         history_tmprature_T1=tmprature_T1_cool_water;          
+        }
+        else  ret_tmprature = tmprature_T1_cool_water;  
+
     }
     else
     {   
-        tmprature_T2_laser=tmprature_cal((int16_t) registerMap[CONVERSION_ADDRESS]);//激光器温度
-        ret_tmprature=tmprature_T2_laser;
+        tmprature_T2_laser=tmprature_cal((int16_t) registerMap[CONVERSION_ADDRESS]);//激光器温度     
       //  DEBUG_PRINTF("T2=%.1fad=%d\r\n",tmprature_T2_laser,(int16_t) registerMap[CONVERSION_ADDRESS]);
+        if(fabs(history_tmprature_T2-tmprature_T2_laser)>0.2) 
+        {
+         ret_tmprature = tmprature_T2_laser;
+         history_tmprature_T1=tmprature_T2_laser;          
+        }
+        else  ret_tmprature = tmprature_T2_laser;  
     }     
     return ret_tmprature;
  }

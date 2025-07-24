@@ -431,7 +431,7 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 			}	
 			else
 			{
-				if(geRunTime>120&&(circleWaterTmprature>MAX_TEMPRATURE_LASER))	//2分钟还没降下来，增加制冷功率	 
+				if(geRunTime>60&&(circleWaterTmprature>MAX_TEMPRATURE_LASER))	//1分钟还没降下来，增加制冷功率	 
 				{					
 					geRunTime=0;	
 					geWksta.compressorSetSpd=geWksta.compressorRunSpd+500;				
@@ -444,7 +444,8 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 				}
 				else 	
 				{					
-					if(circleWaterTmprature<MID_TEMPRATURE_LASER&&bus_idle_flag==0)
+					if(circleWaterTmprature<=
+						MID_TEMPRATURE_LASER&&bus_idle_flag==0)
 					{
 						ge2117_start_up_set(GE2117_STOP_CMD);
 						bus_idle_flag=2;

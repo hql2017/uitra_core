@@ -201,10 +201,10 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN Private defines */
 /* USER CODE BEGIN Private defines */
-//激光工作环境温度，冷却液温度
-#define MIN_TEMPRATURE_LASER   11.0f
+//激光工作环境温度，冷却液温度（允许温差3度）
+#define MIN_TEMPRATURE_LASER   20.0f
 #define MID_TEMPRATURE_LASER   22.0f//最佳工作温度
-#define MAX_TEMPRATURE_LASER   24.0f
+#define MAX_TEMPRATURE_LASER   23.0f
 
 //air pump 气泵 kPa,绝对值
 #define MIN_AIR_PUMP_PRESSURE  190.00f
@@ -215,10 +215,8 @@ void Error_Handler(void);
 #define ERR_T_SHORT_INT_VALUE  160///温度整型错误值
 
 //laser
-
 #define LASER_980_MIN_ENERGE_V     150//mV(210mV，1W) 
 #define LASER_980_MAX_ENERGE_V     1200///mV(12W,200mJ)
-
 
 #define LASER_1064_MIN_ENERGE_V     7000// 440V
 #define LASER_1064_MAX_ENERGE_V    13500/// 800V
@@ -226,19 +224,16 @@ void Error_Handler(void);
 #define SYS_1_MINUTES_TICK    60000//
 #define LASER_MAX_CONTINUS_WORK_TIME    5*SYS_1_MINUTES_TICK
 
-
 #define MAX_IBUS_MA 10000
 #define MIN_VBUS_MV 12000
 
 #define EEROM_DATA_ERR_CHECK_FLAG  20250707//有历史数据
 
-
-
 #ifdef IWDG_USED
 #define IWDG_USED  
 #endif
 
-#ifndef DEBUG_MSG_UART 
+#ifdef DEBUG_MSG_UART 
 #define DEBUG_MSG_UART  /*use printf*/
 #define DEBUG_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
