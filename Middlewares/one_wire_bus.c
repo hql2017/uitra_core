@@ -28,6 +28,7 @@ typedef struct {
 	HAL_StatusTypeDef err;//总线错误
 	unsigned int busTime;//总线时间
 }ONE_BUS_FRAME;
+
 static ONE_BUS_FRAME owb_frame;
 
 #define OWB_MAX_FRAME_LENGTH 16
@@ -97,8 +98,7 @@ void owb_dq_falling_callback(void)
 		owb_frame.busIdleFlag=1;//reset	
 		owb_frame.rxLength=0;
 		__HAL_TIM_SetAutoreload(&htim16,29);
-		HAL_TIM_Base_Start_IT(&htim16);		
-	
+		HAL_TIM_Base_Start_IT(&htim16);	
 	}
 	else if(owb_frame.busIdleFlag==3) 
 	{	

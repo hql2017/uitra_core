@@ -145,8 +145,7 @@ void MX_TIM3_Init(void)
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
-  HAL_TIM_MspPostInit(&htim3);
-
+  HAL_TIM_MspPostInit(&htim3);  
 }
 /* TIM7 init function */
 void MX_TIM7_Init(void)
@@ -211,7 +210,6 @@ void MX_TIM16_Init(void)
 
 void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef* tim_pwmHandle)
 {
-
   if(tim_pwmHandle->Instance==TIM1)
   {
   /* USER CODE BEGIN TIM1_MspInit 0 */

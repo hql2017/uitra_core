@@ -747,6 +747,7 @@ void RF24L01_Init( void )
         if(timeout[1]>2000)
         {
           timeout[1] = 0;
+          timeout[0]=0;
           historyKey = 0;
           retKey     = 3;
         }

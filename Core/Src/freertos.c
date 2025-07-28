@@ -408,7 +408,12 @@ void StartDefaultTask(void *argument)
 			HAL_Delay(500);
 			DEBUG_PRINTF("please release power key%d\r\n",HAL_GPIO_ReadPin(KEY_PWR_SWITCH_GPIO_Port,KEY_PWR_SWITCH_Pin));				 
 		}while(HAL_GPIO_ReadPin(KEY_PWR_SWITCH_GPIO_Port,KEY_PWR_SWITCH_Pin)==GPIO_PIN_RESET);	
-
+    if(sys_load_sta.hmiLcdLoadFlag==0)
+    {      
+      DEBUG_PRINTF("load hmi lcd drive...\r\n");  
+      app_lcd_power_12V_switch(ENABLE);    
+      sys_load_sta.hmiLcdLoadFlag=1;
+    }
     if(sys_load_sta.systemParamFlag==0)//系统参数
     {
       DEBUG_PRINTF("load system config param\r\n");
@@ -572,25 +577,25 @@ void StartDefaultTask(void *argument)
     /***********NTC,laser_energe,iBus,vBus,air_pump_pressure气泵气压，参数****************** */    
     app_start_multi_channel_adc();
     DEBUG_PRINTF("load adc sampling NTC ,laserenergetic,iBus,vbus,air pressure...\r\n");
-    HAL_Delay(10);
-    app_get_adc_value(0,&sEnvParam.NTC_temprature); //蠕动泵，治疗水状态
-    app_get_adc_value(1,&sEnvParam.laser_1064_energy);
-    app_get_adc_value(2,&sEnvParam.iBus);
-    app_get_adc_value(3,&sEnvParam.vBus);    
-    app_get_adc_value(4,&sEnvParam.air_pump_pressure);
+    HAL_Delay(10); 
+    app_get_adc_value(AD1_NTC_INDEX,&sEnvParam.NTC_temprature); //蠕动泵，治疗水状态
+    app_get_adc_value(AD1_LASER_1064_INDEX,&sEnvParam.laser_1064_energy);
+    app_get_adc_value(AD1_OCP_Ibus_INDEX,&sEnvParam.iBus);
+    app_get_adc_value(AD1_24V_VBUS_INDEX,&sEnvParam.vBus);    
+    app_get_adc_value(AD1_AIR_PRESSER_INDEX,&sEnvParam.air_pump_pressure);
     DEBUG_PRINTF("adc load:NTC=%.2f℃ laser_energe=%.1f iBus=%.1fmA ,vBus=%.1fmV,air_pump_pressure=%.2fkPa\r\n",sEnvParam.NTC_temprature,\
       sEnvParam.laser_1064_energy,sEnvParam.iBus,sEnvParam.vBus,sEnvParam.air_pump_pressure); 
     if(sys_load_sta.adNtCSystemLoadFlag==0)
     {     
-      if(sEnvParam.NTC_temprature<-40||sEnvParam.NTC_temprature>150)
+      if(sEnvParam.NTC_temprature>-40&&sEnvParam.NTC_temprature<150)
       {
-        DEBUG_PRINTF("adc load:NTC_ad_channel error\r\n"); 
-        sys_load_sta.adNtCSystemLoadFlag=3; 
+        sys_load_sta.adNtCSystemLoadFlag=1;
+        DEBUG_PRINTF("adc load:NTC_ad_channel ok=%.2f℃\r\n",sEnvParam.NTC_temprature);         
       }
       else
       {
-        sys_load_sta.adNtCSystemLoadFlag=1;
-        DEBUG_PRINTF("adc load:NTC_ad_channel ok=%.2f℃\r\n",sEnvParam.NTC_temprature); 
+        DEBUG_PRINTF("adc load:NTC_ad_channel error\r\n"); 
+        sys_load_sta.adNtCSystemLoadFlag=3; 
       } 
     }
     if(sys_load_sta.adLaserEnergeSystemLoadFlag==0)
@@ -608,7 +613,7 @@ void StartDefaultTask(void *argument)
     }
     if(sys_load_sta.adIBusSystemLoadFlag==0)
     {
-      if(sEnvParam.iBus>600)
+      if(sEnvParam.iBus>MAX_IBUS_MA)
       {
         DEBUG_PRINTF("adc load:ibus_ad_channel error\r\n");
         sys_load_sta.adIBusSystemLoadFlag=3;
@@ -621,7 +626,7 @@ void StartDefaultTask(void *argument)
     } 
     if(sys_load_sta.adVBusSystemLoadFlag==0)
     {
-      if(sEnvParam.vBus<1200)
+      if(sEnvParam.vBus<MIN_VBUS_MV)
       {
         DEBUG_PRINTF("adc load:vbus_ad_channel error\r\n");
         sys_load_sta.adVBusSystemLoadFlag=3;
@@ -643,15 +648,13 @@ void StartDefaultTask(void *argument)
         }   
         else 
         {
-          sys_load_sta.adAirPressureSystemLoadFlag=1;
-          app_air_pump_switch(ENABLE);          
+          sys_load_sta.adAirPressureSystemLoadFlag=1;                    
           DEBUG_PRINTF("adc load:air_pressure_ad_channel ok=%.2fkPa\r\n",sEnvParam.air_pump_pressure); 
         }   
       }
       else 
       {
-        sys_load_sta.adAirPressureSystemLoadFlag=1;
-        app_air_pump_switch(ENABLE);
+        sys_load_sta.adAirPressureSystemLoadFlag=1;       
         DEBUG_PRINTF("adc load:air_pressure_ad_channel ok=%.2fkPa\r\n",sEnvParam.air_pump_pressure); 
       }      
     }    
@@ -668,12 +671,7 @@ void StartDefaultTask(void *argument)
       } 
       app_laser_pulse_start(LASER_PULSE_STOP,20);  
     }
-    if(sys_load_sta.hmiLcdLoadFlag==0)
-    {      
-      DEBUG_PRINTF("load hmi lcd drive...\r\n");  
-      app_lcd_power_12V_switch(ENABLE);    
-      sys_load_sta.hmiLcdLoadFlag=1;
-    }
+   
     #ifdef IWDG_USED
     MX_IWDG1_Init(); 
     #endif	
@@ -775,9 +773,9 @@ void keyScanTask03(void *argument)
     #ifdef ONE_WIRE_BUS_SLAVE
     recKeyValue=  app_owb_key_scan(20);
     #else 
-    recKeyValue = app_IO_key_scan(20);  //io-KEY
+    recKeyValue = app_IO_key_scan(20); 
     #endif
-    rf24KeyValue  = app_RF24_key_scan(20);//RF24_key 20ms间隔			
+    rf24KeyValue  = app_RF24_key_scan(20);		
 		if((recKeyValue&0XFF)==IO_KEY_IDLE)
 		{	
       recKeyValue|=rf24KeyValue;		
@@ -1115,7 +1113,8 @@ void powerOffTask08(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osStatus_t status = osSemaphoreAcquire(powerOffBinarySem02Handle,portMAX_DELAY);			
+    osStatus_t status = osSemaphoreAcquire(powerOffBinarySem02Handle,portMAX_DELAY);
+    ge2117_start_up_set(GE2117_STOP_CMD);//关闭压缩机
 		if(app_sys_param_save_data()==0)
 		{
 			DEBUG_PRINTF(" sys  param save ok\r\n");
@@ -1124,13 +1123,11 @@ void powerOffTask08(void *argument)
 		DEBUG_PRINTF("DEVICE POWER OFF\r\n"); 
 		while(1)
 		{					
-			DEBUG_PRINTF("please release power key\r\n");	
-			//看门狗				
+			DEBUG_PRINTF("please release power key\r\n");
 			HAL_Delay(1000);
       #ifdef IWDG_USED
       HAL_IWDG_Refresh(&hiwdg1); 
-      #endif
-      	
+      #endif      	
 		}	
    // osDelay(1);
   }
@@ -1483,6 +1480,8 @@ void app_set_default_sys_config_param(void)
  { 
   unsigned short int recLen,owb_key_value=0;
   unsigned char owb_buff[8];
+  static unsigned  int historyKey=0;
+  static unsigned  int timeout[2];
   recLen= app_owb_get_receive_pack_len();
   if(recLen!=0)
   {    
@@ -1490,11 +1489,54 @@ void app_set_default_sys_config_param(void)
    // DEBUG_PRINTF("JT owb recLen= %d %d %d %d %d %d",recLen,owb_buff[0],owb_buff[1],owb_buff[2],owb_buff[3],owb_buff[4]);
     if(owb_buff[0]=='[' && owb_buff[3]==']')
     {      
-      owb_key_value  = owb_buff[1];    
+      if(owb_buff[1]==2)
+      {
+        timeout[0]+=100;
+        timeout[1]=0;
+        if(timeout[0]>=1000)//1s 时间不大准
+        {
+          timeout[0]=0;						
+          owb_key_value=owb_buff[1]; 
+          historyKey=owb_buff[1];
+        }
+      }					
+      else //if(owb_buff[1]==3)
+      {
+        if(historyKey==2)//需要释放
+        {
+          historyKey=3;
+          owb_key_value=3;
+          timeout[0]=0;
+        }
+        else 
+        {
+          owb_key_value=0;
+          timeout[0]=0;			
+        }						
+      }					               
     }
+    else
+    {			
+      timeout[0]=0;		
+      owb_key_value=0;
+    }			
+  }
+  else
+  {
+    if(historyKey==2)//失联
+    {
+      timeout[1]+=timeMs;
+      if(timeout[1]>2000)
+      {
+        timeout[1] = 0;
+        timeout[0]=0;
+        historyKey = 0;
+        owb_key_value     = 3;
+      }
+      else owb_key_value=0;
+    }			
     else owb_key_value=0;
   }
-  else owb_key_value=0;
   return   owb_key_value;
  }
  #endif

@@ -249,16 +249,16 @@ void filter_ad(void)
     {    
       sum+=adBuff[i*5+ch];
     }    
-    advalue[ch]=( unsigned short int)(sum>>6);
+    advalue[ch]=(unsigned short int)(sum>>6);
   }		 
 } 
 /**
   * @brief HAL_ADC_ConvCpltCallback
   * @param void
-  *         
   * @note   
   * @retval None 
   */
+ 
 void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 { 
   if(hadc->Instance==ADC1)

@@ -238,13 +238,11 @@ void jdq_init(void)
 	app_jdq_ads1110_init();//电压反馈	
 	JDQ_LDAC_DISABLE; 	
 	jdq_reley_charge(0);//限流负载A端接地
-	jdq_reley_charge_ready(0);//限流负载B端接电容正极
-	
+	jdq_reley_charge_ready(0);//限流负载B端接电容正极	
 	JDQ_RS485_RX;
 	app_high_voltage_solenoid(ENABLE);//打开交流接触器
 	HAL_Delay(20);
-  app_jdq_bus_power_on_off(0);//关闭输出
-
+ 	app_jdq_bus_power_on_off(0);//关闭输出
 }
 //***************************AD5541ABRMZ********����ʽdac***************************************//
 #define  AD5541_VREF   4.096f//2.5//2.5V
