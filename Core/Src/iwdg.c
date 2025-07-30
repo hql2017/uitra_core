@@ -35,7 +35,8 @@ void MX_IWDG1_Init(void)
   /* USER CODE END IWDG1_Init 0 */
 
   /* USER CODE BEGIN IWDG1_Init 1 */
-  #ifdef IWDG_USED  
+  #ifdef IWDG_USED 
+  
   /* USER CODE END IWDG1_Init 1 */
   hiwdg1.Instance = IWDG1;
   hiwdg1.Init.Prescaler = IWDG_PRESCALER_32;

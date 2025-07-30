@@ -355,7 +355,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
     //DEBUG_PRINTF("key_JT%d\r\n",keyValue); 
     break;
     case 0x03:
-    key_message=key_jt_long_release;
+    key_message=key_jt_release;
     //DEBUG_PRINTF("JT relese%d\r\n",keyValue); 
     break;
     case 0x0100:
@@ -366,7 +366,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
     //DEBUG_PRINTF("key_PWR%d\r\n",keyValue); 
     break;
     case 0x0300:
-    key_message=key_pwr_long_release;
+    key_message=key_pwr_release;
     break;    
     default:
     if((keyValue&0xFF00)==0x0200)  //混合关机按键

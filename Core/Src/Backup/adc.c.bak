@@ -223,17 +223,15 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
   * @note   
   * @retval None
   */
- static unsigned short int adBuff[MAX_AD_BUFF_LENGTH];
- static unsigned short int advalue[5];
+static unsigned short int adBuff[MAX_AD_BUFF_LENGTH];
+static unsigned short int advalue[5];
 void app_start_multi_channel_adc(void)
 {  
   HAL_ADC_Start_DMA(&hadc1,(unsigned int*)adBuff,MAX_AD_BUFF_LENGTH);  //5*64
 }
-//filter
 /**
   * @brief filter
   * @param void
-  *         
   * @note   均值滤波
   * @retval None
   */
@@ -249,16 +247,16 @@ void filter_ad(void)
     {    
       sum+=adBuff[i*5+ch];
     }    
-    advalue[ch]=( unsigned short int)(sum>>6);
+    advalue[ch]=(unsigned short int)(sum>>6);
   }		 
 } 
 /**
   * @brief HAL_ADC_ConvCpltCallback
   * @param void
-  *         
   * @note   
   * @retval None 
   */
+ 
 void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 { 
   if(hadc->Instance==ADC1)

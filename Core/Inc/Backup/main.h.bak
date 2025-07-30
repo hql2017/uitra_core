@@ -198,14 +198,13 @@ void Error_Handler(void);
 #define MCU_SYS_health_LED_GPIO_Port GPIOE
 #define water_ready_ok_in_Pin GPIO_PIN_1
 #define water_ready_ok_in_GPIO_Port GPIOE
-#define water_ready_ok_in_EXTI_IRQn EXTI1_IRQn
 
 /* USER CODE BEGIN Private defines */
 /* USER CODE BEGIN Private defines */
-//激光工作环境温度，冷却液温度
-#define MIN_TEMPRATURE_LASER   11.0f
+//激光工作环境温度，冷却液温度（允许温差3度）
+#define MIN_TEMPRATURE_LASER   20.0f
 #define MID_TEMPRATURE_LASER   22.0f//最佳工作温度
-#define MAX_TEMPRATURE_LASER   24.0f
+#define MAX_TEMPRATURE_LASER   23.0f
 
 //air pump 气泵 kPa,绝对值
 #define MIN_AIR_PUMP_PRESSURE  190.00f
@@ -216,10 +215,8 @@ void Error_Handler(void);
 #define ERR_T_SHORT_INT_VALUE  160///温度整型错误值
 
 //laser
-
 #define LASER_980_MIN_ENERGE_V     150//mV(210mV，1W) 
 #define LASER_980_MAX_ENERGE_V     1200///mV(12W,200mJ)
-
 
 #define LASER_1064_MIN_ENERGE_V     7000// 440V
 #define LASER_1064_MAX_ENERGE_V    13500/// 800V
@@ -227,19 +224,16 @@ void Error_Handler(void);
 #define SYS_1_MINUTES_TICK    60000//
 #define LASER_MAX_CONTINUS_WORK_TIME    5*SYS_1_MINUTES_TICK
 
-
 #define MAX_IBUS_MA 10000
 #define MIN_VBUS_MV 12000
 
 #define EEROM_DATA_ERR_CHECK_FLAG  20250707//有历史数据
 
-
-
 #ifdef IWDG_USED
 #define IWDG_USED  
 #endif
 
-#ifndef DEBUG_MSG_UART 
+#ifdef DEBUG_MSG_UART 
 #define DEBUG_MSG_UART  /*use printf*/
 #define DEBUG_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -255,10 +249,10 @@ typedef enum{
   NO_KEY_MESSAGE=0,
   key_jt_short_press,
   key_jt_long_press,
-  key_jt_long_release,
+  key_jt_release,
   key_pwr_short_press,
   key_pwr_long_press,
-  key_pwr_long_release,
+  key_pwr_release,
 //key_multifunctional_press,//全部按下
 }app_key_message;
 typedef struct { 	
@@ -356,7 +350,7 @@ typedef struct{
 	
 	unsigned char laser_type;                			//0 :1064 1:980 2：光纤激活（980持续1秒）
 	
-//	char circle_water_box_temprature;                		//水箱温度 （-127 ~128）
+//	char circle_water_box_temprature;                //水箱温度 （-127 ~128）
 //	unsigned char water_air_level_status;           //治疗水气流速等级 bit0~3 水等级； bit4~7 气等级
 //	unsigned char laser_run_status;                	//激光运行状态Bit0：预燃状态；Bit1：出光状态；Bit2：光纤激活状态；Bit3：指示灯状态
 //	unsigned char laser_param_status;                	//激光参数状态 Bit0~Bit1:激光能量计状态：Bit2~Bit3:循环气泵压力状态：Bit4~Bit6:脚踏状态：

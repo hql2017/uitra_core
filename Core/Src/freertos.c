@@ -21,7 +21,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "main.h"
-#include "cmsis_os2.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -173,7 +173,7 @@ osThreadId_t myTask08Handle;
 const osThreadAttr_t myTask08_attributes = {
   .name = "myTask08",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal6,
+  .priority = (osPriority_t) osPriorityNormal7,
 };
 /* Definitions for myTask09 */
 osThreadId_t myTask09Handle;
@@ -718,8 +718,7 @@ void auxTask02(void *argument)
 		{
 			if(rgbRun==3)
 			{
-				rgb_color_all(0);//先清除
-				//app_rgb_breath_ctl(1,9);//tim callback
+				rgb_color_all(0);//先清除		
 			}
 			else if(rgbRun==2)
 			{
@@ -824,7 +823,7 @@ void laserWorkTask04(void *argument)
 	uint16_t rgbMessage;	//0关闭//1待机绿色长亮2：准备OK紫色常亮；3脉冲输出紫色呼吸
 	uint32_t timeout=0;	
 	LASER_CONFIG_PARAM *pLaserConfig;
-	pLaserConfig=&laser_config_param;
+	pLaserConfig = &laser_config_param;
 	osEventFlagsClear(laserEvent02Handle,EVENTS_LASER_JT_ENABLE_BIT);	
   for(;;)
   {
@@ -837,8 +836,7 @@ void laserWorkTask04(void *argument)
         if(reckey==0)	
         {	
           reckey=1;							
-          sGenSta.laser_param_B456_jt_status=key_jt_long_press;
-         
+          sGenSta.laser_param_B456_jt_status = key_jt_long_press;         
           if(pLaserConfig->treatmentWaterLevel!=0)
           {
             app_deflate_air_solenoid(ENABLE);
@@ -854,28 +852,28 @@ void laserWorkTask04(void *argument)
           }			
         }						
       }
-      else  //if (reckey==key_jt_long_release)
+      else  //if (reckey==key_jt_release)
       {	
         if(reckey!=0)
         {	
-          reckey=0;
-          rgbMessage=RGB_LASER_PREPARE_OK;
+          reckey = 0;
+          rgbMessage = RGB_LASER_PREPARE_OK;
           osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);
-          sGenSta.laser_param_B456_jt_status=key_jt_long_press;	
-					sGenSta.laser_run_B1_laser_out_status=0; 					
-          app_deflate_air_solenoid(DISABLE);	
-          tmc2226_stop();		
+          sGenSta.laser_param_B456_jt_status=key_jt_release;	
+					sGenSta.laser_run_B1_laser_out_status=0; 	
           app_laser_pulse_start(LASER_PULSE_STOP,laser_config_param.laserFreq);     //stop
+          tmc2226_stop();  
+          osDelay(200); 
+          app_deflate_air_solenoid(DISABLE);	          
           DEBUG_PRINTF("laser 1064 stop=%d\r\n",recKeyMessage);
-       }
+       }       
       }   
     }	
     osStatus_t sta = osSemaphoreAcquire(laserCloseSem05Handle,1);//
     if(sta==osOK)
-    {
-      
+    {      
       reckey=0;
-      AD5541A_SetVoltage(0, 4.096);//根据能量参数配置
+      AD5541A_SetVoltage(0, 4.096);
       app_jdq_bus_power_on_off(0);  
       timeout=0;
       do
@@ -890,8 +888,8 @@ void laserWorkTask04(void *argument)
         app_jdq_bus_power_onoff_sta_req();
       } while (app_jdq_get_vbus_sta()!=0); 
       DEBUG_PRINTF("laser close ok\r\n"); 
-      jdq_reley_charge(0);//释放剩余电量	
-      jdq_reley_charge_ready(0);//	
+      jdq_reley_charge(0);
+      jdq_reley_charge_ready(0);
       sGenSta.laser_run_B0_pro_hot_status=0;	
       rgbMessage=RGB_G_STANDBY;
       osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);
@@ -962,8 +960,7 @@ void fastAuxTask05(void *argument)
     app_ads1118_channel_sampling_start(ADS1118_K2_CHANNEL);	 
     osDelay(ADS1118_DELEY_TIME_MS);
     sEnvParam.eth_k2_temprature = app_ads1118_channel_get_value(ADS1118_K2_CHANNEL); 
-    //DEBUG_PRINTF("ads1118: T1=%.1f℃ T2=%.1f℃\r\n", sEnvParam.eth_k1_temprature,sEnvParam.eth_k2_temprature);	 			
- 
+    //DEBUG_PRINTF("ads1118: T1=%.1f℃ T2=%.1f℃\r\n", sEnvParam.eth_k1_temprature,sEnvParam.eth_k2_temprature);
     /***********NTC,laser_energe,iB
      * us,vBus,air_pump_pressure气泵气压，参数****************** */     
     app_get_adc_value(AD1_NTC_INDEX,&sEnvParam.NTC_temprature);//蠕动泵，状态
@@ -975,7 +972,7 @@ void fastAuxTask05(void *argument)
     {
       osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_9_NTC_BIT);
     }
-   // app_get_adc_value(AD3_ENERGE_INDEX,&sEnvParam.laser_1064_energy);
+   //app_get_adc_value(AD3_ENERGE_INDEX,&sEnvParam.laser_1064_energy);
     app_get_adc_value(AD1_OCP_Ibus_INDEX,&sEnvParam.iBus);
 		if(sEnvParam.iBus<MAX_IBUS_MA)//<10A
     {
@@ -996,8 +993,7 @@ void fastAuxTask05(void *argument)
     }  
     /***********气泵管理*******************/
 		app_get_adc_value(AD1_AIR_PRESSER_INDEX,&sEnvParam.air_pump_pressure);	
-		app_air_pump_manage(laser_config_param.airPressureLevel);
-    
+		app_air_pump_manage(laser_config_param.airPressureLevel);    
 		/***********aux genaration状态检查*******************/  
     app_sys_genaration_status_manage();				
 		//本地状态刷新
@@ -1118,7 +1114,7 @@ void powerOffTask08(void *argument)
 		if(app_sys_param_save_data()==0)
 		{
 			DEBUG_PRINTF(" sys  param save ok\r\n");
-		}		
+		}		    
 		app_mcu_power_switch(DISABLE);
 		DEBUG_PRINTF("DEVICE POWER OFF\r\n"); 
 		while(1)
@@ -1171,9 +1167,9 @@ void laserProhotTask09(void *argument)
           break;
         }        
       } while (laser_Voltage> app_jdq_get_laser_v()+10);//(90%)
-			local=laser_config_param.laserEnerge*0.02;
+			local=laser_config_param.laserEnerge*0.02;//根据能量参数配置
 			if(local>4.0) local=4.0;//200mJ~4.0		
-      AD5541A_SetVoltage(local, 4.096);//根据能量参数配置
+      AD5541A_SetVoltage(local, 4.096);
 			osDelay(50);
       app_jdq_bus_power_on_off(1);
       osDelay(50);
@@ -1182,23 +1178,24 @@ void laserProhotTask09(void *argument)
       timeout=0;
       do
       {
-        timeout+=25;
-        osDelay(25);
-        if(timeout>10000)
+        timeout+=100;
+        osDelay(100);
+        if(timeout>LASER_JDQ_CHARGE_TIMEOUT_MS)//30s
         {
+          sGenSta.laser_run_B0_pro_hot_status=0;
           break;
         }
-        outVoltage=app_jdq_voltage_monitor();
+        outVoltage = app_jdq_voltage_monitor();
+        DEBUG_PRINTF("jdq—v%f %d\r\n",app_jdq_voltage_monitor(),laser_Voltage);
         if(outVoltage>80) app_jdq_direct_160v();//>80V,
       } while ( outVoltage+10<laser_Voltage);    //(90%)  
-      //osDelay(500);
-      if(timeout<=10000)//ok
+      if(timeout<=LASER_JDQ_CHARGE_TIMEOUT_MS)//ok
       {
         rgbMessage = RGB_LASER_PREPARE_OK;
-        osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);
-        sGenSta.laser_run_B0_pro_hot_status=1;	      
+        osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);        	      
         osEventFlagsSet(laserEvent02Handle,EVENTS_LASER_1064_PREPARE_OK_BIT|EVENTS_LASER_JT_ENABLE_BIT);
-      }
+        sGenSta.laser_run_B0_pro_hot_status=1;
+      }      
     }		
     else 
     {
@@ -1264,7 +1261,6 @@ void ge2117ManageTask10(void *argument)
   *****************************************************************************/
 void app_sys_genaration_status_manage(void)
 { //高压电磁阀
-
   if(app_get_io_status(In1_high_voltage_solenoid)==SUCCESS)
   {      
     osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO1_BIT);//更新状态正常事件标志
@@ -1316,7 +1312,6 @@ void app_sys_genaration_status_manage(void)
 	if(app_get_io_status(In7_water_ready_ok)==SUCCESS)
 	{  
     osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO7_BIT);
-
 	}
 	else 
   {  
@@ -1463,10 +1458,12 @@ void app_set_default_sys_config_param(void)
   unsigned short int  app_laser_1064_energe_to_voltage(unsigned short int energe)
   {
     unsigned short int ret_vol;
-  // ret_vol=energe*30+8000;//?	 
-    ret_vol=energe*32+8000;//?需要校准
+    /* HSM_III_lite
+    ret_vol=energe*32+8000;//
     if(ret_vol<LASER_1064_MIN_ENERGE_V) ret_vol=LASER_1064_MIN_ENERGE_V;
     if(ret_vol>LASER_1064_MAX_ENERGE_V) ret_vol=LASER_1064_MAX_ENERGE_V;
+    */
+    ret_vol= LASER_JDQ_VOLTAGE;
     return ret_vol;
   }
   #ifdef ONE_WIRE_BUS_SLAVE

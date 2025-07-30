@@ -32,9 +32,12 @@ void jdq_reley_charge_ready(unsigned char onOff);
 
 
 #define LASER_PULSE_STOP  0
+#define LASER_JDQ_VOLTAGE_F  160.0f
+#define LASER_JDQ_VOLTAGE  160
+#define  LASER_JDQ_CHARGE_TIMEOUT_MS  30000//30S
 
 #ifndef  ADS1110_JDQ_USED
-#define   ADS1110_JDQ_USED 
+#define  ADS1110_JDQ_USED 
 #define  ADS1110_I2C_SLAVE_ADDR  0x48<<1  //A0:1001000  A3:1001011
 
 #define  ADS1110_DEFAULT_CONFIG  0x8C

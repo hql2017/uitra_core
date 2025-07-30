@@ -249,10 +249,10 @@ typedef enum{
   NO_KEY_MESSAGE=0,
   key_jt_short_press,
   key_jt_long_press,
-  key_jt_long_release,
+  key_jt_release,
   key_pwr_short_press,
   key_pwr_long_press,
-  key_pwr_long_release,
+  key_pwr_release,
 //key_multifunctional_press,//全部按下
 }app_key_message;
 typedef struct { 	
@@ -350,7 +350,7 @@ typedef struct{
 	
 	unsigned char laser_type;                			//0 :1064 1:980 2：光纤激活（980持续1秒）
 	
-//	char circle_water_box_temprature;                		//水箱温度 （-127 ~128）
+//	char circle_water_box_temprature;                //水箱温度 （-127 ~128）
 //	unsigned char water_air_level_status;           //治疗水气流速等级 bit0~3 水等级； bit4~7 气等级
 //	unsigned char laser_run_status;                	//激光运行状态Bit0：预燃状态；Bit1：出光状态；Bit2：光纤激活状态；Bit3：指示灯状态
 //	unsigned char laser_param_status;                	//激光参数状态 Bit0~Bit1:激光能量计状态：Bit2~Bit3:循环气泵压力状态：Bit4~Bit6:脚踏状态：

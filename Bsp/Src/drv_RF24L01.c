@@ -700,13 +700,12 @@ void RF24L01_Init( void )
     static unsigned  int historyKey=0;
     static unsigned  int timeout[2];
     unsigned char g_RF24L01RxBuffer[8]={0};	
-
     rf24_rxLen = NRF24L01_RxPacket( g_RF24L01RxBuffer );		
     if( 0 != rf24_rxLen )
     {	
       if(g_RF24L01RxBuffer[0]=='['&&g_RF24L01RxBuffer[3]==']')
       {
-        //DEBUG_PRINTF("leng=%d RF0=%d RF1=%dRF2=%dRF3=%d\r\n",rf24_rxLen,g_RF24L01RxBuffer[0],g_RF24L01RxBuffer[1],g_RF24L01RxBuffer[2],g_RF24L01RxBuffer[3]);
+       // DEBUG_PRINTF("leng=%d RF0=%d RF1=%dRF2=%dRF3=%d\r\n",rf24_rxLen,g_RF24L01RxBuffer[0],g_RF24L01RxBuffer[1],g_RF24L01RxBuffer[2],g_RF24L01RxBuffer[3]);
         if(g_RF24L01RxBuffer[1]==2)
         {
           timeout[0]+=100;
@@ -747,7 +746,7 @@ void RF24L01_Init( void )
         if(timeout[1]>2000)
         {
           timeout[1] = 0;
-          timeout[0]=0;
+          timeout[0] = 0;
           historyKey = 0;
           retKey     = 3;
         }
