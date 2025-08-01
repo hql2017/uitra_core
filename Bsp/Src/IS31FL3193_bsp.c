@@ -521,7 +521,8 @@ void Green_Breath(void )//呼吸一次，约耗时465ms，单色约600/128=4.7ms
     I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
     I2C_WriteByte(Addr_GND_GND,0x4B,0x01);//all channel out  freq
     I2C_WriteByte(Addr_GND_GND,0x00,0x01);// 		
-		osDelay(8);//4K
+		//osDelay(8);//4K//看起来比较累
+    osDelay(16);//2K
 	}
 }
 void High_Breath(void )//呼吸一次，约耗时465ms，单色约600/128=4.7ms

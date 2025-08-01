@@ -202,7 +202,8 @@ void app_steps_pulse(int steps)
  /**
   * @brief tmc2226_start
   * @param  unsigned char dir,unsigned short int speed
-  * @note   启动蠕动泵电机
+  * @note   启动蠕动泵电机 ,MAX（ (timeUs=62.5)8K) 35ml/min;）
+  *   timeUs=500;5ml/min;timeUs=100;20ml/min; timeUs=62;35ml/min;
   * @retval None
   */
 void tmc2226_start(unsigned char dir,unsigned short int speed)
@@ -218,18 +219,20 @@ void tmc2226_start(unsigned char dir,unsigned short int speed)
 	{
 		tmc2226_dir(dir);
 		if(speed==1)//100
-		{
-			timeUs=500;//1K
+		{	 
+      //timeUs=500;//1K,5ml/min
+      timeUs=250;//2K,10ml/min
 		}
 		else if(2)//200
 		{
-			timeUs=250;//2k
+			timeUs=125;//4k//250/2k  (4K)17.5ml/min
 		}
-		else //if(3)//350
-		{
-			timeUs=200;//2.5K
+		else if(3)//350    35ml/min
+		{			
+      timeUs=65;//8K 
 		}
-		//1000·100 freq =0.5K ~5K		
+		//1000·100 freq =1K ~8K
+   // timeUs 500~62;//8K 		
 		__HAL_TIM_SetAutoreload(&htim7,timeUs-1);
 		tmc2226_rdb_info.run=1;
 		HAL_TIM_Base_Start_IT(&htim7);
@@ -243,19 +246,18 @@ void tmc2226_start(unsigned char dir,unsigned short int speed)
   * @note   停止蠕动泵电机
   * @retval None
   */
- void tmc2226_stop(void)
- {
- //check status ,error status
-	HAL_TIM_Base_Stop_IT(&htim7); 
-  tmc2226_rdb_info.run=0;	
-  tmc2226_en(0);
-  HAL_Delay(1);
- }
- 
+  void tmc2226_stop(void)
+  {
+    HAL_TIM_Base_Stop_IT(&htim7); 
+    tmc2226_rdb_info.run=0;	
+    tmc2226_en(0);
+    HAL_Delay(1);
+  } 
  /************************************************************************//**
   * @brief 设置蠕动泵速度等级
  * @param spdLevel: 0,1,2,3
   * @note   0关闭  3最快
+   
   * @retval 无
   *****************************************************************************/
  void app_tmc2226_sped_set(unsigned char spdLevel)
@@ -268,15 +270,16 @@ void tmc2226_start(unsigned char dir,unsigned short int speed)
 		 {
 			 if(spdLevel==1)//低速
 			 {
-				 tmc2226_rdb_info.rdb_speed=100;//rpm
+				 tmc2226_rdb_info.rdb_speed=20;//ml/min 
+         //timeUs=500-((tmc2226_rdb_info.rdb_speed-5)/100)*375;//rpm
 			 }
 			 else if(spdLevel==2)
 			 {
-				  tmc2226_rdb_info.rdb_speed=200;//rpm
+				  tmc2226_rdb_info.rdb_speed=25;//ml/min 
 			 }
 			 else //if(spdLevel==3)//高速
 			 {
-				  tmc2226_rdb_info.rdb_speed=350;//rpm
+				  tmc2226_rdb_info.rdb_speed=32;//ml/min 
 			 }
 		 }
  }

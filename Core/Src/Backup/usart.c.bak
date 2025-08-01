@@ -462,7 +462,8 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
   * @retval None
   */
  extern void app_mer_receive_data_handle(void);
- extern void app_jdq_sts_1200_receive_handle(void);
+
+extern void app_jdq_rs485_receive_data(void);
  extern void app_ge2117_receive_data_handle(void);
  void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
  {			
@@ -482,7 +483,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
   }
   if(UartHandle->Instance==huart1.Instance)	
   {   	    
-    app_jdq_sts_1200_receive_handle();
+    app_jdq_rs485_receive_data();
   }
  }	
 

@@ -206,10 +206,11 @@ void Error_Handler(void);
 #define MID_TEMPRATURE_LASER   22.0f//最佳工作温度
 #define MAX_TEMPRATURE_LASER   23.0f
 
-//air pump 气泵 kPa,绝对值
-#define MIN_AIR_PUMP_PRESSURE  190.00f
-#define MID_AIR_PUMP_PRESSURE  260.00f//最佳气压
-#define MAX_AIR_PUMP_PRESSURE  290.00f//300.00f 
+//air pump 气泵 kPa,相对值
+#define MIN_AIR_PUMP_PRESSURE  160.0f//210.00f
+#define MID_AIR_PUMP_PRESSURE  180.0f//260.00f//最佳气压
+#define MAX_AIR_PUMP_PRESSURE  200.0f//290.00f
+//300.00f 
 
 #define ERR_T_FLOAT_VALUE      1000///温度浮点数错误值
 #define ERR_T_SHORT_INT_VALUE  160///温度整型错误值

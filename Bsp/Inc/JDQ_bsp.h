@@ -21,7 +21,7 @@ void app_jdq_bus_current_set(float  powerCurrent);
 void app_jdq_bus_voltage_set(float  voltage);
 void app_jdq_bus_get_v_c_req(void);
 void app_jdq_bus_power_onoff_sta_req();
-void app_jdq_bus_get_v_c(float *voltage,float *current);
+void app_jdq_bus_get_set_v_c(float *voltage,float *current);
 unsigned short int  app_jdq_get_vbus_sta(void );
 void app_jdq_bus_power_on_off(unsigned char flag);
 void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent);
@@ -30,11 +30,25 @@ float app_jdq_get_laser_v(void);
 void jdq_reley_charge(unsigned char onOff);
 void jdq_reley_charge_ready(unsigned char onOff);
 
+unsigned short int  app_get_jdq_rs485_bus_statu(void);
+unsigned char  app_jdq_rs485_check_rec_len(void);
+void app_jdq_rs485_receive_data(void);
+void app_jdq_sts_1200_receive_handle(void);
+
+#define JDQ_RS485_FRAME_MAX_DELAY_MS 1500
+#define JDQ_RS485_FRAME_MIN_MS 100
+ #define MAX_UART1_BUFF_LENTH 64
+ 
+#define  STS_1200_REG_SET_VOLTAGE 	    1000//设定电压
+#define  STS_1200_REG_SET_CURRENT	    1001//设定电流，
+#define  STS_1200_REG_VOLTAGE_DISPLAY	1002//电压显示
+#define  STS_1200_REG_CURRENT_DISPLAY	1003//电流显示
+#define  STS_1200_REG_RUN_STOP	        1006//电源输出/停止 0停止；1输出。
 
 #define LASER_PULSE_STOP  0
 #define LASER_JDQ_VOLTAGE_F  160.0f
 #define LASER_JDQ_VOLTAGE  160
-#define  LASER_JDQ_CHARGE_TIMEOUT_MS  30000//30S
+#define  LASER_JDQ_CHARGE_TIMEOUT_MS  90000//60S
 
 #ifndef  ADS1110_JDQ_USED
 #define  ADS1110_JDQ_USED 

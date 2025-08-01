@@ -109,7 +109,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			break;
 		case HMI_CODE_CTR_TEST_MODE:
 			laser_config_param.ctrTestMode=data[2];			
-			app_laser_preapare_semo();		
+			//app_laser_preapare_semo();	//本激光无980	
 			break;
 		case HMI_CODE_PRO_HOT:				
 			//laser_config_param.laserType=data[2];	

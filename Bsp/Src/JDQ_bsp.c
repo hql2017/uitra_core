@@ -12,6 +12,7 @@
 #include "stdio.h"
 #include "gpio.h"
 
+
 #define JDQ_DAC_CS_ENABLE  HAL_GPIO_WritePin(DAC_CS_GPIO_Port, DAC_CS_Pin, GPIO_PIN_RESET)
 #define JDQ_DAC_CS_DISABLE  HAL_GPIO_WritePin(DAC_CS_GPIO_Port, DAC_CS_Pin, GPIO_PIN_SET)
 #define JDQ_LDAC_ENABLE  HAL_GPIO_WritePin(DAC_LD_GPIO_Port, DAC_LD_Pin, GPIO_PIN_RESET)
@@ -22,11 +23,7 @@
 extern TIM_HandleTypeDef htim3;
 
 //JDQ POWER
-#define  STS_1200_REG_SET_VOLTAGE 	    1000//设定电压
-#define  STS_1200_REG_SET_CURRENT	    1001//设定电流，
-#define  STS_1200_REG_VOLTAGE_DISPLAY	1002//电压显示
-#define  STS_1200_REG_CURRENT_DISPLAY	1003//电流显示
-#define  STS_1200_REG_RUN_STOP	        1006//电源输出/停止 0停止；1输出。
+
 
 #define  STS_1200_OUT_VOLTAGE_LIMIT	220.0f//最大输出220V（MAX220）100mV分辨率
 #define  STS_1200_OUT_CURRENT_LIMIT	100.0f//最大输出100A（MAX220）
@@ -51,10 +48,11 @@ typedef struct{
 static JDQ_sts_local_param jdq_sts_param;
 */
 static uint16_t jdq_sts_reg_value[8];
-extern UART_HandleTypeDef huart1;
-#define MAX_UART1_BUFF_LENTH 64
-static unsigned char UART1_TX_BUFF[MAX_UART1_BUFF_LENTH]={0};
-static unsigned char UART1_RX_BUFF[MAX_UART1_BUFF_LENTH]={0};
+
+
+static unsigned char  jdq_rs485_receiv_len,rs485_rec_byte;
+static unsigned char UART1_TX_BUFF[MAX_UART1_BUFF_LENTH+1]={0};
+static unsigned char UART1_RX_BUFF[MAX_UART1_BUFF_LENTH+1]={0};
 
 #define JDQ_RS485_TX  HAL_GPIO_WritePin(RS485_DIR_GPIO_Port, RS485_DIR_Pin, GPIO_PIN_SET)
 #define JDQ_RS485_RX  HAL_GPIO_WritePin(RS485_DIR_GPIO_Port, RS485_DIR_Pin, GPIO_PIN_RESET)
@@ -240,9 +238,8 @@ void jdq_init(void)
 	jdq_reley_charge(0);//限流负载A端接地
 	jdq_reley_charge_ready(0);//限流负载B端接电容正极	
 	JDQ_RS485_RX;
-	app_high_voltage_solenoid(ENABLE);//打开交流接触器
-	HAL_Delay(20);
- 	app_jdq_bus_power_on_off(0);//关闭输出
+	app_high_voltage_solenoid(ENABLE);//打开交流接触器	
+	HAL_Delay(1500);		
 }
 //***************************AD5541ABRMZ********����ʽdac***************************************//
 #define  AD5541_VREF   4.096f//2.5//2.5V
@@ -313,63 +310,64 @@ float AD5541A_SetVoltage(float outVoltage, float vRef)
 void app_jdq_sts_1200_receive_handle(void)
 {
 	uint16_t crc,datalen,i,regS;
-	if(UART1_RX_BUFF[1]==0x03)
+	if(jdq_rs485_receiv_len>=jdq_rs485_sta.frame_len&&jdq_rs485_receiv_len!=0)	
 	{
-		datalen=UART1_RX_BUFF[2];
-		crc=UART1_RX_BUFF[3+datalen]|(UART1_RX_BUFF[4+datalen]<<8);		
-		if(crc==jdq_crc16_modbus(UART1_RX_BUFF,datalen+3))//
+		#if  0
+		printf("485_rec=%d",jdq_rs485_receiv_len);
+		for(int i=0;i<jdq_rs485_receiv_len;i++)
 		{
-			if(jdq_rs485_sta.frame_regStart>=STS_1200_REG_SET_VOLTAGE&&jdq_rs485_sta.frame_regStart<=STS_1200_REG_RUN_STOP)
-			{					
-				regS=jdq_rs485_sta.frame_regStart-STS_1200_REG_SET_VOLTAGE;
-				for(i=0;i<(datalen>>1);i++)
-				{
-					jdq_sts_reg_value[i+regS]=(UART1_RX_BUFF[3+i*2]<<8)|UART1_RX_BUFF[4+i*2];
-				}
-			}	
-		} 
-		jdq_rs485_sta.frame_len=0;
-		jdq_rs485_sta.frame_regStart=0;
-		jdq_rs485_sta.frame_timeout=0;
-	}
-	else if(UART1_RX_BUFF[1]==0x06)//写单个寄存器
-	{     
-		regS=(UART1_RX_BUFF[2]<<8)|UART1_RX_BUFF[3];
-		if(regS==jdq_rs485_sta.frame_regStart)
+			printf(" %02x",UART1_RX_BUFF[i]);		
+		}
+		#endif	
+		if(UART1_RX_BUFF[1]==0x03)
 		{
-			crc=UART1_RX_BUFF[6]|(UART1_RX_BUFF[7]<<8);		
-			if(crc==jdq_crc16_modbus(UART1_RX_BUFF,6))//
+			datalen=UART1_RX_BUFF[2];
+			crc=UART1_RX_BUFF[3+datalen]|(UART1_RX_BUFF[4+datalen]<<8);		
+			if(crc==jdq_crc16_modbus(UART1_RX_BUFF,datalen+3))//
 			{
 				if(jdq_rs485_sta.frame_regStart>=STS_1200_REG_SET_VOLTAGE&&jdq_rs485_sta.frame_regStart<=STS_1200_REG_RUN_STOP)
-				{
-					i=jdq_rs485_sta.frame_regStart-STS_1200_REG_SET_VOLTAGE;
-					jdq_sts_reg_value[i]=(UART1_RX_BUFF[4]<<8)|UART1_RX_BUFF[5];
+				{					
+					regS=jdq_rs485_sta.frame_regStart-STS_1200_REG_SET_VOLTAGE;
+					for(i=0;i<(datalen>>1);i++)
+					{
+						jdq_sts_reg_value[i+regS]=(UART1_RX_BUFF[3+i*2]<<8)|UART1_RX_BUFF[4+i*2];
+					}
 				}	
-			}          
+			} 		
 		}
-		jdq_rs485_sta.frame_len=0;
-		jdq_rs485_sta.frame_regStart=0;
-		jdq_rs485_sta.frame_timeout=0;
-	}
-	else if(UART1_RX_BUFF[1]==0x10)//写多个寄存器
-	{
-		regS=(UART1_RX_BUFF[2]<<8)|UART1_RX_BUFF[3];
-		datalen=(UART1_RX_BUFF[4]<<8)|UART1_RX_BUFF[5];
-		if(regS==jdq_rs485_sta.frame_regStart)
-		{
-			crc=UART1_RX_BUFF[6]|(UART1_RX_BUFF[7]<<8);		
-			if(crc==jdq_crc16_modbus(UART1_RX_BUFF,6))//
+		else if(UART1_RX_BUFF[1]==0x06)//写单个寄存器
+		{     
+			regS=(UART1_RX_BUFF[2]<<8)|UART1_RX_BUFF[3];
+			if(regS==jdq_rs485_sta.frame_regStart)
 			{
-				jdq_rs485_sta.frame_len=0;
-				jdq_rs485_sta.frame_regStart=0;
-				jdq_rs485_sta.frame_timeout=0;
-			}          
+				crc=UART1_RX_BUFF[6]|(UART1_RX_BUFF[7]<<8);		
+				if(crc==jdq_crc16_modbus(UART1_RX_BUFF,6))//
+				{
+					jdq_sts_reg_value[regS-STS_1200_REG_SET_VOLTAGE]=(UART1_RX_BUFF[4]<<8)|UART1_RX_BUFF[5];	
+				}          
+			}
+		}
+		else if(UART1_RX_BUFF[1]==0x10)//写多个寄存器
+		{
+			regS=(UART1_RX_BUFF[2]<<8)|UART1_RX_BUFF[3];
+			datalen=(UART1_RX_BUFF[4]<<8)|UART1_RX_BUFF[5];//offeset
+			if(regS==jdq_rs485_sta.frame_regStart)
+			{
+				crc=UART1_RX_BUFF[6+datalen*2]|(UART1_RX_BUFF[7+datalen*2]<<8);		
+				if(crc==jdq_crc16_modbus(UART1_RX_BUFF,6))//
+				{
+					for(i=0;i<(datalen);i++)
+					{
+						//jdq_sts_reg_value[i+regS]=(UART1_RX_BUFF[6+i*2]<<8)|UART1_RX_BUFF[7+i*2];
+					}					
+				}          
+			}
 		}
 		jdq_rs485_sta.frame_len=0;
 		jdq_rs485_sta.frame_regStart=0;
 		jdq_rs485_sta.frame_timeout=0;
-	}
-	
+		jdq_rs485_receiv_len=0;
+	}	
 }
 /***************************************************************************//**
  * @brief 进入侦听状态
@@ -379,10 +377,10 @@ void app_jdq_sts_1200_receive_handle(void)
 *******************************************************************************/
 void app_jdq_lisen(uint16_t listenReg,uint16_t dataLen)
 {
-	JDQ_RS485_RX;
-	HAL_UART_Receive_IT(&huart1,UART1_RX_BUFF, dataLen);//切换进入侦听状态
+	jdq_rs485_receiv_len=0;
 	jdq_rs485_sta.frame_regStart=listenReg;
-	jdq_rs485_sta.frame_len=dataLen;
+	jdq_rs485_sta.frame_len=dataLen;	
+	HAL_UART_Receive_IT(&huart1,&rs485_rec_byte, 1);//切换进入侦听状态
 }
 /***************************************************************************//**
  * @brief 问询帧
@@ -417,10 +415,10 @@ HAL_StatusTypeDef app_jdq_write_req_frame(uint16_t regStart,uint16_t data)
 	UART1_TX_BUFF[6]=jdq_crc16_modbus(UART1_TX_BUFF,6)&0xFF;
 	UART1_TX_BUFF[7]=(jdq_crc16_modbus(UART1_TX_BUFF,6)>>8)&0xFF;
 	JDQ_RS485_TX;
-	err = HAL_UART_Transmit(&huart1,UART1_TX_BUFF, 8, 100);		
+	err = HAL_UART_Transmit(&huart1,UART1_TX_BUFF, 8, 100);	
+	JDQ_RS485_RX;		
 	if(err==HAL_OK) app_jdq_lisen(regStart,8);
 	else jdq_rs485_sta.frame_regStart=0;
-	JDQ_RS485_RX;
 	return err;
 }
 /***************************************************************************//**
@@ -432,7 +430,16 @@ HAL_StatusTypeDef app_jdq_write_req_frame(uint16_t regStart,uint16_t data)
 HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
 { 
 	HAL_StatusTypeDef err=HAL_OK;	
-//
+	if(jdq_rs485_sta.frame_regStart!=0)
+	{
+		jdq_rs485_sta.frame_timeout++;
+		if(jdq_rs485_sta.frame_timeout>2) 
+		{
+			jdq_rs485_sta.frame_regStart=0;
+			jdq_rs485_sta.frame_timeout=0;
+		}
+		return HAL_BUSY;
+	}	
 	UART1_TX_BUFF[0]=STS_1200_DEVICE_ADDV;  
 	UART1_TX_BUFF[1]=0x03;
 	UART1_TX_BUFF[2]=(regStart>>8)&0xFF;
@@ -443,6 +450,7 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
 	UART1_TX_BUFF[7]=(jdq_crc16_modbus(UART1_TX_BUFF,6)>>8)&0xFF;
 	JDQ_RS485_TX;
 	err = HAL_UART_Transmit(&huart1,UART1_TX_BUFF, 8, 100);	
+	JDQ_RS485_RX;	
 	if(err==HAL_OK) app_jdq_lisen(regStart,regOffset*2+5);
 	else jdq_rs485_sta.frame_regStart=0;
 	return err;
@@ -518,6 +526,8 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
  {
 	HAL_StatusTypeDef err;	
 	int sendBuff;
+
+	
 	if(voltage<12.0) sendBuff=120;
 	else if(voltage>220.0) sendBuff=2200; 
 	else sendBuff=(int)(voltage*100);//100倍
@@ -532,7 +542,7 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
  void app_jdq_bus_get_v_c_req(void)
  {
 	HAL_StatusTypeDef err;	
-	err= app_jdq_read_req_frame(STS_1200_REG_VOLTAGE_DISPLAY,2);
+	err= app_jdq_read_req_frame(STS_1200_REG_SET_VOLTAGE,4);
  }
    /************************************************************************//**
   * @brief 读总电源电压输出状态请求
@@ -551,7 +561,7 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
   * @note   
   * @retval 
   *****************************************************************************/
- void app_jdq_bus_get_v_c(float *voltage,float *current)
+ void app_jdq_bus_get_set_v_c(float *voltage,float *current)
  {
 	*voltage=jdq_sts_reg_value[0]*0.1;
 	*current=jdq_sts_reg_value[1]*0.1;
@@ -575,9 +585,8 @@ float app_jdq_get_laser_v(void)
   *****************************************************************************/
  unsigned short int  app_jdq_get_vbus_sta(void )
  {		
-	return jdq_sts_reg_value[7];
+	return jdq_sts_reg_value[6];
  }
-
   /************************************************************************//**
   * @brief 开启总电源
   * @param 0；关闭 1：开启
@@ -609,6 +618,8 @@ float app_jdq_get_laser_v(void)
 	unsigned short int countor,timeload;
 	if(timeUs!=0)
 	{
+		if(timeUs<160) timeUs=160;
+		if(timeUs>300) timeUs=300;
 		//if( freq > 60 )  countor =1666;// (100000/60);
 		if( freq > 100 )  countor =1000;// (100000/60);
 		else if( freq < 5 )  countor = 20000; //(100000/5)
@@ -677,6 +688,47 @@ float app_jdq_get_laser_v(void)
 	jdq_reley_charge_ready(1);
  }
  
-
+/***************************************************************************//**
+ * @brief 电源数据接收
+ * @param 
+ * @note 
+ * @return 
+*******************************************************************************/ 
+void app_jdq_rs485_receive_data(void)
+{	
+	jdq_rs485_receiv_len%=MAX_UART1_BUFF_LENTH;
+	UART1_RX_BUFF[jdq_rs485_receiv_len]=rs485_rec_byte;
+	jdq_rs485_receiv_len++;		
+	if(HAL_UART_Receive_IT(&huart1, &rs485_rec_byte,1)!=HAL_OK)
+	{
+	 /*Transfer error in reception process */
+		Error_Handler();			
+	}	
+}
+/***************************************************************************//**
+ * @brief 获取总线状态
+ * @param 
+ * @note 
+ * @return 
+*******************************************************************************/ 
+unsigned short int  app_get_jdq_rs485_bus_statu(void)
+{
+	//if(app_jdq_rs485_check_rec_len()!=0)
+	if(jdq_rs485_receiv_len!=0)
+	{
+		app_jdq_sts_1200_receive_handle();
+	}
+	return jdq_rs485_sta.frame_regStart;
+}
+/***************************************************************************//**
+ * @brief 获取数据长度
+ * @param 
+ * @note 
+ * @return 
+*******************************************************************************/ 
+unsigned char  app_jdq_rs485_check_rec_len(void)
+{		
+	return jdq_rs485_receiv_len;
+}
 
 
