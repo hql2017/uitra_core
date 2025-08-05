@@ -64,7 +64,7 @@ void app_ads1118_startup(void);
 #define ADS1118_COOL_CHANNEL 0//TC MODE
 #define ADS1118_K1_CHANNEL  1//AIN0 -AIN1 GND
 #define ADS1118_K2_CHANNEL  2//AIN2 -AIN3 GND
-#define ADS1118_DELEY_TIME_MS  5////2//SRC860 = 2;SRC250 = 4; SRC128 = 10
+#define ADS1118_DELEY_TIME_MS  2//SRC860 = 2;SRC250 = 4; SRC128 = 10
 //****************************************************************************
 //
 // Register macros

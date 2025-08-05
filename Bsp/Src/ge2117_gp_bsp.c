@@ -342,8 +342,8 @@ void ge2117_start_up_set(unsigned short int startFlag)
 	if(startFlag==GE2117_START_CMD)	
 	{
 		//app_ge_write_req_frame(GE2117_REG_START_STOP,3);//启动	
-		if(geWksta.compressorSetSpd<3000)		geWksta.compressorSetSpd=3000;
-		if(geWksta.compressorSetSpd>7000) geWksta.compressorSetSpd=7000;
+		if(geWksta.compressorSetSpd<3000)	geWksta.compressorSetSpd=3000;
+		if(geWksta.compressorSetSpd>7000)    geWksta.compressorSetSpd=7000;
 		app_ge_write_req_frame(GE2117_REG_SPD_STRAT,geWksta.compressorSetSpd);//启动
 	}	
 	else app_ge_write_req_frame(GE2117_REG_START_STOP,4);//停止
@@ -404,12 +404,12 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 {	
 	static unsigned char bus_idle_flag=0,runFlag=0;		
 	static unsigned int geRunTime=0;//压缩机持续时间
-	geWksta.geTimeS++;	
+	geWksta.geTimeS=sysTimeS;	
 	if(geWksta.geTimeS>10)//10秒后开始通讯
 	{ 	
 		if(runFlag==0)	
 		{				
-			if(geWksta.workStaus!=0) //start ok
+			if(geWksta.workStaus!=0) 
 			{
 				runFlag=1;
 			}
@@ -417,6 +417,7 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 			{
 				if(circleWaterTmprature>MAX_TEMPRATURE_LASER&&bus_idle_flag==0)
 				{
+					geWksta.compressorSetSpd=3000+500*(circleWaterTmprature-MAX_TEMPRATURE_LASER);
 					ge2117_start_up_set(GE2117_START_CMD);
 					bus_idle_flag=2;					
 				}					
@@ -431,11 +432,10 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 			}	
 			else
 			{
-				if(geRunTime>60&&(circleWaterTmprature>MAX_TEMPRATURE_LASER))	//1分钟还没降下来，增加制冷功率	 
+				if(geRunTime>60&&(circleWaterTmprature>MAX_TEMPRATURE_LASER))	 
 				{					
 					geRunTime=0;	
-					geWksta.compressorSetSpd=geWksta.compressorRunSpd+500;				
-					if(geWksta.compressorSetSpd>7000)  geWksta.compressorSetSpd=7000;					
+					geWksta.compressorSetSpd=geWksta.compressorRunSpd+500;	
 					if(bus_idle_flag==0)	
 					{						
 						ge2117_speed_set(geWksta.compressorSetSpd);					
@@ -444,8 +444,7 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 				}
 				else 	
 				{					
-					if(circleWaterTmprature<=
-						MID_TEMPRATURE_LASER&&bus_idle_flag==0)
+					if(circleWaterTmprature<=MID_TEMPRATURE_LASER&&bus_idle_flag==0)
 					{
 						ge2117_start_up_set(GE2117_STOP_CMD);
 						bus_idle_flag=2;
@@ -462,8 +461,8 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 			app_ge2117_gp_ctr_frame();
 			bus_idle_flag=0;
 		}
-		else app_ge2117_gp_ctr_frame();//status req			
-		if(geWksta.wkTimeOut>60 ) //60秒没数据报错
+		else app_ge2117_gp_ctr_frame();		
+		if(geWksta.wkTimeOut>60 )
 		{
 			geWksta.ge_seriel_err=1;			
 		} 			

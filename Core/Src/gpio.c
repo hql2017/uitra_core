@@ -193,7 +193,7 @@ void app_air_pump_switch( FunctionalState flag)
 {
   if(flag==DISABLE)  HAL_GPIO_WritePin(H_AIR_EN_GPIO_Port,H_AIR_EN_Pin,GPIO_PIN_RESET);
   else HAL_GPIO_WritePin(H_AIR_EN_GPIO_Port,H_AIR_EN_Pin,GPIO_PIN_SET);
-  app_intake_valve_air_solenoid(flag);//进气阀门
+  app_intake_valve_air_solenoid(flag);
 }
   /************************************************************************//**
   * @brief  循环水泵开关（冷却液）
@@ -239,7 +239,6 @@ void app_air_pump_switch( FunctionalState flag)
    if(flag==DISABLE)  HAL_GPIO_WritePin(PTC_EN_GPIO_Port,PTC_EN_Pin,GPIO_PIN_RESET);
    else HAL_GPIO_WritePin(PTC_EN_GPIO_Port,PTC_EN_Pin,GPIO_PIN_SET);
  }
-
   /************************************************************************//**
   * @brief 循环水水加热管理  water 
   * @param circleWaterTmprature 冷却液温度
@@ -472,7 +471,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   {//低报警，高正常
     if(HAL_GPIO_ReadPin(Solenoid_STATUS2_GPIO_Port,Solenoid_STATUS2_Pin)==GPIO_PIN_SET)
     {
-      err=SUCCESS;//防抖
+      err=SUCCESS;
     }
     
   }
@@ -480,7 +479,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   {//低报警，高正常
     if(HAL_GPIO_ReadPin(Solenoid_STATUS3_GPIO_Port,Solenoid_STATUS3_Pin)==GPIO_PIN_SET)
     {
-      err=SUCCESS;//防抖
+      err=SUCCESS;
     }      
   }
   else if(IoNum==In4_enviroment_tmprature_alert)
@@ -488,35 +487,35 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
     //high alert status (  >Hth -or- <Lth)
     if(HAL_GPIO_ReadPin(TEMPRATURE_ALERT_GPIO_Port,TEMPRATURE_ALERT_Pin)==GPIO_PIN_RESET)
     {
-      err=SUCCESS;//防抖
+      err=SUCCESS;
     }    
   }
   else if(IoNum==In5_h_air_error)//气泵电源异常报警，气泵打开状态下有效
   {    //低报警，高正常
     if(HAL_GPIO_ReadPin(H_AIR_ERROR_GPIO_Port,H_AIR_ERROR_Pin)==GPIO_PIN_SET)
     {
-      err=SUCCESS;//防抖
+      err=SUCCESS;
     }    
   }
   else if(IoNum==In6_Hyperbaria_OFF_Signal)//气泵压力过高
   {  //高报警，低正常
     if(HAL_GPIO_ReadPin(Hyperbaria_OFF_Signal_GPIO_Port,Hyperbaria_OFF_Signal_Pin)==GPIO_PIN_RESET)
     {
-      err=SUCCESS;//防抖
+      err=SUCCESS;
     }    
   }  
   else if(IoNum==In7_water_ready_ok)//治疗水出口状态ok
   {//低ok有效
     if(HAL_GPIO_ReadPin(water_ready_ok_in_GPIO_Port,water_ready_ok_in_Pin)==GPIO_PIN_RESET)
     {
-      err=SUCCESS;//防抖
+      err=SUCCESS;
     }    
   }
   else if(IoNum==In8_water_circle_ok)//水循环状态
   {//低ok有效
     if(HAL_GPIO_ReadPin(water_cycle_ok_GPIO_Port,water_cycle_ok_Pin)==GPIO_PIN_RESET)
     {
-      err = SUCCESS;//防抖
+      err = SUCCESS;
     }   
   }  
   return err;  

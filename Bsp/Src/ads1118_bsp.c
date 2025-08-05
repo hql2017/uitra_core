@@ -18,8 +18,7 @@
   const char *adcRegisterNames[NUM_REGISTERS] = {"DATA", "CONFIG"};
  
  //static const float k_temprature_voltage_list[20]={-1.527,-1.156,-0.777,0.392,0,0.397,0.798,1.203,1.611,2.022,\
- 2.436,2.850,3.266,3.681,4.095,4.508,4.919,5.327,5.733,6.137};
- 
+ 2.436,2.850,3.266,3.681,4.095,4.508,4.919,5.327,5.733,6.137}; 
  /****热电偶 -40~150 测温分度表 */
  static const float k_temprature_voltage_list[191]={
      -1.527,//-40
@@ -45,13 +44,11 @@
  };
  
  #define K_MIN_TEPMRATRUE -40.0
- #define K_MAX_TEPMRATRUE 150.0
- 
- 
- 
- static float tmprature_T0_cold_junction=25.0f,history_tmprature_T0=25.0f; //冷端补偿
- static float tmprature_T1_cool_water,history_tmprature_T1;//冷却循环水
- static float tmprature_T2_laser,history_tmprature_T2; //激光器温度
+ #define K_MAX_TEPMRATRUE 150.0  
+
+ static float tmprature_T0_cold_junction=25.0f; //冷端补偿 
+ static float tmprature_T1_cool_water;//冷却循环水
+ static float tmprature_T2_laser; //激光器温度
  
   //****************************************************************************
   //
@@ -63,16 +60,25 @@
   static uint16_t registerMap[NUM_REGISTERS];
   
    /**
-   * @brief tmprature_cal
-   * @param   int16_t  adValue
+   * @brief filter
+   * @param   
    * @note   pga:CONFIG_PGA_0p256V; unit mV
    * @retval None
    */
- static float volta_tmprature_ret(float temprature)
+ static uint16_t filter_tmprature_ret(uint16_t *t_buff)
  {
-     float vol;
-     unsigned short int i;
-     return vol;
+    uint32_t vol=0;
+     unsigned short int i,j;
+     for(i=0;i<16;i++)
+     {
+       if(j!=0) 
+       {
+        vol+=t_buff[i];
+        j++;
+       }
+     }
+    if(j!=0) vol=(vol/j);
+     return (uint16_t)vol;
  }
   /**
    * @brief tmprature_cal
@@ -83,6 +89,7 @@
  static float tmprature_cal(short int adValue)
  {
      float T,temp,cold;
+     float t0_F;
      unsigned short int i;
      unsigned short int temp2;
      //voltage=(adValue*256/32768);//  //voltage=(adValue*pga/32768) ;PGA=256mV  
@@ -91,29 +98,30 @@
      /***********�ֶȱ�У׼*********/
      if(tmprature_T0_cold_junction<-40) temp2=0;
      else if(tmprature_T0_cold_junction>150) temp2=190;
-     else  {
-         temp2=(unsigned short int)(tmprature_T0_cold_junction+40);
-     } 
-     /****************************/  
-     temp=(adValue*0.0078125)+k_temprature_voltage_list[temp2];//mV    
-     if(temp<k_temprature_voltage_list[0])
+     else  
      {
-         T=-40.0;
-         return T;
+        temp2=(unsigned short int)(tmprature_T0_cold_junction+40);
+     } 
+     t0_F=tmprature_T0_cold_junction+40-temp2*1.0;
+     /****************************/ 
+    temp=(adValue*0.0078125)+k_temprature_voltage_list[temp2];//mV   
+     
+    if(temp<k_temprature_voltage_list[0])
+     {
+        T=-40.0;
+        return T;
      }
      if(temp>=k_temprature_voltage_list[190])
      {
-         T=150.0;
-         return T;
+        T=150.0;
+        return T;
      }
      for(i=0;i<190;i++)
      {
          if((temp<k_temprature_voltage_list[i+1])&&(temp>=k_temprature_voltage_list[i])) 
-         {
-             //if(temp>k_temprature_voltage_list[i]+0.016)  T=((short int)i)*1.0-39.5;//half
-             //else T=((short int)i)*1.0-40.0;//
-             T=((short int)i)*1.0-40+(temp-k_temprature_voltage_list[i])*0.1 ;//half            
-             break;
+         {  
+            T=((short int)i)*1.0-40+t0_F ;          
+            break;
          }          
      }      
      return T;
@@ -314,17 +322,18 @@
      // Read conversion results
      registerMap[CONVERSION_ADDRESS] = readSingleRegister(CONVERSION_ADDRESS);   
      if(flag==0)
-     { 
-         tmprature_T0_cold_junction=((int16_t) registerMap[CONVERSION_ADDRESS]>>2)*0.03125;//冷端补偿
-         DEBUG_PRINTF("T0=%.1fad=%d\r\n", tmprature_T0_cold_junction,(int16_t) registerMap[CONVERSION_ADDRESS]);        
+     {         
+        tmprature_T0_cold_junction=((int16_t) registerMap[CONVERSION_ADDRESS]>>2)*0.03125;//冷端补偿
+        DEBUG_PRINTF("T0=%.1fad=%d\r\n", tmprature_T0_cold_junction,(int16_t) registerMap[CONVERSION_ADDRESS]);        
      }
      else  if(flag==1)
      {  
-         tmprature_T1_cool_water=tmprature_cal((int16_t) registerMap[CONVERSION_ADDRESS]);//循环水温度
-         DEBUG_PRINTF("T1=%.1fad=%d\r\n", tmprature_T1_cool_water,(int16_t) registerMap[CONVERSION_ADDRESS]);
+       
+        tmprature_T1_cool_water=tmprature_cal((int16_t) registerMap[CONVERSION_ADDRESS]);//循环水温度
+        DEBUG_PRINTF("T1=%.1fad=%d\r\n", tmprature_T1_cool_water,(int16_t) registerMap[CONVERSION_ADDRESS]);
      }
      else
-     {   
+     { 
          tmprature_T2_laser=tmprature_cal((int16_t) registerMap[CONVERSION_ADDRESS]);//激光器温度
          DEBUG_PRINTF("T2=%.1fad=%d\r\n",tmprature_T2_laser,(int16_t) registerMap[CONVERSION_ADDRESS]);
      } 
@@ -519,15 +528,15 @@
      uint16_t regValue = 0; 
      if(adChannel==0)//le
      {     
-         regValue=CONFIG_SS_CONV_START |CONFIG_PGA_0p256V |CONFIG_DR_250SPS| registerMap[CONFIG_ADDRESS]|TS_MODE_TS;//冷端温度           
+         regValue=CONFIG_SS_CONV_START |CONFIG_PGA_0p256V |CONFIG_DR_860SPS| registerMap[CONFIG_ADDRESS]|TS_MODE_TS;//冷端温度           
      }
      else  if(adChannel==1)
      {   
-         regValue=CONFIG_SS_CONV_START | CONFIG_PGA_0p256V|CONFIG_DR_250SPS|CONFIG_MUX_AIN0_AIN1|(registerMap[CONFIG_ADDRESS])&0xFFEF;//CONFIG_MUX_AIN0_AIN1         
+         regValue=CONFIG_SS_CONV_START | CONFIG_PGA_0p256V|CONFIG_DR_860SPS|CONFIG_MUX_AIN0_AIN1|(registerMap[CONFIG_ADDRESS])&0xFFEF;//CONFIG_MUX_AIN0_AIN1         
      }
      else
      {    
-         regValue=CONFIG_SS_CONV_START | CONFIG_PGA_0p256V|CONFIG_DR_250SPS|registerMap[CONFIG_ADDRESS]|TS_MODE_ADC|CONFIG_MUX_AIN2_AIN3;//ADC2, 3      
+         regValue=CONFIG_SS_CONV_START | CONFIG_PGA_0p256V|CONFIG_DR_860SPS|registerMap[CONFIG_ADDRESS]|TS_MODE_ADC|CONFIG_MUX_AIN2_AIN3;//ADC2, 3      
      }   
      writeSingleRegister(CONFIG_ADDRESS, regValue);   
   }
@@ -537,52 +546,59 @@
    * @note   
    * @retval 该通道测量值
    *****************************************************************************/
+  
+    int16_t filter_t(uint16_t *buff)
+    {
+    int32_t vol=0;
+    unsigned char i;
+    for( i=0;i<8;i++)
+    {
+        vol+=(int16_t)buff[i];           
+    } 
+    vol=vol/8;
+    return  (int16_t)vol;
+    }
   float  app_ads1118_channel_get_value(unsigned char adChannel)
   {
+    static uint16_t  k1_buff[9]={0},k2_buff[9]={0};
+    static uint8_t k1_t_len=0, k2_t_len=0;
      float ret_tmprature;
      // Monitor DRDY
      // and hold CS low
-     //setCS(LOW);   
+     // setCS(LOW);   
      // HAL_Delay(1); 
      // waitForDRDYinterrupt(1000);
      // HAL_Delay(2);
      //setCS(HIGH);
-     // Read conversion results
- 
+     // Read conversion results 
      registerMap[CONVERSION_ADDRESS] = readSingleRegister(CONVERSION_ADDRESS);  
      if(adChannel==0)
-     {         
-         tmprature_T0_cold_junction=((int16_t) registerMap[CONVERSION_ADDRESS]>>2)*0.03125;//冷端补偿
-        // DEBUG_PRINTF("T0=%.1fad=%d\r\n", tmprature_T0_cold_junction,(int16_t) registerMap[CONVERSION_ADDRESS]); 
-        if(fabs(history_tmprature_T0-tmprature_T0_cold_junction)>0.2) 
-        {
-         ret_tmprature = tmprature_T0_cold_junction;
-         history_tmprature_T0=tmprature_T0_cold_junction;         
-        }
-        else  ret_tmprature = history_tmprature_T0;  
+     {  
+        tmprature_T0_cold_junction=((int16_t) registerMap[CONVERSION_ADDRESS]>>2)*0.03125;//冷端补偿
+        //DEBUG_PRINTF("T0=%.1fad=%d\r\n", tmprature_T0_cold_junction,(int16_t) registerMap[CONVERSION_ADDRESS]); 
+        ret_tmprature = tmprature_T0_cold_junction;
      }
      else  if(adChannel==1)
-     {  
-         tmprature_T1_cool_water=tmprature_cal((int16_t) registerMap[CONVERSION_ADDRESS]);//循环水温度
-        //DEBUG_PRINTF("T1=%.1fad=%d\r\n", tmprature_T1_cool_water,(int16_t) registerMap[CONVERSION_ADDRESS]);       
-         if(fabs(history_tmprature_T1-tmprature_T1_cool_water)>0.2) 
-         {
-          ret_tmprature = tmprature_T1_cool_water;
-          history_tmprature_T1=tmprature_T1_cool_water;          
-         }
-         else  ret_tmprature = tmprature_T1_cool_water;  
- 
+     { 
+        k1_buff[k1_t_len]=registerMap[CONVERSION_ADDRESS];
+        k1_t_len++;
+        k1_t_len%=8;
+        k1_buff[8]=filter_t(k1_buff);       
+        tmprature_T1_cool_water=tmprature_cal(  k1_buff[8]);//registerMap[CONVERSION_ADDRESS]) ;
+       //tmprature_T1_cool_water=tmprature_cal((int16_t) registerMap[CONVERSION_ADDRESS]) ; 
+       //DEBUG_PRINTF("T1=%.1fad=%d\r\n", tmprature_T1_cool_water, registerMap[CONVERSION_ADDRESS]);       
+        ret_tmprature = tmprature_T1_cool_water;  
      }
      else
-     {   
-         tmprature_T2_laser=tmprature_cal((int16_t) registerMap[CONVERSION_ADDRESS]);//激光器温度     
-       //  DEBUG_PRINTF("T2=%.1fad=%d\r\n",tmprature_T2_laser,(int16_t) registerMap[CONVERSION_ADDRESS]);
-         if(fabs(history_tmprature_T2-tmprature_T2_laser)>0.2) 
-         {
-          ret_tmprature = tmprature_T2_laser;
-          history_tmprature_T1=tmprature_T2_laser;          
-         }
-         else  ret_tmprature = tmprature_T2_laser;  
+     { 
+        k2_buff[k2_t_len]=registerMap[CONVERSION_ADDRESS]; 
+        k2_t_len++;
+        k2_t_len%=8; 
+        k2_buff[8]=filter_t(k2_buff);
+        tmprature_T2_laser=tmprature_cal( k2_buff[8]);//registerMap[CONVERSION_ADDRESS]) ; 
+        //tmprature_T2_laser=tmprature_cal((int16_t) registerMap[CONVERSION_ADDRESS]);//激光器温度     
+        // DEBUG_PRINTF("T2=%.1fad=%d\r\n",tmprature_T2_laser,(int16_t)registerMap[CONVERSION_ADDRESS]);
+        ret_tmprature = tmprature_T2_laser;  
      }     
      return ret_tmprature;
   }
