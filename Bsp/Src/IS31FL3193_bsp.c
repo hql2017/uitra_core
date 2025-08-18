@@ -9,9 +9,8 @@
 #include "i2c.h" 
 #include "cmsis_os2.h"
 
-
 #define  IS3_I2C_TIMEOUT  100
- void RGB_shutdown(unsigned char status );
+void RGB_shutdown(unsigned char status );
 
 #ifdef  FL3236_USED
 static uint8_t rgb_breath_frq=0;///0关闭，1快，2中，3慢
@@ -72,20 +71,20 @@ static void is3_rgb_default_param(void)
     buff[0]=0x00;
     ISI3_IIC_Write(IS3_SOFT_RESTOREGE,buff,1);//reset  
     HAL_Delay(5); 
-    rgb_config_param.soft_shutdown=0x20;//0x21���ػ�
+    rgb_config_param.soft_shutdown=0x20;//0x21
     buff[0]=rgb_config_param.soft_shutdown;
-    ISI3_IIC_Write(IS3_REG_SOFT_SHUTDOWN,    buff,1);//д����  
+    ISI3_IIC_Write(IS3_REG_SOFT_SHUTDOWN,    buff,1);
     rgb_config_param.breath1_ctrl=0x24;//B
     buff[0]=rgb_config_param.breath1_ctrl;
-    ISI3_IIC_Write(IS3_REG_HEATH_CONTROL,buff,1);//д����
+    ISI3_IIC_Write(IS3_REG_HEATH_CONTROL,buff,1);
     rgb_config_param.breath2_ctrl=0x25;//R
     buff[0]=rgb_config_param.breath2_ctrl;
-    ISI3_IIC_Write(IS3_REG_HEATH_CONTROL,buff,1);//д����
+    ISI3_IIC_Write(IS3_REG_HEATH_CONTROL,buff,1);
     rgb_config_param.breath3_ctrl=0x26;//G
     buff[0]=rgb_config_param.breath3_ctrl;
-    ISI3_IIC_Write(IS3_REG_HEATH_CONTROL,buff,1);//д����
+    ISI3_IIC_Write(IS3_REG_HEATH_CONTROL,buff,1);
     rgb_config_param.led_ctl_mode=0x00;//0x20 one shut program 0x00:PWM   
-    rgb_config_param.imax_value=rgb_light_value[2]<<2;  //����  ����  
+    rgb_config_param.imax_value=rgb_light_value[2]<<2;   
     rgb_config_param.pwm_value[1]=rgb_color_value[0];//0x20;//50%R
     rgb_config_param.pwm_value[0]=rgb_color_value[1];//0xC8;//50%G
     rgb_config_param.pwm_value[2]=rgb_color_value[2];//0x80;//50%B
@@ -95,7 +94,7 @@ static void is3_rgb_default_param(void)
     buff[3]=rgb_config_param.pwm_value[1];
     buff[4]=rgb_config_param.pwm_value[2];
     buff[5]=0x00;//updata
-    ISI3_IIC_Write(IS3_REG_OPYION_MODE,buff,6);//д���� 
+    ISI3_IIC_Write(IS3_REG_OPYION_MODE,buff,6);
     rgb_config_param.T0_value[0]=1;//1.04s
     rgb_config_param.T0_value[1]=1;//1.04s
     rgb_config_param.T0_value[2]=1;//1.04s
@@ -114,15 +113,15 @@ static void is3_rgb_default_param(void)
     buff[0]=rgb_config_param.T0_value[0]<<4;
     buff[1]=rgb_config_param.T0_value[1]<<4;
     buff[2]=rgb_config_param.T0_value[2]<<4;
-    ISI3_IIC_Write(IS3_T0_SET,buff,3);//д����
+    ISI3_IIC_Write(IS3_T0_SET,buff,3);
     buff[0]=(rgb_config_param.t1_value[0]<<5)|(rgb_config_param.t2_value[0]<<1);
     buff[1]=(rgb_config_param.t1_value[1]<<5)|(rgb_config_param.t2_value[1]<<1);
     buff[2]=(rgb_config_param.t1_value[2]<<5)|(rgb_config_param.t2_value[2]<<1);
-    ISI3_IIC_Write(IS3_T1_T2_SET,buff,3);//д���� 
+    ISI3_IIC_Write(IS3_T1_T2_SET,buff,3);
     buff[0]=(rgb_config_param.t3_value[0]<<5)|(rgb_config_param.t4_value[0]<<1); 
     buff[1]=(rgb_config_param.t3_value[1]<<5)|(rgb_config_param.t4_value[1]<<1);   
     buff[2]=(rgb_config_param.t3_value[2]<<5)|(rgb_config_param.t4_value[2]<<1); 
-    ISI3_IIC_Write(IS3_T3_T4_SET,buff,3);//д����     
+    ISI3_IIC_Write(IS3_T3_T4_SET,buff,3);    
     buff[0]=0x00;
     ISI3_IIC_Write(IS3_T0_4_UPDATA,buff,1);//updata tim   
     buff[0]=0x07;
@@ -152,27 +151,27 @@ static void ISI3_IIC_Write(unsigned char reg,unsigned char *data,unsigned short 
   * @note   ISI3_IIC_Write
   * @retval None
   */
- void app_is3_rgb_config(unsigned char reg,unsigned char *data)
- {   
-   if(reg==IS3_RGB_ENABLE) 
-   {
+  void app_is3_rgb_config(unsigned char reg,unsigned char *data)
+  {   
+    if(reg==IS3_RGB_ENABLE) 
+    {
       ISI3_IIC_Write(reg,data,1);
-   }
-   else if(reg==IS3_APPLAY_PWM_CONTROL) 
-   { 
-     ISI3_IIC_Write(reg,data,1);
-   }   	
-   else if(reg==IS3_T0_4_UPDATA) 
-   {
+    }
+    else if(reg==IS3_APPLAY_PWM_CONTROL) 
+    { 
       ISI3_IIC_Write(reg,data,1);
-   }
+    }   	
+    else if(reg==IS3_T0_4_UPDATA) 
+    {
+      ISI3_IIC_Write(reg,data,1);
+    }
   }
 #endif
 
 /**
   * @brief RGB_shutdown 
   * @param  unsigned char status��0 shutdown ��1 on
-  * @note   RGB ֹͣ���
+  * @note   RGB 
   * @retval None
   */
  void RGB_shutdown(unsigned char status )
@@ -184,13 +183,12 @@ static void ISI3_IIC_Write(unsigned char reg,unsigned char *data,unsigned short 
 /**
   * @brief IS3_init
   * @param  void
-  * @note   RGB ����Ƴ�ʼ��
+  * @note   RGB 
   * @retval None
   */
 void IS3_init(void)
 { 
-  RGB_shutdown(0); 
-	
+  RGB_shutdown(0);
 	#ifdef  FL3236_USED
 	app_I2C_start(&hi2c5);
 	IS31FL3236A_Init();
@@ -219,8 +217,7 @@ void rgb_color_all(unsigned short int color)
 		#else 
 			rgb_buff[1]=0;
 			rgb_buff[0]=255;//++;   
-			rgb_buff[2]=0;
-			
+			rgb_buff[2]=0;			
 			rgb_buff[3]=0;//updata
 			ISI3_IIC_Write(IS3_REG_CHANNEL1_PWM,rgb_buff,4); 
 			rgb_buff[0]=0x00;
@@ -248,8 +245,7 @@ void rgb_color_all(unsigned short int color)
 		#else 
 		rgb_buff[1]=0;
 			rgb_buff[0]=0;//++;   
-			rgb_buff[2]=0;
-			
+			rgb_buff[2]=0;			
 			rgb_buff[3]=0;//updata
 			ISI3_IIC_Write(IS3_REG_CHANNEL1_PWM,rgb_buff,4); 
 			rgb_buff[0]=0x00;

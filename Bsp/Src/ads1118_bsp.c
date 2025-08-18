@@ -14,7 +14,7 @@
  #include "math.h"
  #define LOW   0
  #define HIGH  1
- 
+ static void adcStartup(void);
   const char *adcRegisterNames[NUM_REGISTERS] = {"DATA", "CONFIG"};
  
  //static const float k_temprature_voltage_list[20]={-1.527,-1.156,-0.777,0.392,0,0.397,0.798,1.203,1.611,2.022,\
@@ -47,8 +47,8 @@
  #define K_MAX_TEPMRATRUE 150.0  
 
  static float tmprature_T0_cold_junction=25.0f; //冷端补偿 
- static float tmprature_T1_cool_water;//冷却循环水
- static float tmprature_T2_laser; //激光器温度
+ static float tmprature_T1_cool_water=23.0f;//冷却循环水
+ static float tmprature_T2_laser=23.0f; //激光器温度
  
   //****************************************************************************
   //
@@ -58,27 +58,22 @@
   
   // Array used to recall device register map configurations*/
   static uint16_t registerMap[NUM_REGISTERS];
-  
-   /**
-   * @brief filter
-   * @param   
-   * @note   pga:CONFIG_PGA_0p256V; unit mV
-   * @retval None
-   */
- static uint16_t filter_tmprature_ret(uint16_t *t_buff)
+ 
+  //filter
+  static KalmanFilter kf0; 
+  static KalmanFilter kf1;  
+  static KalmanFilter kf2; 
+ int16_t filter_t(int16_t *buff,int32_t len)
  {
-    uint32_t vol=0;
-     unsigned short int i,j;
-     for(i=0;i<16;i++)
-     {
-       if(j!=0) 
-       {
-        vol+=t_buff[i];
-        j++;
-       }
-     }
-    if(j!=0) vol=(vol/j);
-     return (uint16_t)vol;
+    unsigned char i;
+    int16_t vol;
+    int32_t temp=0;
+    for (int i = 0; i <len; i++) {        
+        temp+=buff[i];//vol;
+       // printf("Estimated: %.2f, Measurement: %.2f\n", kf1.estimate, vol);  
+    }
+    vol=temp/len;
+    return  vol;
  }
   /**
    * @brief tmprature_cal
@@ -102,10 +97,9 @@
      {
         temp2=(unsigned short int)(tmprature_T0_cold_junction+40);
      } 
-     t0_F=tmprature_T0_cold_junction+40-temp2*1.0;
+     t0_F=(tmprature_T0_cold_junction+40-temp2*1.0)*(k_temprature_voltage_list[temp2+1]-k_temprature_voltage_list[temp2]);  
      /****************************/ 
-    temp=(adValue*0.0078125)+k_temprature_voltage_list[temp2];//mV   
-     
+    temp=(adValue*0.0078125)+k_temprature_voltage_list[temp2]+t0_F;//mV  
     if(temp<k_temprature_voltage_list[0])
      {
         T=-40.0;
@@ -119,8 +113,9 @@
      for(i=0;i<190;i++)
      {
          if((temp<k_temprature_voltage_list[i+1])&&(temp>=k_temprature_voltage_list[i])) 
-         {  
-            T=((short int)i)*1.0-40+t0_F ;          
+         {              
+            t0_F=(temp-k_temprature_voltage_list[i])/(k_temprature_voltage_list[i+1]-k_temprature_voltage_list[i]);          
+            T=((short int)i)*1.0-40+t0_F;          
             break;
          }          
      }      
@@ -136,10 +131,12 @@
      HAL_StatusTypeDef err;
      setCS(LOW);
      delay_us(50);
-     err=HAL_SPI_TransmitReceive(&hspi4, TXdata, RXdata, dLength, HAL_MAX_DELAY);
+     err=HAL_SPI_TransmitReceive(&hspi4, TXdata, RXdata, dLength,100);// HAL_MAX_DELAY);
      if(err!=HAL_OK) 
      {
-         memset(RXdata,0xFF,dLength);
+        setCS(HIGH);   
+        memset(RXdata,0xFF,dLength);
+        adcStartup();
      }
      setCS(HIGH);   
   }
@@ -147,7 +144,6 @@
   static void  waitForDRDYinterrupt(uint32_t dTim )
   {    
     // HAL_Delay(150);
- 
      delay_us(800);
      //HAL_delay(dTim);
      //osDelay(dTim);
@@ -194,9 +190,11 @@
       //
       // (OPTIONAL) Provide additional delay time for power supply settling
       //
+      MX_SPI4_Init();
       HAL_Delay(1);
-  
-      //
+
+
+      
       // (REQUIRED) Initialize internal 'registerMap' array with device default settings
       //
       restoreRegisterDefaults();
@@ -210,6 +208,8 @@
      //registerMap[CONFIG_ADDRESS] |=CONFIG_PGA_0p256V|;  //改变分辨率方便计算
      //registerMap[CONFIG_ADDRESS] |=CONFIG_DR_860SPS;  //最高采样率 complete_delay=(1000/860)=1.18ms;默认complete_delay=(1000/128)=7.82125ms
      // DEBUG_PRINTF("default_cfg=0x%04x=%04x\r\n",CONFIG_DEFAULT,registerMap[CONFIG_ADDRESS] );
+
+     
   }
   
   /**
@@ -435,8 +435,7 @@
      uint8_t lsByte;
      lsByte = (uint8_t) (uint16_Word & 0x00FF); 
      return lsByte;
-  }
-  
+  }  
   /**
    *
    * @brief combineBytes()
@@ -528,15 +527,15 @@
      uint16_t regValue = 0; 
      if(adChannel==0)//le
      {     
-         regValue=CONFIG_SS_CONV_START |CONFIG_PGA_0p256V |CONFIG_DR_860SPS| registerMap[CONFIG_ADDRESS]|TS_MODE_TS;//冷端温度           
+        regValue=CONFIG_SS_CONV_START |CONFIG_PGA_0p256V |CONFIG_DR_860SPS| registerMap[CONFIG_ADDRESS]|TS_MODE_TS;//冷端温度           
      }
      else  if(adChannel==1)
      {   
-         regValue=CONFIG_SS_CONV_START | CONFIG_PGA_0p256V|CONFIG_DR_860SPS|CONFIG_MUX_AIN0_AIN1|(registerMap[CONFIG_ADDRESS])&0xFFEF;//CONFIG_MUX_AIN0_AIN1         
+        regValue=CONFIG_SS_CONV_START | CONFIG_PGA_0p256V|CONFIG_DR_860SPS|CONFIG_MUX_AIN0_AIN1|(registerMap[CONFIG_ADDRESS])&0xFFEF;//CONFIG_MUX_AIN0_AIN1         
      }
      else
      {    
-         regValue=CONFIG_SS_CONV_START | CONFIG_PGA_0p256V|CONFIG_DR_860SPS|registerMap[CONFIG_ADDRESS]|TS_MODE_ADC|CONFIG_MUX_AIN2_AIN3;//ADC2, 3      
+        regValue=CONFIG_SS_CONV_START | CONFIG_PGA_0p256V|CONFIG_DR_860SPS|registerMap[CONFIG_ADDRESS]|TS_MODE_ADC|CONFIG_MUX_AIN2_AIN3;//ADC2, 3      
      }   
      writeSingleRegister(CONFIG_ADDRESS, regValue);   
   }
@@ -546,22 +545,11 @@
    * @note   
    * @retval 该通道测量值
    *****************************************************************************/
-  
-    int16_t filter_t(uint16_t *buff)
-    {
-    int32_t vol=0;
-    unsigned char i;
-    for( i=0;i<8;i++)
-    {
-        vol+=(int16_t)buff[i];           
-    } 
-    vol=vol/8;
-    return  (int16_t)vol;
-    }
   float  app_ads1118_channel_get_value(unsigned char adChannel)
   {
-    static uint16_t  k1_buff[9]={0},k2_buff[9]={0};
-    static uint8_t k1_t_len=0, k2_t_len=0;
+    static int16_t  k1_buff[32],k2_buff[32];
+    static int16_t  k1_buff_len=0,k2_buff_len=0;
+    static float k_t_err;
      float ret_tmprature;
      // Monitor DRDY
      // and hold CS low
@@ -573,32 +561,49 @@
      // Read conversion results 
      registerMap[CONVERSION_ADDRESS] = readSingleRegister(CONVERSION_ADDRESS);  
      if(adChannel==0)
-     {  
-        tmprature_T0_cold_junction=((int16_t) registerMap[CONVERSION_ADDRESS]>>2)*0.03125;//冷端补偿
-        //DEBUG_PRINTF("T0=%.1fad=%d\r\n", tmprature_T0_cold_junction,(int16_t) registerMap[CONVERSION_ADDRESS]); 
-        ret_tmprature = tmprature_T0_cold_junction;
-     }
-     else  if(adChannel==1)
      { 
-        k1_buff[k1_t_len]=registerMap[CONVERSION_ADDRESS];
-        k1_t_len++;
-        k1_t_len%=8;
-        k1_buff[8]=filter_t(k1_buff);       
-        tmprature_T1_cool_water=tmprature_cal(  k1_buff[8]);//registerMap[CONVERSION_ADDRESS]) ;
-       //tmprature_T1_cool_water=tmprature_cal((int16_t) registerMap[CONVERSION_ADDRESS]) ; 
-       //DEBUG_PRINTF("T1=%.1fad=%d\r\n", tmprature_T1_cool_water, registerMap[CONVERSION_ADDRESS]);       
+        //tmprature_T0_cold_junction=((int16_t) registerMap[CONVERSION_ADDRESS]>>2)*0.03125;//冷端补偿     
+       if(registerMap[CONVERSION_ADDRESS]!=0xFFFF)  
+       { 
+            tmprature_T0_cold_junction=kalman_filter_update(&kf0,((int16_t) registerMap[CONVERSION_ADDRESS]>>2)*0.03125);
+       }
+       //printf("T0=%f t00%f\r\n", ((int16_t) registerMap[CONVERSION_ADDRESS]>>2)*0.03125,sEnvParam.enviroment_temprature); 
+        ret_tmprature = tmprature_T0_cold_junction;
+        if(tmprature_T0_cold_junction-sEnvParam.enviroment_temprature>0)
+        {
+            k_t_err=sEnvParam.enviroment_temprature-tmprature_T0_cold_junction+0.5;
+        }
+        else k_t_err=0;
+     }
+     else if(adChannel==1)
+     {  
+        k1_buff_len%=32;   
+        if(registerMap[CONVERSION_ADDRESS]==0xFFFF) 
+        {
+            if(k1_buff_len>0) k1_buff[k1_buff_len]=k1_buff[k1_buff_len-1];
+            else k1_buff[k1_buff_len]=k1_buff[31];            
+        }  //err   
+        else k1_buff[k1_buff_len]=(int16_t)kalman_filter_update(&kf1,(int16_t) registerMap[CONVERSION_ADDRESS]);
+        if(k1_buff_len==31) tmprature_T1_cool_water = tmprature_cal(filter_t(k1_buff,32))+(k_t_err*0.66);  
+        k1_buff_len++;   
+        //tmprature_T1_cool_water=tmprature_cal((int16_t) registerMap[CONVERSION_ADDRESS]) ; 
+        //DEBUG_PRINTF("T1=%.1fad=%d\r\n", tmprature_T1_cool_water, registerMap[CONVERSION_ADDRESS]);       
         ret_tmprature = tmprature_T1_cool_water;  
      }
      else
      { 
-        k2_buff[k2_t_len]=registerMap[CONVERSION_ADDRESS]; 
-        k2_t_len++;
-        k2_t_len%=8; 
-        k2_buff[8]=filter_t(k2_buff);
-        tmprature_T2_laser=tmprature_cal( k2_buff[8]);//registerMap[CONVERSION_ADDRESS]) ; 
+        k2_buff_len%=32;//10*k2_buff_len ms       更新时间  0.32s
+        if(registerMap[CONVERSION_ADDRESS]==0xFFFF) 
+        {
+            if(k2_buff_len>0) k2_buff[k2_buff_len]=k2_buff[k2_buff_len-1];
+            else k2_buff[k2_buff_len]=k2_buff[31];            
+        }  //err 使用旧值
+       else  k2_buff[k2_buff_len]=(int16_t)kalman_filter_update(&kf2,(int16_t) registerMap[CONVERSION_ADDRESS]);
+        if(k2_buff_len==31) tmprature_T2_laser = tmprature_cal(filter_t(k2_buff,32))+(k_t_err*0.33);  
+        k2_buff_len++;   
         //tmprature_T2_laser=tmprature_cal((int16_t) registerMap[CONVERSION_ADDRESS]);//激光器温度     
         // DEBUG_PRINTF("T2=%.1fad=%d\r\n",tmprature_T2_laser,(int16_t)registerMap[CONVERSION_ADDRESS]);
-        ret_tmprature = tmprature_T2_laser;  
+        ret_tmprature = tmprature_T2_laser;          
      }     
      return ret_tmprature;
   }
@@ -611,5 +616,85 @@
    *****************************************************************************/
   void app_ads1118_startup(void)
   {
-     adcStartup();
+    adcStartup();
+    kalman_filter_init(&kf0, 25.0, 0.2);
+    kalman_filter_init(&kf1, 25.0, 0.2);
+    kalman_filter_init(&kf2, 25.0, 0.2);
   }
+
+  /********************MAX31865*****************************************/	
+	#ifdef MAX_31865_PT1000	
+	static void setMax3185CS(unsigned char sel)
+	{	
+		setCS(sel);
+	}
+	/*err
+float Get_tempture(void)//PT100
+{
+  float temps;
+  uint16_t dtemp[2];
+  uint16_t data_temp;
+  dtemp[0]=MAX31865_SB_Read(0x01);
+  dtemp[1]=MAX31865_SB_Read(0x02);
+  data_temp=(dtemp[0]<<7)+(dtemp[1]>>1);//Get 15Bit DATA;
+  temps=data_temp;
+  temps=(temps*402)/32768;//Here is the rtd R value;
+  temps=(temps-100)/0.385055;//A gruad
+  return temps;
+}
+*/
+float Get_tempture(void)//PT1000
+{
+  float temps;
+  uint16_t dtemp[2];
+  uint16_t data_temp;
+  dtemp[0]=MAX31865_SB_Read(0x01);
+  dtemp[1]=MAX31865_SB_Read(0x02);
+	data_temp=(dtemp[0]<<7)|(dtemp[1]>>1);//Get 15Bit DATA;
+  temps=data_temp;	
+  temps=(temps*4020)/16384;//Here is the rtd R value;
+  temps=(temps-1000)/3.85055;//A gruad
+	printf("T=%.2f  \r\n",temps);
+  return temps;
+}
+
+uint8_t MAX31865_SB_Read(uint8_t addr)//SPI Single-Byte Read
+{
+	unsigned char TXdata[2], RXdata[2];
+	HAL_StatusTypeDef err;
+	TXdata[0]=addr;
+	TXdata[1]=0;
+	setMax3185CS(0);
+	delay_us(50);
+	err=HAL_SPI_TransmitReceive(&hspi4, TXdata, RXdata, 2,100);// HAL_MAX_DELAY);
+	if(err!=HAL_OK) 
+	{  
+		memset(RXdata,0xFF,2);		
+	}
+	setMax3185CS(1);   
+	return RXdata[1];
+}
+
+void MAX31865_SB_Write(uint8_t addr,uint8_t wdata)//SPI Single-Byte Write
+{
+  unsigned char TXdata[2], RXdata[2];
+	HAL_StatusTypeDef err;
+	TXdata[0]=addr;
+	TXdata[1]=wdata;
+	setMax3185CS(0);
+	delay_us(50);
+	err=HAL_SPI_TransmitReceive(&hspi4, TXdata, RXdata, 2,100);// HAL_MAX_DELAY);
+	if(err!=HAL_OK) 
+	{  
+		memset(RXdata,0xFF,2);		
+	}
+	setMax3185CS(1);   
+}
+
+void max_3185_pt1000(void)
+{	
+	MAX31865_SB_Write(0x80,0xC1);//二线、四线配置
+	// MAX31865_SB_Write(0x80,0xD1);//三线配置
+}	
+#endif
+	

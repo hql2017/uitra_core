@@ -94,7 +94,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			break;
 		case HMI_CODE_POWER_PARAM:
 			data[2]%=2;
-			laser_config_param.laserType=data[2];//laser _type	
+			laser_config_param.laserType=data[2];
 			laser_config_param.laserEnerge=(data[3]|(data[4]<<8));						
 			laser_config_param.laserFreq=data[5];						
 			break;
@@ -108,12 +108,12 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			laser_config_param.ledLightLevel=data[2];	 	 		
 			break;
 		case HMI_CODE_CTR_TEST_MODE:
-			laser_config_param.ctrTestMode=data[2];			
-			//app_laser_preapare_semo();	//本激光无980	
+			laser_config_param.ctrTestMode=data[2];		
+			//app_laser_preapare_semo();	//本设备无980	
 			break;
 		case HMI_CODE_PRO_HOT:				
 			//laser_config_param.laserType=data[2];	
-			laser_config_param.proHotCtr=data[3];
+			laser_config_param.proHotCtr = data[3];
 			app_laser_preapare_semo();
 			break;
 		case HMI_CODE_PULSE_COUNT:			
@@ -123,7 +123,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			can_tx_data[5]=(sGenSta.laser1064PulseCount>>24)&0xFF;	
 			can_tx_data[6]=0;
 			can_tx_data[7]=0;
-			APP_CAN_SEND_DATA(can_tx_data,8,HMI_BROADCAST_ADDR);//ACK no DATA
+			APP_CAN_SEND_DATA(can_tx_data,8,HMI_BROADCAST_ADDR);
 			break;
 		default:			
 			break;

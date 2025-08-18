@@ -18,7 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os.h"
+#include "cmsis_os2.h"
 #include "adc.h"
 #include "dma.h"
 #include "fdcan.h"
@@ -140,6 +140,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   DWT_Init(); 
   #ifdef DEBUG_MSG_UART
+  DEBUG_PRINTF("DEVICEID=%d\r\n",u_sys_param.sys_config_param.equipmentId);
   DEBUG_PRINTF("uitra  DATE=%s--%s\r\n",__DATE__,__TIME__);
   #else
   printf("uitra  DATE=%s--%s\r\n",__DATE__,__TIME__);

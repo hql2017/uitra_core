@@ -57,10 +57,18 @@ uint8_t     upperByte(uint16_t uint16_Word);
 uint8_t     lowerByte(uint16_t uint16_Word);
 uint16_t    combineBytes(uint8_t upperByte, uint8_t lowerByte);
 int32_t     signExtend(const uint8_t dataBytes[]);
-
+#ifdef MAX_31865_PT1000
+#define MAX_31865_PT1000
+uint8_t MAX31865_SB_Read(uint8_t addr);
+void MAX31865_SB_Write(uint8_t addr,uint8_t wdata);
+float Get_tempture(void);
+#else
 float  app_ads1118_channel_get_value(unsigned char adChannel);
 void app_ads1118_channel_sampling_start(unsigned char adChannel);
 void app_ads1118_startup(void);
+#endif
+
+
 #define ADS1118_COOL_CHANNEL 0//TC MODE
 #define ADS1118_K1_CHANNEL  1//AIN0 -AIN1 GND
 #define ADS1118_K2_CHANNEL  2//AIN2 -AIN3 GND

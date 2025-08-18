@@ -300,7 +300,8 @@ typedef struct {
   unsigned int  softVersion;            // 软件版本2025063001(2025.06.30.01)
   unsigned int  equipmentId  ;          // 设备编号 
 	unsigned int  laser1064PulseCount;  	// 1064总脉冲数。
-	unsigned int  laser980TimeMs;  				// 980运行时间。(MAX,连续49.7天)
+	unsigned int  laser1064TimeS;  				// 1064脉冲激光运行时间。(MAX,连续49.7天)
+  unsigned int  laser980TimeS;  				// 980运行时间。(MAX,连续49.7天)
   unsigned int  checkSum;               // 校验和 
 }SYS_CONFIG_PARAM ;//系统配置参数
 typedef union 

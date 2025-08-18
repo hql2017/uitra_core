@@ -610,7 +610,7 @@ float app_jdq_get_laser_v(void)
 /**
   * @brief app_laser_pulse_start 
   * @param  
-  * @note   laser pulse 100us~500us
+  * @note   laser pulse width(l_pulse) 100us~230us   ；voltage pulse width (v_pulse)  v_pulse ≈ l_pulse+40;（140~270us）
   * @retval None
   */
  void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq)

@@ -21,10 +21,11 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "main.h"
-#include "cmsis_os.h"
+#include "cmsis_os2.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "stdlib.h"
 #include <math.h>
 #include "string.h"
 #include "adc.h"
@@ -153,7 +154,7 @@ const osThreadAttr_t myTask04_attributes = {
 osThreadId_t myTask05Handle;
 const osThreadAttr_t myTask05_attributes = {
   .name = "myTask05",
-  .stack_size = 320 * 4,
+  .stack_size = 384 * 4,
   .priority = (osPriority_t) osPriorityNormal5,
 };
 /* Definitions for myTask06 */
@@ -678,7 +679,7 @@ void StartDefaultTask(void *argument)
         }
 			}while(app_get_jdq_rs485_bus_statu()!=0);   
       app_jdq_bus_get_set_v_c(&jdq_set_voltage,&jdq_set_current);
-      if(fabs(jdq_set_voltage-LASER_JDQ_VOLTAGE_F)>5.0)
+      if(fabsf(jdq_set_voltage-LASER_JDQ_VOLTAGE_F)>5.0)
       {
           sys_load_sta.laserPowerSystemLoadFlag=3;
           DEBUG_PRINTF("laser jdq  load fail \r\n"); 
@@ -799,6 +800,7 @@ void keyScanTask03(void *argument)
     #ifdef IWDG_USED
     HAL_IWDG_Refresh(&hiwdg1); 
     #endif
+    uint32_t t=osKernelGetSysTimerCount();
 		osDelay(20); 
     #ifdef ONE_WIRE_BUS_SLAVE
     recKeyValue=  app_owb_key_scan(20);
@@ -876,7 +878,7 @@ void laserWorkTask04(void *argument)
           if(sGenSta.laser_run_B0_pro_hot_status!=0)
           {	       
 						sGenSta.laser_run_B1_laser_out_status=1;  
-						rgbMessage=RGB_LASER_WORK_STATUS;
+						rgbMessage = RGB_LASER_WORK_STATUS;
 						osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);						
             app_laser_pulse_start(180,laser_config_param.laserFreq);  																					
             DEBUG_PRINTF("laser 1064 start=%d\r\n",recKeyMessage);
@@ -962,7 +964,7 @@ void fastAuxTask05(void *argument)
   /* Infinite loop */
   static uint32_t circleTick;    
   float  treatmentWaterC; 
-  float  recVoltage,recCurrent; 
+  float  recVoltage,recCurrent,k0_cool_temprature; 
   for(;;)
   {
 		/***********环境气压、温度监测*******************/ 
@@ -979,7 +981,7 @@ void fastAuxTask05(void *argument)
 		 sEnvParam.air_gzp_enviroment_pressure_kpa =94.0;
 	 } 
   /******************治疗水位********环境温度************/  
-    if(osKernelGetTickCount()>circleTick+500)
+    if(osKernelGetTickCount()>circleTick+1000)
     { 
       circleTick=osKernelGetTickCount();	
       //app_mcp61_get_singgle_c_value_req();//液位
@@ -987,7 +989,7 @@ void fastAuxTask05(void *argument)
       // DEBUG_PRINTF("evnentBits=%04x\r\n",osEventFlagsGet(auxStatusEvent01Handle));
       //DEBUG_PRINTF("NTC=%.2f℃ laser_energe=%.1f iBus=%.1fmA ,vBus=%.1fmV,air_pump_pressure=%.2fkPa\r\n",sEnvParam.NTC_temprature,\
       sEnvParam.laser_1064_energy,sEnvParam.iBus,sEnvParam.vBus,sEnvParam.air_pump_pressure); 
-      //DEBUG_PRINTF("ads1118: T1=%.1f℃ T2= %.1f℃\r\n", sEnvParam.eth_k1_temprature,sEnvParam.eth_k2_temprature);      
+      printf("ads1118: T1=%.1f℃ T2= %.1f℃ %.1f℃\r\n", sEnvParam.eth_k1_temprature,sEnvParam.eth_k2_temprature,k0_cool_temprature);      
       //DEBUG_PRINTF("gzp_enviroment_air_pressure: kpa=%.2fkPa temprature=%.1f ℃\r\n",sEnvParam.air_gzp_enviroment_pressure_kpa,sEnvParam.enviroment_temprature);
       //eventFlagError= osEventFlagsWait(status_io_updataEvent01Handle,EVENTS_STATUS_IO_ALL_BITS,osFlagsWaitAll,portMAX_DELAY);) 
       //DEBUG_PRINTF("NTC=%.2f℃ laser_energe=%.1f iBus=%.1fmA ,vBus=%.1fmV,air_pump_pressure=%.2fkPa\r\n",sEnvParam.NTC_temprature,\
@@ -996,26 +998,26 @@ void fastAuxTask05(void *argument)
 			#if 1 
 			sEnvParam.enviroment_temprature = M117Z_get_temprature()*1.0; 
 			M117Z_start_sampling();	
-		  //DEBUG_PRINTF("enviroment_temprature: %.1f℃\r\n",sEnvParam.enviroment_temprature);	
+		  printf("enviroment_temprature: %.1f℃\r\n",sEnvParam.enviroment_temprature);	
 			#endif
 	 }
     /***********热电偶温度监测*******************/
     app_ads1118_channel_sampling_start(ADS1118_COOL_CHANNEL);	 
     osDelay(ADS1118_DELEY_TIME_MS);
-    app_ads1118_channel_get_value(ADS1118_COOL_CHANNEL);
+    k0_cool_temprature= app_ads1118_channel_get_value(ADS1118_COOL_CHANNEL);
     app_ads1118_channel_sampling_start(ADS1118_K1_CHANNEL);	 
     osDelay(ADS1118_DELEY_TIME_MS);
     sEnvParam.eth_k1_temprature = app_ads1118_channel_get_value(ADS1118_K1_CHANNEL);   
     app_ads1118_channel_sampling_start(ADS1118_K2_CHANNEL);	 
     osDelay(ADS1118_DELEY_TIME_MS);
-    sEnvParam.eth_k2_temprature = app_ads1118_channel_get_value(ADS1118_K2_CHANNEL);       
+    sEnvParam.eth_k2_temprature = app_ads1118_channel_get_value(ADS1118_K2_CHANNEL);   
     //DEBUG_PRINTF("ads1118: T1=%.1f℃ T2=%.1f℃\r\n", sEnvParam.eth_k1_temprature,sEnvParam.eth_k2_temprature);
     /***********NTC,laser_energe,iB
      * us,vBus,air_pump_pressure气泵气压，参数****************** */     
     app_get_adc_value(AD1_NTC_INDEX,&sEnvParam.NTC_temprature);//蠕动泵，状态
     if(sEnvParam.NTC_temprature>sEnvParam.enviroment_temprature+40)//过热
     {
-      osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_9_NTC_BIT);      
+      osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_9_NTC_BIT);  
     }
     else
     {
@@ -1044,10 +1046,9 @@ void fastAuxTask05(void *argument)
 		app_get_adc_value(AD1_AIR_PRESSER_INDEX,&sEnvParam.air_pump_pressure);	
 		app_air_pump_manage(laser_config_param.airPressureLevel);    
 		/***********aux genaration状态检查*******************/  
-    app_sys_genaration_status_manage();				
-		
+    app_sys_genaration_status_manage();	
 		app_fresh_laser_status_param();			
-    osDelay(2);
+    osDelay(3);
   }
   /* USER CODE END fastAuxTask05 */
 }
@@ -1129,17 +1130,16 @@ void canReceiveTask07(void *argument)
 				}
 				else
 				{
-					if(	sGenSta.laser_run_B3_laser_pilot_lamp_status!=0)
+					if(sGenSta.laser_run_B3_laser_pilot_lamp_status!=0)
 					{
 						app_auxiliary_bulb_pwm(0,DISABLE);
 						sGenSta.laser_run_B3_laser_pilot_lamp_status=0;
 					}					
 				}									
-				osSemaphoreRelease( hmiCanBusIdleSem06Handle);
+				osSemaphoreRelease(hmiCanBusIdleSem06Handle);
 			}
       osDelay(2);   
-		}			
-    
+		}		
    	osDelay(1);   
   }
   /* USER CODE END canReceiveTask07 */
@@ -1164,6 +1164,7 @@ void powerOffTask08(void *argument)
 		{
 			DEBUG_PRINTF(" sys  param save ok\r\n");
 		}		    
+    HAL_Delay(2000);
 		app_mcu_power_switch(DISABLE);
 		DEBUG_PRINTF("DEVICE POWER OFF\r\n"); 
 		while(1)
@@ -1204,7 +1205,7 @@ void laserProhotTask09(void *argument)
     if(local_proHotCtr!=0)	
     {	
       app_jdq_bus_get_set_v_c(&l_jdq_set_voltage,&l_jdq_set_current);      
-      if(fabs(laser_Voltage*0.1 - l_jdq_set_voltage)>5.0) 
+      if(fabsf(laser_Voltage*0.1 - l_jdq_set_voltage)>5.0) 
       {
         osDelay(JDQ_RS485_FRAME_MIN_MS);   
         app_jdq_bus_voltage_set(LASER_JDQ_VOLTAGE_F);
@@ -1429,9 +1430,10 @@ void app_set_default_sys_config_param(void)
 	u_sys_param.sys_config_param.errFlag = EEROM_DATA_ERR_CHECK_FLAG;
 	u_sys_param.sys_config_param.equipmentModel=1;
 	u_sys_param.sys_config_param.softVersion=250100;//25Ver1.0
-	u_sys_param. sys_config_param.equipmentId=57736;//
+	u_sys_param. sys_config_param.equipmentId= DBGMCU->IDCODE;//HAL_GetDEVID();;//
 	u_sys_param. sys_config_param.laser1064PulseCount=0;
-	u_sys_param. sys_config_param.laser980TimeMs=0;
+  u_sys_param. sys_config_param.laser1064TimeS=0;
+	u_sys_param. sys_config_param.laser980TimeS=0;
 	u_sys_param.sys_config_param.checkSum=sumCheck(u_sys_param.data,sizeof(SYS_CONFIG_PARAM)-4);	 
 	DEBUG_PRINTF("sys param load failed! load defalut param\r\n"); 
 }
@@ -1527,7 +1529,13 @@ void app_set_default_sys_config_param(void)
   *****************************************************************************/
   void app_fresh_laser_status_param(void)
   {
-    sGenSta.circle_water_box_temprature=(char)((int)sEnvParam.eth_k1_temprature);
+    static float historyCircleWaterTemprature=0;
+    if(historyCircleWaterTemprature==0) historyCircleWaterTemprature=sEnvParam.enviroment_temprature;
+    if(fabsf(historyCircleWaterTemprature-sEnvParam.eth_k1_temprature)>0.5)
+    {
+      historyCircleWaterTemprature=sEnvParam.eth_k1_temprature;      
+    }
+    sGenSta.circle_water_box_temprature=(char)((int)historyCircleWaterTemprature);
     sGenSta.treatment_water_level_status=laser_config_param.treatmentWaterLevel;
     sGenSta.air_level_status=laser_config_param.airPressureLevel;		 
     sGenSta.laser_run_B0_pro_hot_status=laser_config_param.proHotCtr;

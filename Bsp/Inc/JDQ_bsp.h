@@ -46,8 +46,8 @@ void app_jdq_sts_1200_receive_handle(void);
 #define  STS_1200_REG_RUN_STOP	        1006//电源输出/停止 0停止；1输出。
 
 #define LASER_PULSE_STOP  0
-#define LASER_JDQ_VOLTAGE_F  160.0f
-#define LASER_JDQ_VOLTAGE  160
+#define LASER_JDQ_VOLTAGE_F  150.0f
+#define LASER_JDQ_VOLTAGE  150
 #define  LASER_JDQ_CHARGE_TIMEOUT_MS  90000//60S
 
 #ifndef  ADS1110_JDQ_USED
