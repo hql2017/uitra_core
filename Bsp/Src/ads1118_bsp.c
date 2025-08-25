@@ -621,7 +621,6 @@
     kalman_filter_init(&kf1, 25.0, 0.2);
     kalman_filter_init(&kf2, 25.0, 0.2);
   }
-
   /********************MAX31865*****************************************/	
 	#ifdef MAX_31865_PT1000	
 	static void setMax3185CS(unsigned char sel)
@@ -645,17 +644,17 @@ float Get_tempture(void)//PT100
 */
 float Get_tempture(void)//PT1000
 {
-  float temps;
-  uint16_t dtemp[2];
-  uint16_t data_temp;
-  dtemp[0]=MAX31865_SB_Read(0x01);
-  dtemp[1]=MAX31865_SB_Read(0x02);
-	data_temp=(dtemp[0]<<7)|(dtemp[1]>>1);//Get 15Bit DATA;
-  temps=data_temp;	
-  temps=(temps*4020)/16384;//Here is the rtd R value;
-  temps=(temps-1000)/3.85055;//A gruad
-	printf("T=%.2f  \r\n",temps);
-  return temps;
+    float temps;
+    uint16_t dtemp[2];
+    uint16_t data_temp;
+    dtemp[0]=MAX31865_SB_Read(0x01);
+    dtemp[1]=MAX31865_SB_Read(0x02);
+    data_temp=(dtemp[0]<<7)|(dtemp[1]>>1);//Get 15Bit DATA;
+    temps=data_temp;	
+    temps=(temps*4020)/16384;//Here is the rtd R value;
+    temps=(temps-1000)/3.85055;//A gruad
+    DEBUG("T=%.2f  \r\n",temps);
+    return temps;
 }
 
 uint8_t MAX31865_SB_Read(uint8_t addr)//SPI Single-Byte Read
@@ -674,21 +673,20 @@ uint8_t MAX31865_SB_Read(uint8_t addr)//SPI Single-Byte Read
 	setMax3185CS(1);   
 	return RXdata[1];
 }
-
 void MAX31865_SB_Write(uint8_t addr,uint8_t wdata)//SPI Single-Byte Write
 {
-  unsigned char TXdata[2], RXdata[2];
-	HAL_StatusTypeDef err;
-	TXdata[0]=addr;
-	TXdata[1]=wdata;
-	setMax3185CS(0);
-	delay_us(50);
-	err=HAL_SPI_TransmitReceive(&hspi4, TXdata, RXdata, 2,100);// HAL_MAX_DELAY);
-	if(err!=HAL_OK) 
-	{  
-		memset(RXdata,0xFF,2);		
-	}
-	setMax3185CS(1);   
+    unsigned char TXdata[2], RXdata[2];
+    HAL_StatusTypeDef err;
+    TXdata[0]=addr;
+    TXdata[1]=wdata;
+    setMax3185CS(0);
+    delay_us(50);
+    err=HAL_SPI_TransmitReceive(&hspi4, TXdata, RXdata, 2,100);// HAL_MAX_DELAY);
+    if(err!=HAL_OK) 
+    {  
+        memset(RXdata,0xFF,2);		
+    }
+    setMax3185CS(1);   
 }
 
 void max_3185_pt1000(void)

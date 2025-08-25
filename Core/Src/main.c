@@ -18,7 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os2.h"
+#include "cmsis_os.h"
 #include "adc.h"
 #include "dma.h"
 #include "fdcan.h"
@@ -307,7 +307,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-  if (htim->Instance == TIM3)  u_sys_param.sys_config_param.laser1064PulseCount++;//用光电管更好  
+  //if (htim->Instance == TIM3)  u_sys_param.sys_config_param.laser_config_param.laser_pulse_count;//用光电管更好  
  
   if (htim->Instance == TIM7)  app_steps_pulse(0xFFFFFFFF);
   if (htim->Instance == TIM16) owb_tim_callback(30);

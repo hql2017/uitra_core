@@ -141,7 +141,6 @@ void Error_Handler(void);
 #define TMC2226_EN_out_GPIO_Port GPIOD
 #define TMC2226_index_in_Pin GPIO_PIN_13
 #define TMC2226_index_in_GPIO_Port GPIOD
-#define TMC2226_index_in_EXTI_IRQn EXTI15_10_IRQn
 #define TMC2226_ERROR_out_Pin GPIO_PIN_14
 #define TMC2226_ERROR_out_GPIO_Port GPIOD
 #define FOOT_SWITCH_IN_Pin GPIO_PIN_15
@@ -209,9 +208,9 @@ void Error_Handler(void);
 #define ERR_HIGH_TEMPRATURE_LASER   28.0f//工作温度高边界
 
 //air pump 气泵 kPa,相对值
-#define MIN_AIR_PUMP_PRESSURE  160.0f//210.00f
+#define MIN_AIR_PUMP_PRESSURE  150.0f//210.00f
 #define MID_AIR_PUMP_PRESSURE  180.0f//260.00f//最佳气压
-#define MAX_AIR_PUMP_PRESSURE  200.0f//290.00f
+#define MAX_AIR_PUMP_PRESSURE  210.0f//290.00f
 //300.00f
 #define ERR_T_FLOAT_VALUE      1000///温度浮点数错误值
 #define ERR_T_SHORT_INT_VALUE  160///温度整型错误值
@@ -262,8 +261,8 @@ typedef struct {
   unsigned char jtFlag;                                 //脚踏输入，0未加载；1待机；2开启；3异常；
   unsigned char rgbFlag;                                //rgb氛围灯，0未加载；1待机；2开启；3异常；
   unsigned char auxiliary_bulbFlag;                     //激光指示灯，0未加载；1待机；2开启；3异常；
-  unsigned char hmiLcdLoadFlag;                         //显示屏，0未加载；1待机；2开启；3异常；
-  unsigned char coolWaterSystemLoadFlag;                //冷却水系统，0未加载；1待机；2开启；3异常；
+  unsigned char hmiLcdLoadFlag;                         //显示屏，    0未加载；1待机；2开启；3异常；
+  unsigned char coolWaterSystemLoadFlag;                //冷却水系统， 0未加载；1待机；2开启；3异常；
   unsigned char treatmentWaterSystemLoadFlag;           //治疗水系统，0未加载；1待机；2开启；3异常；  
   unsigned char eTempratureAirpressureSystemLoadFlag;   //环境气压系统，0未加载；1待机；2开启；3异常；
   unsigned char eTempratureSystemLoadFlag;   						//环境温度，0未加载；1待机；2开启；3异常；
@@ -273,37 +272,83 @@ typedef struct {
   unsigned char adIBusSystemLoadFlag;              			//电源电流监测系统，0未加载；1待机；2开启；3异常；
   unsigned char adVBusSystemLoadFlag;                 	//电源电压检测系统，0未加载；1待机；2开启；3异常；
   unsigned char adAirPressureSystemLoadFlag;            //气压系统，0未加载；1待机； 2开启；3异常；
-  unsigned char laserPowerSystemLoadFlag;               //激光电源系统，0未加载；1待机；2开启；3异常；
-	
+  unsigned char laserPowerSystemLoadFlag;               //激光电源系统，0未加载；1待机；2开启；3异常；	
 }__attribute__ ((packed)) SYS_LOAD_STATUS;							//辅助系统加载状态
- typedef struct{  
 
+typedef struct{  
 		float NTC_temprature;                 //蠕动泵电机驱动IC温度，adc 
 		float laser_1064_energy;              //1064激光能量计，adc   
 		float iBus;                           //24V总电源电流mA，adc
 		float vBus;                           //24V总电源电压mV，adc
-		float air_pump_pressure;              //气泵气压 ,adc
-		//float eth_cool_k0_temprature;       //环境冷端补偿温度
+		float air_pump_pressure;              //气泵气压,adc
+	  //float eth_cool_k0_temprature;       //环境冷端补偿温度
 		float eth_k1_temprature;              //热电偶K1温度
 		float eth_k2_temprature;              //热电偶K2温度
 		float enviroment_temprature;          //环境温度m117z
 		float air_gzp_temprature;             //环境气压计温度
 		float air_gzp_enviroment_pressure_kpa;//环境气压计,kpa  //平原气压约90~100kPa，西藏约80kPa
 		float treatment_water_depth;          //治疗水位
+    float cool_water_depth;          //冷却水位
+  
 		//lite增加部分
 		float tec_current_out;//制冷片
+    unsigned int JT_ID;
  }sys_enviroment_assistant_param;//辅助参数
- extern  sys_enviroment_assistant_param sEnvParam;
-typedef struct { 
-  unsigned int  errFlag;                //异常标志0x00Ok，0xFF未初始化
+ extern sys_enviroment_assistant_param sEnvParam;
+ typedef struct{
+  unsigned short int energe_dw;            //）能量挡位 //20~200  36个挡位
+  unsigned short int energe_cali;          //）能量校准值
+  unsigned short int power_cali;           //）功率校准值
+}ENERGE_CALIBRATION;
+typedef struct
+{   
+	unsigned int  equipmentId;                //设备ID
+  unsigned int  jtId;                       //脚踏ID
+  unsigned char jt_status;                  //脚踏绑定状态 （0/1）
+  short int cool_temprature_high;           //）冷却系统温度高阈值*10
+  short int cool_temprature_target;         //）冷却系统目标温度*10
+  short int cool_temprature_low;            //）冷却系统温度低阈值*10
+  unsigned short int photodiod_low;         //）光电二极管校准50mj挡
+  unsigned short int photodiod_mid;         //）光电二极管校准100mJ挡
+  unsigned short int photodiod_high;       //）光电二极管校准200mJ挡
+  ENERGE_CALIBRATION e_cali[36];
+  //20~200  36个挡位
+  //unsigned short int energe_dw;           //）能量挡位
+  //unsigned short int energe_cali;         //）能量校准值
+  //unsigned short int power_cali;          //）功率校准值
+  unsigned  int laser_pulse_count;          //）脉冲计数（1064）
+  unsigned  int laser_use_timeS;            //）连续激光使用时间S（980脉冲激光运行时间。(MAX,连续49.7天)）
+  unsigned  int RDB_use_timeS;              //）蠕动泵使用时间S
+  unsigned short int laser_pulse_width_us;       //）出光脉宽
+  unsigned char treatment_water_depth_high; //）治疗水位高校准
+  unsigned char treatment_water_depth_low;  //）治疗水位低校准
+  unsigned char cool_water_depth_high;      //）冷却液位高校准
+  unsigned char cool_water_depth_low;       //）冷却液位低校准
+  unsigned char air_dw;                     //）当前气挡位
+  unsigned char air_low_pressure;           //）气1档气压
+  unsigned char air_mid_pressure;           //）气2档气压
+  unsigned char air_high_pressure;          //）气3档气压
+  unsigned char t_water_dw;                 //）当前水挡位
+  unsigned char t_water_low;                //）水1档流量
+  unsigned char t_water_mid;                //）水2档流量
+  unsigned char t_water_high;               //）水3档流量
+  unsigned char dit_time_min;               //）消毒时间秒
+  unsigned char clean_time_min;             //）冲洗时间秒
+  unsigned char tec_switch;                 //）制冷片开关
+  unsigned char low_freq;                   //）重频模式（低重频(<20Hz)，高重频freq>1K）
+  unsigned char charge_width_us;            //）充电脉冲
+  unsigned char laser_led_light;            //）激光指示灯亮度
+  unsigned char rgb_light;                  //）rgb状态指示灯亮度
+  unsigned char beep;                       //）音量
+}__attribute__ ((packed)) LASER_CONFIG_PARAM;//激光参数
+//extern LASER_CONFIG_PARAM laser_config_param;
+typedef struct {  
+  unsigned int  synchronousFlag;        // 同步标志0，未同步；1下载；2上传；3已同步；0xFF未初始化 
   unsigned int  equipmentModel  ;       // 设备型号HSM_III1064
   unsigned int  softVersion;            // 软件版本2025063001(2025.06.30.01)
-  unsigned int  equipmentId  ;          // 设备编号 
-	unsigned int  laser1064PulseCount;  	// 1064总脉冲数。
-	unsigned int  laser1064TimeS;  				// 1064脉冲激光运行时间。(MAX,连续49.7天)
-  unsigned int  laser980TimeS;  				// 980运行时间。(MAX,连续49.7天)
+  LASER_CONFIG_PARAM laser_config_param;
   unsigned int  checkSum;               // 校验和 
-}SYS_CONFIG_PARAM ;//系统配置参数
+}__attribute__ ((packed)) SYS_CONFIG_PARAM ;//系统配置参数
 typedef union 
 {
 	SYS_CONFIG_PARAM sys_config_param;
@@ -311,47 +356,49 @@ typedef union
 }U_SYS_CONFIG_PARAM;
 extern U_SYS_CONFIG_PARAM u_sys_param;
 extern U_SYS_CONFIG_PARAM u_sys_default_param;
-typedef struct
-{   
-	unsigned char laserType;         			  //0:1064（YAG宝石）;1:980（半导体）
-  unsigned short int  laserEnerge;        //（能量值）//输出电压值
-  unsigned char laserFreq;         			  //激光频率 1~100（100表示980激光，）
-	unsigned char treatmentWaterLevel;      //治疗水流等级0~3（0,表示关闭）
-	unsigned char airPressureLevel;         //气流等级0~3（0,表示关闭）
-	unsigned char ledLightLevel;         	  //led光亮等级0~100（0,表示关闭）//duty
-	unsigned char ctrTestMode;         		  //测试模式（光纤激活）0x01打开，0x00关闭，
-	unsigned char  proHotCtr;         			//预燃控制0x01启动，0x00关闭
-}LASER_CONFIG_PARAM;//激光参数，
- extern LASER_CONFIG_PARAM laser_config_param;
 typedef enum{
 	LASER_YAG_1064_TYPE=0,
 	LASER_980_TYPE	
 }laser_type;
-
+typedef struct
+{   
+	unsigned char       laserType;         	  //0:1064（Nd：YAG）;1:980（连续激光）；2：（半导体）
+  unsigned short int  laserEnerge;          //能量值
+  unsigned char   laserFreq;         			  //激光频率 1~100（100表示980激光，）
+	unsigned char   treatmentWaterLevel;      //治疗水流等级0~3（0,表示关闭）
+	unsigned char   airPressureLevel;         //气流等级0~3（0,表示关闭）
+	unsigned char   ledLightLevel;         	  //激光指示灯led光亮等级0~100（0,表示关闭）//duty
+	unsigned char   ctrTestMode;         		  //测试模式（光纤激活）0x01打开，0x00关闭，
+	unsigned char   proHotCtr;         			  //预燃控制0x01启动，0x00关闭
+  unsigned char   timerCtr;         			  //倒计时
+  unsigned char   cleanCtr;         			  //清洗消毒
+  unsigned char   air_water_prepare_ctr;         			  //水雾准备
+}LASER_CONTROL_PARAM;//ctr param，
+extern LASER_CONTROL_PARAM laser_ctr_param;
 typedef struct{ 
-	/*******************屏幕需要*********************/
-	char circle_water_box_temprature;                			//水箱温度 （-127 ~128）
-	unsigned char treatment_water_level_status;           //治疗水气流速等级 bit0~3 水等级； 
-	unsigned char air_level_status;                       //bit4~7 气等级
-	unsigned char laser_run_B0_pro_hot_status;            //激光运行状态Bit0：预燃状态；
-	unsigned char laser_run_B1_laser_out_status;          //Bit1：出光状态；
-	unsigned char laser_run_B2_gx_test_status;            //Bit2：光纤激活状态；
-	unsigned char laser_run_B3_laser_pilot_lamp_status;   //Bit3：指示灯状态
-	unsigned char laser_run_B4_laser_980_out_status;      //Bit4：半导体出光状态
-	unsigned char laser_param_B01_energe_status;            // Bit0~Bit1:激光能量计状态：
-	unsigned char laser_param_B23_air_pump_pressure_status;	//	Bit2~Bit3:循环气泵压力状态：
+	/*******************状态*********************/
+	char circle_water_box_temprature;                			  //水箱温度 （-127 ~128）
+	unsigned char treatment_water_level_status;             //治疗水气流速等级 bit0~3 水等级； 
+	unsigned char air_level_status;                         //bit4~7 气等级
+	unsigned char laser_run_B0_pro_hot_status;              //Bit0：预燃状态；
+	unsigned char laser_run_B1_laser_out_status;            //Bit1：出光状态；
+	unsigned char laser_run_B2_gx_test_status;              //Bit2：光纤激活状态；
+	unsigned char laser_run_B3_laser_pilot_lamp_status;     //Bit3：指示灯状态
+	unsigned char laser_run_B4_laser_980_out_status;        //Bit4：半导体出光状态
+  unsigned char laser_run_B5_timer_status;                //Bit5：定时器状态
+  unsigned char laser_run_B6_t_water_prepare_status;      //Bit6：水雾准备
+	unsigned char laser_param_B01_energe_status;            //Bit0~Bit1:激光能量计状态：
+	unsigned char laser_param_B23_air_pump_pressure_status;	//Bit2~Bit3:循环气泵压力状态：
 	unsigned char laser_param_B456_jt_status;               //Bit4~Bit6:脚踏状态：
-	unsigned short int genaration_io_status;                //bhit0~bit13		
+	unsigned short int genaration_io_status;                //bhit0~bit15		
 	//不需定时上传
 	unsigned int  laser1064PulseCount;
-	unsigned int  laser980TimeMs;
-	//本地需要
-	float laser_box_temprature;                			//激光器内温度温度 （-127 ~128）	
-	unsigned char laser_type;                			//0 :1064 1:980 2：光纤激活（980持续1秒）	
-//	char circle_water_box_temprature;                //水箱温度 （-127 ~128）
+	unsigned int  laser980TimeS;
+  unsigned int  RDB_TimeS;
+//	char circle_water_box_temprature;               //水箱温度 （-127 ~128）
 //	unsigned char water_air_level_status;           //治疗水气流速等级 bit0~3 水等级； bit4~7 气等级
-//	unsigned char laser_run_status;                	//激光运行状态Bit0：预燃状态；Bit1：出光状态；Bit2：光纤激活状态；Bit3：指示灯状态
-//	unsigned char laser_param_status;                	//激光参数状态 Bit0~Bit1:激光能量计状态：Bit2~Bit3:循环气泵压力状态：Bit4~Bit6:脚踏状态：
+//	unsigned char laser_run_status;                	//激光运行状态Bit0：预燃状态；Bit1：出光状态；Bit2：光纤激活状态；Bit3：指示灯状态;bit4,水雾准备状态
+//	unsigned char laser_param_status;               //激光参数状态 Bit0~Bit1:激光能量计状态：Bit2~Bit3:循环气泵压力状态：Bit4~Bit6:脚踏状态：
 //	unsigned short int genaration_io_status;        //bhit0~bit13
 	//IO 
 	/*
@@ -368,10 +415,8 @@ typedef struct{
   unsigned char vBus_status;                     	//bit10总电源电压状态，0异常；1正常
   unsigned char water_circle_temprature_status;  	//bit11冷却箱K1温度状态：1正常，0异常
   unsigned char laser_temprature_status;         	//bit12激光K2温度状态：1正常，0异常	
-	unsigned char emergency_press_status;         	//bit13急停开关状态,0异常；1正常	
-//unsigned char laser_1064_energy_status;       	//bit14激光能量计状态，0失效；1正常；2超标
-//unsigned char air_pump_pressure_status;      		//bit15循环气泵压力状态，0过低，1正常、2过高
-//unsigned char jt_key_status;                		//bit16脚踏,0失效异常；1正常;2按下;3松开。4无线脚踏电量低
+	unsigned char emergency_press_status;         	//bit13急停开关状态,0异常；1正常
+  unsigned char jt_pdjt_pd_status;                //bit14脚踏配对状态,0异常；1正常
 */
  }sys_genaration_status;
  extern  sys_genaration_status sGenSta;

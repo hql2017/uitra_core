@@ -232,9 +232,9 @@ uint8_t IIC_Read_OneByte(uint8_t ack)
  void EEPROM_M24C32_init(void)
 {  
 	unsigned char status;
-  app_I2C_start(&hi2c3);
+ 	app_I2C_start(&hi2c3);
 	status=EEPROM_M24C32_Test();
-	DEBUG_PRINTF("24C32 init ok=%x",status);	
+	DEBUG_PRINTF("24C32 init ok syncFlag=%x",status);	
 }
 /**
   * @brief EEPROM_M24C32_I2C_Read
@@ -406,8 +406,8 @@ void EEPROM_M24C32_PageRead(uint16_t page,uint8_t *pBuffer,uint8_t ReadNum)
 ****************************************************************************/
 uint8_t EEPROM_M24C32_Test(void)
 {
-	uint8_t Testdata,err;
-	err =EEPROM_M24C32_Read(0,&Testdata,1); 
+	uint8_t Testdata[4],err;
+	err =EEPROM_M24C32_Read(0,Testdata,4); 
 	if(err==0) return 0;
 //	if(Testdata==0xAC) 	return 0;//
 //	else                             
@@ -418,7 +418,8 @@ uint8_t EEPROM_M24C32_Test(void)
 //	  	EEPROM_M24C32_Read(0,&Testdata,1);	
 //		if(Testdata==0xAC) return 0;
 //	}
-	return 0;;									  
+	err=Testdata[3];//syncFlag
+	return err;								  
 }
 /****************************************************************************
 * ��    ��: 按字读取

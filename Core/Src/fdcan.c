@@ -267,11 +267,11 @@ void APP_CAN_SEND_DATA(	uint8_t *data,uint8_t dataLen,uint16_t tartgetID)
 	{
 		dataLen=8;//暂时不分
 	}
-	while (HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) != 32) 
+	while(HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) != 32) 
 	{
 		timeOut+=100;
 		HAL_Delay(50);
-		if(timeOut>50000) 
+		if(timeOut>5000) 
 		{
 			HAL_FDCAN_Stop(&hfdcan1);
 			break;

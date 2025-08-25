@@ -166,6 +166,7 @@ void FDCAN1_filter_config(void)
 		Error_Handler();
 	}
 	/*##-2 start can ##############*/
+
 	if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK)
 	{
 		DEBUG_PRINTF("Error_Handler()\n");
@@ -205,24 +206,24 @@ extern   void app_canBbus_receive_semo(void);
   */
  uint8_t FDCAN1_Receive_Msg(uint8_t *buf, uint32_t *Identifier, uint8_t *len)
  {
-     // check FIFO0 
-     if (HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0) == 0) {
-         return 0; 
-     }
-     // copy data from  FIFO0 
-     if (HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &RxHeader, buf) != HAL_OK) {			
-				DEBUG_PRINTF("HAL_FDCAN_GetRxMessage---------------EEROR\n");
-         return 0; 
-     }	
-		if(HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0)!=0)	
-		{
-			app_canBbus_receive_semo();//还有数据继续处理
-		}	
-     //success
-     *Identifier = RxHeader.Identifier;
-     *len = RxHeader.DataLength; 
- 
-     return RxHeader.DataLength;
+    // check FIFO0 
+    if (HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0) == 0) 
+    {
+      return 0; 
+    }
+    // copy data from  FIFO0 
+    if (HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &RxHeader, buf) != HAL_OK)
+    {			
+      DEBUG_PRINTF("HAL_FDCAN_GetRxMessage---------------EEROR\n");
+      return 0; 
+    }	
+    if(HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0)!=0)	
+    {
+      app_canBbus_receive_semo();//还有数据继续处理
+    }//success
+    *Identifier = RxHeader.Identifier;
+    *len = RxHeader.DataLength; 
+    return RxHeader.DataLength;
  }
  /**
   * @brief  Rx FIFO 0 callback.
@@ -266,11 +267,11 @@ void APP_CAN_SEND_DATA(	uint8_t *data,uint8_t dataLen,uint16_t tartgetID)
 	{
 		dataLen=8;//暂时不分
 	}
-	while (HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) != 32) 
+	while(HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) != 32) 
 	{
 		timeOut+=100;
 		HAL_Delay(50);
-		if(timeOut>50000) 
+		if(timeOut>5000) 
 		{
 			HAL_FDCAN_Stop(&hfdcan1);
 			break;

@@ -12,8 +12,8 @@
 
 void tmc2226_init(void);
 void app_steps_pulse(int steps);
-void tmc2226_start(unsigned char dir,unsigned short int speed);
-void tmc2226_stop(void);
+void tmc2226_start(unsigned char dir,unsigned short int spdLevel);
+unsigned int tmc2226_stop(void);
 
  void app_tmc2226_sped_set(unsigned char spdLevel);
 

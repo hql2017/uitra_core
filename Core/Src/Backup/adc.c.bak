@@ -261,9 +261,51 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 { 
   if(hadc->Instance==ADC1)
   {
-    filter_ad();     
+    filter_ad();     //ad一轮采集时间约2us
   }
 }
+static unsigned short int energe_ad_buff[90]={0};//数量=180/2=90
+/**
+  * @brief app_get_energe_adc_value
+  * @param void         
+  * @note   
+  * @retval None
+  */
+ void app_in_energe_adc_value(unsigned char flag,unsigned short *vBuff)
+ {
+  static unsigned char num;
+  if(flag==0)
+  {
+    num=0;
+    energe_ad_buff[0]=0;
+  }
+  else
+  {
+    num%=90;
+    energe_ad_buff[num]=advalue[AD1_LASER_1064_INDEX];
+    num++;
+  }    
+ }
+ /**
+  * @brief app_get_energe_adc_value
+  * @param void         
+  * @note   
+  * @retval None
+  */
+  unsigned short app_get_energe_value(unsigned char flag,unsigned short *vBuff)
+ {
+  static unsigned int sum=0;
+  if(flag!=0) 
+  {
+
+    for(uint8_t i=0;i<64;i++)//掐头去尾,取中间64个
+    {
+      sum+=energe_ad_buff[14+i];
+    } 
+    sum>>=6; 
+  }  
+  return (unsigned short)sum;
+ }
 /**
   * @brief NTC_T cal
   * @param void
@@ -274,7 +316,7 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
   * @retval T                
   */
  #include "math.h"
- float   NTC_T_cal( unsigned short   int voltage)
+ float   NTC_T_cal( unsigned short int voltage)
  { 
     float ret;    
     double  T0,Tt,R0,Rt,B; 
@@ -298,7 +340,7 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 #define D_A_MIN 4369//3971.8 //AD value corresponding to The minimum range pressure, // for example 10%AD=2^16*0.2 
 #define D_A_MAX 102673//93339.0 //AD Value Corresponding to The full scale pressure value, // for example 90%AD=2^16*4.7
 //k=0.006569343  ,B=0.6138686131386861
-//Vout=K*P+B -> P= (Vout-B)/k;
+//Vout=K*P+B -> P= (Vout-B)/k; 
 /**
   * @brief app_get_adc_value
   * @param void         

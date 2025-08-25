@@ -265,7 +265,6 @@ void rgb_color_all(unsigned short int color)
  void app_rgb_breath_ctl(unsigned char breathCount,unsigned short int rgbValue)//tim callback
  { 
 		#ifdef  FL3236_USED//12路 
-
 		if(rgb_breath_frq!=breathCount)
 		{
 			rgb_breath_frq=breathCount;//
@@ -276,7 +275,7 @@ void rgb_color_all(unsigned short int color)
     }
     else //if(breathCount==0xFF)
     {  	
-       High_Breath();	//刷一次465ms    
+      High_Breath();	//刷一次465ms    
     }		
 		#else	
 	//刷一次1ms
@@ -327,9 +326,9 @@ void rgb_color_all(unsigned short int color)
 #else 
 			if(flag==0)
 			{
-							rgb_buff[1]++;
-							rgb_buff[0]=0;//++;   
-							rgb_buff[2]++; 
+        rgb_buff[1]++;
+        rgb_buff[0]=0;//++;   
+        rgb_buff[2]++; 
 				if(rgb_buff[1]==255) flag=1;
 			}
 			else 
@@ -462,7 +461,6 @@ uint8_t I2C_Write2Byte(int WriteAddress, int SendByte)
 	err=HAL_I2C_Mem_Write(&hi2c5,Addr_GND_GND,(uint16_t)WriteAddress,I2C_MEMADD_SIZE_16BIT,(uint8_t*)&SendByte,1,IS3_I2C_TIMEOUT);
 	return err;	
 }
-
 uint8_t I2C_WriteBuffer(uint8_t* pBuffer,int length,int DeviceAddress ,int WriteAddress)
 {
 	HAL_StatusTypeDef err; 	
@@ -511,24 +509,23 @@ void Green_Breath(void )//呼吸一次，约耗时465ms，单色约600/128=4.7ms
     for (i=0; i<12; i++) //R
     { // R  G  B  
       I2C_WriteByte(Addr_GND_GND,1+i*3,0);   //B//PWM       
-      I2C_WriteByte(Addr_GND_GND,2+i*3,PWM_64_table[j]);   //PWM 
+      I2C_WriteByte(Addr_GND_GND,2+i*3,PWM_64_table[j]*(u_sys_param.sys_config_param.laser_config_param.rgb_light*0.01));   //PWM 
       I2C_WriteByte(Addr_GND_GND,3+i*3,0);  //R
     }      
     I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
     I2C_WriteByte(Addr_GND_GND,0x4B,0x01);//all channel out  freq
     I2C_WriteByte(Addr_GND_GND,0x00,0x01);// 		
-		//osDelay(8);//4K//看起来比较累
+		//osDelay(8);//1K//看起来比较累
     osDelay(16);//2K
 	}
 }
-void High_Breath(void )//呼吸一次，约耗时465ms，单色约600/128=4.7ms
+void High_Breath(void )//呼吸一次，
 {
   uint8_t i,j; 
 	static uint32_t local_stick;
 	static uint8_t breath_falg;
-	if(rgb_breath_frq<1) rgb_breath_frq=1;
-	else if(rgb_breath_frq>100) rgb_breath_frq=100;
-	
+	if(rgb_breath_frq<1) rgb_breath_frq=1;//
+	else if(rgb_breath_frq>100) rgb_breath_frq=100;	//
 	if(osKernelGetTickCount()> local_stick+(1000/rgb_breath_frq))
 	{
 		local_stick=osKernelGetTickCount();
@@ -537,13 +534,10 @@ void High_Breath(void )//呼吸一次，约耗时465ms，单色约600/128=4.7ms
 			breath_falg=1;
 			for (i=0; i<12; i++) //R
 			{ // R  G  B  
-				I2C_WriteByte(Addr_GND_GND,1+i*3,PWM_64_table[64]);   //B//PWM       
+				I2C_WriteByte(Addr_GND_GND,1+i*3,PWM_64_table[64]*(u_sys_param.sys_config_param.laser_config_param.rgb_light*0.01));   //B//PWM       
 				I2C_WriteByte(Addr_GND_GND,2+i*3,0);   //PWM 
-				I2C_WriteByte(Addr_GND_GND,3+i*3,PWM_64_table[64]);  //R
-			}      
-			I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
-			I2C_WriteByte(Addr_GND_GND,0x4B,0x01);//all channel out  freq
-			I2C_WriteByte(Addr_GND_GND,0x00,0x01);// 
+				I2C_WriteByte(Addr_GND_GND,3+i*3,PWM_64_table[64]*(u_sys_param.sys_config_param.laser_config_param.rgb_light*0.01));  //R
+			}    
 		}
 		else
 		{
@@ -553,39 +547,12 @@ void High_Breath(void )//呼吸一次，约耗时465ms，单色约600/128=4.7ms
 				I2C_WriteByte(Addr_GND_GND,1+i*3,0);   //B//PWM       
 				I2C_WriteByte(Addr_GND_GND,2+i*3,0);   //PWM 
 				I2C_WriteByte(Addr_GND_GND,3+i*3,0);  //R
-			}      
-			I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
-			I2C_WriteByte(Addr_GND_GND,0x4B,0x01);//all channel out  freq
-			I2C_WriteByte(Addr_GND_GND,0x00,0x01);//
-		}
+			} 
+    }     
+    I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
+    I2C_WriteByte(Addr_GND_GND,0x4B,0x01);//all channel out  freq
+    I2C_WriteByte(Addr_GND_GND,0x00,0x01);//		
 	}
-	
-//  for (j=0; j<128; j++)	 
-//  {
-//    for (i=0; i<12; i++) //R
-//    { // R  G  B  
-//      I2C_WriteByte(Addr_GND_GND,1+i*3,PWM_64_table[j]);   //B//PWM       
-//      I2C_WriteByte(Addr_GND_GND,2+i*3,0);   //PWM 
-//      I2C_WriteByte(Addr_GND_GND,3+i*3,PWM_64_table[j]);  //R
-//    }      
-//    I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
-//    I2C_WriteByte(Addr_GND_GND,0x4B,0x01);//all channel out  freq
-//    I2C_WriteByte(Addr_GND_GND,0x00,0x01);// 
-//		if(rgb_breath_frq==3)//快
-//		{
-//			osDelay(1);//4K
-//		}
-//		else  if(rgb_breath_frq==2)//1K
-//		{		
-//			osDelay(1);			
-//			//osDelay(4);
-//		}
-//		else //if(rgb_breath_frq==1)//慢
-//		{		
-//			osDelay(1);
-//			//osDelay(10);
-//		}       
-//  }
 }
 void IS31FL3236A_Init(void)
 {
@@ -610,9 +577,9 @@ void IS31FL3236A_Init(void)
 void is_12_all_rgb(unsigned short int rgbValue)//混合色
 {
    uint8_t   i,R,G,B;
-    R=(rgbValue>>11)&0x1F;
-    G=(rgbValue>>5)&0x3F;
-    B=rgbValue&0x1F;
+    R=((rgbValue>>11)&0x1F)*(u_sys_param.sys_config_param.laser_config_param.rgb_light*0.01);
+    G=((rgbValue>>5)&0x3F)*(u_sys_param.sys_config_param.laser_config_param.rgb_light*0.01);
+    B=(rgbValue&0x1F)*(u_sys_param.sys_config_param.laser_config_param.rgb_light*0.01);
     for (i=0; i<12; i++)
     {			//PWM
 			I2C_WriteByte(Addr_GND_GND,0x01+i*3,B);
@@ -628,7 +595,7 @@ void is_12_all_gLED(void)
     for (i=0; i<12; i++)
     {			//PWM
 			I2C_WriteByte(Addr_GND_GND,0x01+i*3,0x00);
-			I2C_WriteByte(Addr_GND_GND,0x02+i*3,0x41);
+			I2C_WriteByte(Addr_GND_GND,0x02+i*3,u_sys_param.sys_config_param.laser_config_param.rgb_light*2.55);//0x41);
 			I2C_WriteByte(Addr_GND_GND,0x03+i*3,0x00);		
     }
 		I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
@@ -641,7 +608,7 @@ void is_12_all_rLED(void)
 	{			//PWM
 		I2C_WriteByte(Addr_GND_GND,0x01+i*3,0x00);
 		I2C_WriteByte(Addr_GND_GND,0x02+i*3,0x00);
-		I2C_WriteByte(Addr_GND_GND,0x03+i*3,0x41);		
+		I2C_WriteByte(Addr_GND_GND,0x03+i*3,u_sys_param.sys_config_param.laser_config_param.rgb_light*2.55);//0x41);		
 	}
 	I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
 }
@@ -651,7 +618,7 @@ void is_12_all_bLED(void)
 	uint8_t   i;
 	for (i=0; i<12; i++)
 	{			//PWM
-		I2C_WriteByte(Addr_GND_GND,0x01+i*3,0x41);
+		I2C_WriteByte(Addr_GND_GND,0x01+i*3,u_sys_param.sys_config_param.laser_config_param.rgb_light*2.55);//0x41);
 		I2C_WriteByte(Addr_GND_GND,0x02+i*3,0x00);
 		I2C_WriteByte(Addr_GND_GND,0x03+i*3,0x00);		
 	}
