@@ -55,7 +55,6 @@ void MX_GPIO_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 //genaration IO out
- extern void app_high_voltage_solenoid(FunctionalState flag);
 extern void app_mcu_power_switch(FunctionalState flag);
 extern void app_lcd_power_12V_switch(FunctionalState flag);
 extern void app_air_pump_switch( FunctionalState flag);
@@ -66,7 +65,8 @@ extern unsigned int  app_IO_key_scan(unsigned short int timeMs);
 extern app_key_message  app_key_value_analysis(unsigned  int keyValue);
 extern  void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTimeS);
 extern void app_intake_valve_air_solenoid(FunctionalState flag);
-void app_deflate_air_solenoid(FunctionalState flag);
+extern void app_deflate_air_solenoid(FunctionalState flag);
+extern ErrorStatus app_remote_key_sta(void);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

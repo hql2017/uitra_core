@@ -34,18 +34,22 @@ extern "C" {
 
 extern ADC_HandleTypeDef hadc1;
 
+extern ADC_HandleTypeDef hadc2;
+
 /* USER CODE BEGIN Private defines */
 
 #define AD1_NTC_INDEX          0//1//14 //PA2
-#define AD1_LASER_1064_INDEX    1// 2//15//PA3
-#define AD1_OCP_Ibus_INDEX       2// 3// 16//PA0
-#define AD1_24V_VBUS_INDEX      3// 4//17  //PA1
-#define AD1_AIR_PRESSER_INDEX 4// 5//18   //PA4
+#define AD1_OCP_Ibus_INDEX     1 // 2// 3// 16//PA0
+#define AD1_24V_VBUS_INDEX    2//  3// 4//17  //PA1
+#define AD1_AIR_PRESSER_INDEX 3//4// 5//18   //PA4
+
+#define AD2_LASER_1064_INDEX   4// 1// 2//15//PA3
 
 
 /* USER CODE END Private defines */
 
 void MX_ADC1_Init(void);
+void MX_ADC2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 void app_get_adc_value(unsigned char adChannel,float *vBuff);

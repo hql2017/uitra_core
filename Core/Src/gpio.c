@@ -53,8 +53,7 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, ADS1118_CS_out_Pin|LASER_1064_AD_DOWN_out_Pin|Solenoid_EN1_Pin|Solenoid_EN2_Pin
-                          |Solenoid_EN3_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOE, ADS1118_CS_out_Pin|LASER_PULSE_AD_RESET_out_Pin|Solenoid_EN2_Pin|Solenoid_EN3_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, PWR_SYS_ON_Pin|EEROM_W_EN_out_Pin|S31FL3193_SDB_out_Pin, GPIO_PIN_SET);
@@ -63,36 +62,31 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, RF24_SP6_CS_out_Pin|RF24_SDN_out_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, H_AIR_EN_Pin|DAC_LD_Pin|DAC_CS_Pin|TEMPRATURE_ALERT_Pin
-                          |RS485_DIR_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, TMC2226_STEP_out_Pin|TMC2226_DIR_out_Pin|TMC2226_EN_out_Pin|VC160_I2C_SDA_out_Pin
-                          |VC160_I2C_SCK_Pin|circulating_pump_EN_Pin|PTC_EN_Pin|JDQ_STAND_Pin
+  HAL_GPIO_WritePin(GPIOD, RS485_DIR_out_Pin|H_AIR_EN_out_Pin|treatment_water_ready_ok_in_Pin|TMC2226_DIR_out_Pin
+                          |RF24_IRQ_in_Pin|circulating_water_pump_EN_Pin|PTC_EN_Pin|JDQ_STAND_Pin
                           |JDQ_READY_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LCD_12V_ON_GPIO_Port, LCD_12V_ON_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, DAC_LD_Pin|DAC_CS_Pin|TMC2226_EN_out_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(MCU_SYS_health_LED_GPIO_Port, MCU_SYS_health_LED_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pins : ADS1118_CS_out_Pin LASER_1064_AD_DOWN_out_Pin Solenoid_EN1_Pin Solenoid_EN2_Pin
-                           Solenoid_EN3_Pin */
-  GPIO_InitStruct.Pin = ADS1118_CS_out_Pin|LASER_1064_AD_DOWN_out_Pin|Solenoid_EN1_Pin|Solenoid_EN2_Pin
-                          |Solenoid_EN3_Pin;
+  /*Configure GPIO pins : ADS1118_CS_out_Pin LASER_PULSE_AD_RESET_out_Pin Solenoid_EN2_Pin Solenoid_EN3_Pin */
+  GPIO_InitStruct.Pin = ADS1118_CS_out_Pin|LASER_PULSE_AD_RESET_out_Pin|Solenoid_EN2_Pin|Solenoid_EN3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ADS1118_DRDY_in_Pin Solenoid_STATUS1_Pin Solenoid_STATUS2_Pin Solenoid_STATUS3_Pin
-                           water_ready_ok_in_Pin */
-  GPIO_InitStruct.Pin = ADS1118_DRDY_in_Pin|Solenoid_STATUS1_Pin|Solenoid_STATUS2_Pin|Solenoid_STATUS3_Pin
-                          |water_ready_ok_in_Pin;
+  /*Configure GPIO pins : CIRCLE_WATER_DEPTH_in_Pin water_cycle_ok_Pin KEY_PWR_SWITCH_Pin */
+  GPIO_InitStruct.Pin = CIRCLE_WATER_DEPTH_in_Pin|water_cycle_ok_Pin|KEY_PWR_SWITCH_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PWR_SYS_ON_Pin RF24_SP6_CS_out_Pin RF24_SDN_out_Pin EEROM_W_EN_out_Pin
                            S31FL3193_SDB_out_Pin */
@@ -103,44 +97,47 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : water_cycle_ok_Pin KEY_PWR_SWITCH_Pin */
-  GPIO_InitStruct.Pin = water_cycle_ok_Pin|KEY_PWR_SWITCH_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pins : FAN1_COUNT_in_Pin FAN2_COUNT_in_Pin */
+  GPIO_InitStruct.Pin = FAN1_COUNT_in_Pin|FAN2_COUNT_in_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : RF24_IRQ_in_Pin H_AIR_ERROR_Pin */
-  GPIO_InitStruct.Pin = RF24_IRQ_in_Pin|H_AIR_ERROR_Pin;
+  /*Configure GPIO pin : H_AIR_ERROR_Pin */
+  GPIO_InitStruct.Pin = H_AIR_ERROR_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(H_AIR_ERROR_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : H_AIR_EN_Pin DAC_LD_Pin DAC_CS_Pin TEMPRATURE_ALERT_Pin
-                           RS485_DIR_Pin */
-  GPIO_InitStruct.Pin = H_AIR_EN_Pin|DAC_LD_Pin|DAC_CS_Pin|TEMPRATURE_ALERT_Pin
-                          |RS485_DIR_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  /*Configure GPIO pin : LASER_PULSE_COUNT_in_Pin */
+  GPIO_InitStruct.Pin = LASER_PULSE_COUNT_in_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(LASER_PULSE_COUNT_in_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LASER_1064_count_in_Pin */
-  GPIO_InitStruct.Pin = LASER_1064_count_in_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  /*Configure GPIO pins : TREATMENT_WATER_DEPTH_in_Pin REMOTE_ON_OFF_in_Pin Solenoid_STATUS2_Pin Solenoid_STATUS3_Pin
+                           ADS1118_DRDY_in_Pin */
+  GPIO_InitStruct.Pin = TREATMENT_WATER_DEPTH_in_Pin|REMOTE_ON_OFF_in_Pin|Solenoid_STATUS2_Pin|Solenoid_STATUS3_Pin
+                          |ADS1118_DRDY_in_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(LASER_1064_count_in_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : TMC2226_STEP_out_Pin TMC2226_DIR_out_Pin TMC2226_EN_out_Pin circulating_pump_EN_Pin
-                           PTC_EN_Pin JDQ_STAND_Pin JDQ_READY_Pin */
-  GPIO_InitStruct.Pin = TMC2226_STEP_out_Pin|TMC2226_DIR_out_Pin|TMC2226_EN_out_Pin|circulating_pump_EN_Pin
-                          |PTC_EN_Pin|JDQ_STAND_Pin|JDQ_READY_Pin;
+  /*Configure GPIO pins : RS485_DIR_out_Pin H_AIR_EN_out_Pin treatment_water_ready_ok_in_Pin TMC2226_DIR_out_Pin
+                           RF24_IRQ_in_Pin circulating_water_pump_EN_Pin PTC_EN_Pin JDQ_STAND_Pin
+                           JDQ_READY_Pin */
+  GPIO_InitStruct.Pin = RS485_DIR_out_Pin|H_AIR_EN_out_Pin|treatment_water_ready_ok_in_Pin|TMC2226_DIR_out_Pin
+                          |RF24_IRQ_in_Pin|circulating_water_pump_EN_Pin|PTC_EN_Pin|JDQ_STAND_Pin
+                          |JDQ_READY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : TMC2226_index_in_Pin TMC2226_ERROR_out_Pin FOOT_SWITCH_IN_Pin Hyperbaria_OFF_Signal_Pin */
-  GPIO_InitStruct.Pin = TMC2226_index_in_Pin|TMC2226_ERROR_out_Pin|FOOT_SWITCH_IN_Pin|Hyperbaria_OFF_Signal_Pin;
+  /*Configure GPIO pins : TMC2226_index_in_Pin TMC2226_ERROR_out_Pin FOOT_SWITCH_IN_Pin Hyperbaria_OFF_Signal_Pin
+                           EMERGENCY_LASER_STOP_STATUS_in_Pin circulating_water_pump_status_in_Pin */
+  GPIO_InitStruct.Pin = TMC2226_index_in_Pin|TMC2226_ERROR_out_Pin|FOOT_SWITCH_IN_Pin|Hyperbaria_OFF_Signal_Pin
+                          |EMERGENCY_LASER_STOP_STATUS_in_Pin|circulating_water_pump_status_in_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
@@ -152,12 +149,12 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LCD_12V_ON_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : VC160_I2C_SDA_out_Pin VC160_I2C_SCK_Pin */
-  GPIO_InitStruct.Pin = VC160_I2C_SDA_out_Pin|VC160_I2C_SCK_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  /*Configure GPIO pins : DAC_LD_Pin DAC_CS_Pin TMC2226_EN_out_Pin */
+  GPIO_InitStruct.Pin = DAC_LD_Pin|DAC_CS_Pin|TMC2226_EN_out_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : MCU_SYS_health_LED_Pin */
   GPIO_InitStruct.Pin = MCU_SYS_health_LED_Pin;
@@ -167,6 +164,12 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(MCU_SYS_health_LED_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
@@ -182,8 +185,8 @@ void MX_GPIO_Init(void)
   ****************************************************************************/
 void app_air_pump_switch( FunctionalState flag)
 {
-  if(flag==DISABLE)  HAL_GPIO_WritePin(H_AIR_EN_GPIO_Port,H_AIR_EN_Pin,GPIO_PIN_RESET);
-  else HAL_GPIO_WritePin(H_AIR_EN_GPIO_Port,H_AIR_EN_Pin,GPIO_PIN_SET);
+  if(flag==DISABLE)  HAL_GPIO_WritePin(H_AIR_EN_out_GPIO_Port,H_AIR_EN_out_Pin,GPIO_PIN_RESET);
+  else HAL_GPIO_WritePin(H_AIR_EN_out_GPIO_Port,H_AIR_EN_out_Pin,GPIO_PIN_SET);
   app_intake_valve_air_solenoid(flag);
 }
   /************************************************************************//**
@@ -194,8 +197,8 @@ void app_air_pump_switch( FunctionalState flag)
   *****************************************************************************/
  void app_circle_water_pump_switch( FunctionalState flag)
  {
-   if(flag==DISABLE)  HAL_GPIO_WritePin(circulating_pump_EN_GPIO_Port,circulating_pump_EN_Pin,GPIO_PIN_RESET);
-   else HAL_GPIO_WritePin(circulating_pump_EN_GPIO_Port,circulating_pump_EN_Pin,GPIO_PIN_SET);
+   if(flag==DISABLE)  HAL_GPIO_WritePin(circulating_water_pump_EN_GPIO_Port,circulating_water_pump_EN_Pin,GPIO_PIN_RESET);
+   else HAL_GPIO_WritePin(circulating_water_pump_EN_GPIO_Port,circulating_water_pump_EN_Pin,GPIO_PIN_SET);
  }
   /************************************************************************//**
   * @brief 系统电源开关
@@ -216,8 +219,8 @@ void app_air_pump_switch( FunctionalState flag)
   ******************************************************************************/
  void app_lcd_power_12V_switch(FunctionalState flag)
  {
-   if(flag==DISABLE)  HAL_GPIO_WritePin(LCD_12V_ON_GPIO_Port,LCD_12V_ON_Pin,GPIO_PIN_RESET);
-   else HAL_GPIO_WritePin(LCD_12V_ON_GPIO_Port,LCD_12V_ON_Pin,GPIO_PIN_SET);
+   if(flag==DISABLE)  HAL_GPIO_WritePin(LCD_12V_ON_GPIO_Port,LCD_12V_ON_Pin,GPIO_PIN_SET);
+   else HAL_GPIO_WritePin(LCD_12V_ON_GPIO_Port,LCD_12V_ON_Pin,GPIO_PIN_RESET);
  }
   /************************************************************************//**
   * @brief 治疗水加热开关 treatment water 
@@ -284,20 +287,8 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   *****************************************************************************/
  void app_laser1064_AD_sampling_sw(FunctionalState flag)
  {
-   if(flag==DISABLE)  HAL_GPIO_WritePin(LASER_1064_AD_DOWN_out_GPIO_Port,LASER_1064_AD_DOWN_out_Pin,GPIO_PIN_SET);
-   else HAL_GPIO_WritePin(LASER_1064_AD_DOWN_out_GPIO_Port,LASER_1064_AD_DOWN_out_Pin,GPIO_PIN_RESET);
- }
-
- /************************************************************************//**
-  * @brief 高压继电器（电磁阀）
-  * @param flag-使能信号
-  * @note   高电平有效
-  * @retval None
-  *****************************************************************************/
- void app_high_voltage_solenoid(FunctionalState flag)
- {
-   if(flag==DISABLE)  HAL_GPIO_WritePin(Solenoid_EN1_GPIO_Port,Solenoid_EN1_Pin,GPIO_PIN_RESET);
-   else HAL_GPIO_WritePin(Solenoid_EN1_GPIO_Port,Solenoid_EN1_Pin,GPIO_PIN_SET);
+   if(flag==DISABLE)  HAL_GPIO_WritePin(LASER_PULSE_AD_RESET_out_GPIO_Port,LASER_PULSE_AD_RESET_out_Pin,GPIO_PIN_SET);
+   else HAL_GPIO_WritePin(LASER_PULSE_AD_RESET_out_GPIO_Port,LASER_PULSE_AD_RESET_out_Pin,GPIO_PIN_RESET);
  }
 
   /************************************************************************//**
@@ -322,7 +313,23 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
    if(flag==DISABLE)  HAL_GPIO_WritePin(Solenoid_EN3_GPIO_Port,Solenoid_EN3_Pin,GPIO_PIN_RESET);
    else HAL_GPIO_WritePin(Solenoid_EN3_GPIO_Port,Solenoid_EN3_Pin,GPIO_PIN_SET);
  }
- //***************************Key IO*****************************************/
+ //***************************IN IO*****************************************/
+ /************************************************************************//**
+  * @brief 遥控连锁
+  * @param 
+  * @note   高电平有效
+  * @retval ErrorStatus
+  *****************************************************************************/
+ ErrorStatus app_remote_key_sta(void)
+ {
+    ErrorStatus err;
+    err=SUCCESS;
+    if(HAL_GPIO_ReadPin(REMOTE_ON_OFF_in_GPIO_Port,REMOTE_ON_OFF_in_Pin)==GPIO_PIN_SET)
+    {
+      err=ERROR;//遥控按下
+    }    
+    return err;
+ }
    /************************************************************************//**
   * @brief 按键值解析
   * @param 键值
@@ -331,6 +338,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   *****************************************************************************/
  app_key_message  app_key_value_analysis(unsigned  int keyValue)
  {  
+  static uint8_t flag;
   app_key_message  key_message;
   switch(keyValue)
   {
@@ -348,7 +356,23 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
     key_message=key_jt_release;
     //DEBUG_PRINTF("JT relese%d\r\n",keyValue); 
     break;
+    case 0x04:
+    key_message=key_jt_no_connect;
+    //DEBUG_PRINTF("JT relese%d\r\n",keyValue); 
+    break;
     case 0x0100:
+    if(flag) 
+    { 
+      app_laser1064_AD_sampling_sw(ENABLE);
+      DEBUG_PRINTF("ad _low\r\n"); 
+      flag=0;
+    }
+    else 
+    {
+      //app_laser1064_AD_sampling_sw(DISABLE);
+      DEBUG_PRINTF("ad _high\r\n"); 
+      flag=1;
+    }
     key_message=key_pwr_short_press;
     break;
     case 0x0200:
@@ -368,6 +392,74 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   }
   return key_message;
  }
+ #ifdef ONE_WIRE_BUS_JT_SLAVE
+   /************************************************************************//**
+  * @brief key 信号,按键扫描单总线
+  * @param 按键扫描间隔时间ms
+  * @note   4个字节，4个按键值，1byte一个按键
+  * @retval 键值
+  *****************************************************************************/
+ unsigned int  app_owb_key_scan(unsigned short int timeMs)
+ { 
+  unsigned short int recLen,owb_key_value=0;
+  unsigned char owb_buff[8];
+  static unsigned  int historyKey=0;
+  static unsigned  int timeout[2];
+  recLen = app_owb_get_receive_pack_len();
+  if(recLen!=0)
+  {    
+    app_owb_receive_handle(owb_buff,recLen);     
+   // DEBUG_PRINTF("JT owb recLen= %d %d %d %d %d %d",recLen,owb_buff[0],owb_buff[1],owb_buff[2],owb_buff[3],owb_buff[4]);
+    if(owb_buff[0]=='[' && owb_buff[7]==']')
+    {      
+      if(owb_buff[5]==2)
+      {
+        timeout[0]+=100;
+        timeout[1]=0;
+        if(timeout[0]>=1000)//1s 时间不大准
+        {
+          timeout[0]=0;						
+          owb_key_value=owb_buff[5]; 
+          historyKey=owb_buff[5];
+        }
+      }					
+      else //if(owb_buff[5]==3)
+      {
+        timeout[1]=0;
+        if(historyKey==2)//需要释放
+        {
+          historyKey=3;
+          owb_key_value=3;
+          timeout[0]=0;
+        }
+        else 
+        {
+          owb_key_value=0;
+          timeout[0]=0;			
+        }						
+      }					               
+    }
+    else
+    {			
+      timeout[0]=0;		
+      owb_key_value=0;
+    }			
+  }
+  else
+  {
+    timeout[1]+=timeMs;
+    if(timeout[1]>1500&&historyKey!=4)
+    {   
+      timeout[1] = 1600;
+      timeout[0]=0;
+      historyKey = 4;
+      owb_key_value  = 4;
+    }      
+    else owb_key_value=0;
+  }
+  return   owb_key_value;
+ }
+ #endif
    /************************************************************************//**
   * @brief key IO信号,按键扫描
   * @param 按键扫描间隔时间ms
@@ -380,7 +472,10 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   unsigned char keyValue[MAX_IO_KEY_NUM];
   static unsigned int keyTimeout[MAX_IO_KEY_NUM]={0};
   static unsigned char keyLongFlag[MAX_IO_KEY_NUM]={0};  
-  if(HAL_GPIO_ReadPin(FOOT_SWITCH_IN_GPIO_Port,FOOT_SWITCH_IN_Pin)==GPIO_PIN_SET)
+  #ifdef ONE_WIRE_BUS_JT_SLAVE
+  keyValue[0]= app_owb_key_scan(timeMs);
+  #else 
+  if(HAL_GPIO_ReadPin(FOOT_SWITCH_IN_GPIO_Port,FOOT_SWITCH_IN_Pin)==GPIO_PIN_RESET)
   {
     keyTimeout[0]+=timeMs;
     if(keyTimeout[0]>=1000)  
@@ -404,6 +499,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
     }  
     keyTimeout[0]=0;
   }
+  #endif
   if(HAL_GPIO_ReadPin(KEY_PWR_SWITCH_GPIO_Port,KEY_PWR_SWITCH_Pin)==GPIO_PIN_RESET)
   {
     keyTimeout[1]+=timeMs;
@@ -433,6 +529,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
  }
 
  //***************************IN******************************************/
+ 
   /************************************************************************//**
   * @brief 获取IO信号
   * @param IoNum-IO编号：
@@ -453,7 +550,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   unsigned char DELAY_STATUS_VALUE=2;//防抖参数
   if(IoNum==In1_high_voltage_solenoid)
   {//低报警，高正常
-    if(HAL_GPIO_ReadPin(Solenoid_STATUS1_GPIO_Port,Solenoid_STATUS1_Pin)==GPIO_PIN_SET)
+//if(HAL_GPIO_ReadPin(Solenoid_STATUS1_GPIO_Port,Solenoid_STATUS1_Pin)==GPIO_PIN_SET)
     {
       err=SUCCESS;
     }   
@@ -464,7 +561,6 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
     {
       err=SUCCESS;
     }
-    
   }
   else if(IoNum==In3_chocke_air_solenoid)
   {//低报警，高正常
@@ -475,14 +571,15 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   }
   else if(IoNum==In4_enviroment_tmprature_alert)
   {//环境气压报警，高报警，低正常
-    //high alert status (  >Hth -or- <Lth)
-    if(HAL_GPIO_ReadPin(TEMPRATURE_ALERT_GPIO_Port,TEMPRATURE_ALERT_Pin)==GPIO_PIN_RESET)
+    //high alert status (>Hth -or- <Lth)
+//    if(HAL_GPIO_ReadPin(TEMPRATURE_ALERT_GPIO_Port,TEMPRATURE_ALERT_Pin)==GPIO_PIN_RESET)
+    if(sEnvParam.enviroment_temprature>-40&&sEnvParam.enviroment_temprature<60)
     {
-      err=SUCCESS;
+      err=SUCCESS;      
     }    
   }
   else if(IoNum==In5_h_air_error)//气泵电源异常报警，气泵打开状态下有效
-  {    //低报警，高正常
+  { //低报警，高正常
     if(HAL_GPIO_ReadPin(H_AIR_ERROR_GPIO_Port,H_AIR_ERROR_Pin)==GPIO_PIN_SET)
     {
       err=SUCCESS;
@@ -492,12 +589,12 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   {  //高报警，低正常
     if(HAL_GPIO_ReadPin(Hyperbaria_OFF_Signal_GPIO_Port,Hyperbaria_OFF_Signal_Pin)==GPIO_PIN_RESET)
     {
-      err=SUCCESS;
+      err = SUCCESS;
     }    
   }  
   else if(IoNum==In7_water_ready_ok)//治疗水出口状态ok
   {//低ok有效
-    if(HAL_GPIO_ReadPin(water_ready_ok_in_GPIO_Port,water_ready_ok_in_Pin)==GPIO_PIN_RESET)
+    if(HAL_GPIO_ReadPin(treatment_water_ready_ok_in_GPIO_Port,treatment_water_ready_ok_in_Pin)==GPIO_PIN_RESET)
     {
       err=SUCCESS;
     }    
@@ -511,6 +608,5 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   }  
   return err;  
  }
-
 
 /* USER CODE END 2 */

@@ -4,13 +4,13 @@
 
 /*================================= */
 
-#define SDA_H     HAL_GPIO_WritePin(VC160_I2C_SDA_out_GPIO_Port, VC160_I2C_SDA_out_Pin, GPIO_PIN_SET)
-#define SCL_H     HAL_GPIO_WritePin(VC160_I2C_SCK_GPIO_Port, VC160_I2C_SCK_Pin, GPIO_PIN_SET)
+#define SDA_H     HAL_GPIO_WritePin(V160_I2C1_SDA_GPIO_Port, V160_I2C1_SDA_Pin, GPIO_PIN_SET)
+#define SCL_H     HAL_GPIO_WritePin(V160_I2C1_SCK_GPIO_Port, V160_I2C1_SCK_Pin, GPIO_PIN_SET)
 
-#define SDA_L     HAL_GPIO_WritePin(VC160_I2C_SDA_out_GPIO_Port, VC160_I2C_SDA_out_Pin, GPIO_PIN_RESET)
-#define SCL_L     HAL_GPIO_WritePin(VC160_I2C_SCK_GPIO_Port, VC160_I2C_SCK_Pin, GPIO_PIN_RESET)
+#define SDA_L     HAL_GPIO_WritePin(V160_I2C1_SDA_GPIO_Port, V160_I2C1_SDA_Pin, GPIO_PIN_RESET)
+#define SCL_L     HAL_GPIO_WritePin(V160_I2C1_SCK_GPIO_Port, V160_I2C1_SCK_Pin, GPIO_PIN_RESET)
 
-#define SDA_read  HAL_GPIO_ReadPin(VC160_I2C_SDA_out_GPIO_Port,VC160_I2C_SDA_out_Pin)
+#define SDA_read  HAL_GPIO_ReadPin(V160_I2C1_SDA_GPIO_Port,V160_I2C1_SDA_Pin)
 
  uint8_t  data[64];
 /* Private function prototypes -----------------------------------------------*/
@@ -20,7 +20,7 @@ void soft_I2C_GPIO_Init(void)
 {	 
   GPIO_InitTypeDef GPIO_InitStructure;	
 	__HAL_RCC_GPIOD_CLK_ENABLE();	
-  GPIO_InitStructure.Pin = VC160_I2C_SDA_out_Pin|VC160_I2C_SCK_Pin;
+  GPIO_InitStructure.Pin = V160_I2C1_SDA_Pin|V160_I2C1_SCK_Pin;
   GPIO_InitStructure.Speed=GPIO_SPEED_FREQ_HIGH ;
   GPIO_InitStructure.Mode=GPIO_MODE_OUTPUT_OD;   
   SDA_H;

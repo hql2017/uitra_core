@@ -46,7 +46,7 @@
  #endif
  void app_is3_rgb_config(unsigned char reg,unsigned char *data);
  void IS3_init(void);
- void app_rgb_breath_ctl(unsigned char breathCount,unsigned short int rgbValue);
+ void app_rgb_breath_ctl(unsigned char breathFreq,unsigned short int rgbValue);
  void rgb_color_all(unsigned short int color);
  #endif /* IS31FL3193_BSP_H_ */
  

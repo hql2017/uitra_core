@@ -40,6 +40,7 @@ extern  unsigned short int  crc16Num(unsigned char *pData,unsigned  int length);
 extern void DWT_Init(void);
 extern void delay_us(volatile uint32_t nus);
 unsigned int sumCheck(unsigned char *pData,unsigned  int length);
+extern unsigned  int crc32_MPEG(unsigned char *pData,unsigned  int length);
 void kalman_filter_init(KalmanFilter* kf, double initial_estimate, double variance) ;
 double kalman_filter_update(KalmanFilter* kf, double measurement) ;
 

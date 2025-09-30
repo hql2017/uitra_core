@@ -97,14 +97,14 @@ void owb_dq_falling_callback(void)
 		owb_frame.busAck=0;		
 		owb_frame.busIdleFlag=1;//reset	
 		owb_frame.rxLength=0;
-		__HAL_TIM_SetAutoreload(&htim16,29);
-		HAL_TIM_Base_Start_IT(&htim16);	
+		__HAL_TIM_SetAutoreload(&htim17,29);
+		HAL_TIM_Base_Start_IT(&htim17);	
 	}
 	else if(owb_frame.busIdleFlag==3) 
 	{	
 		owb_frame.busTime=0;//next bit	
-		__HAL_TIM_SetAutoreload(&htim16,29);
-		HAL_TIM_Base_Start_IT(&htim16);
+		__HAL_TIM_SetAutoreload(&htim17,29);
+		HAL_TIM_Base_Start_IT(&htim17);
 	}
 }
 /************************************************************************//**
@@ -119,7 +119,7 @@ void owb_dq_falling_callback(void)
 	owb_frame.busTime += timeUs;
 	if (owb_frame.busTime>OWB_FRAME_MAX_DELAY_TIM)
 	{		
-		HAL_TIM_Base_Stop_IT(&htim16);	
+		HAL_TIM_Base_Stop_IT(&htim17);	
 		owb_frame.busTime=0;						
 		txrxBit=0;							
 		txrxData=0;
@@ -132,7 +132,7 @@ void owb_dq_falling_callback(void)
 			{				
 				if(owb_frame.busTime>=OWB_FRAME_RESET_TIM)//reset semr
 				{
-					HAL_TIM_Base_Stop_IT(&htim16);
+					HAL_TIM_Base_Stop_IT(&htim17);
 					if(OWB_DQ_READ==GPIO_PIN_RESET)
 					{
 						//owb_frame.busAck=1;//reset info														
@@ -168,7 +168,7 @@ void owb_dq_falling_callback(void)
 					owb_frame.busIdleFlag=3;//等待数据
 					txrxData=0;
 					txrxBit=0;								
-					HAL_TIM_Base_Stop_IT(&htim16);					
+					HAL_TIM_Base_Stop_IT(&htim17);					
 				}
 			}	
 			else 
@@ -188,7 +188,7 @@ void owb_dq_falling_callback(void)
 				}	
 				txrxBit+=1;		
 				owb_frame.busTime=0;
-				HAL_TIM_Base_Stop_IT(&htim16);	
+				HAL_TIM_Base_Stop_IT(&htim17);	
 				if(txrxBit>7) 
 				{
 					txrxBit=0;	
@@ -201,7 +201,7 @@ void owb_dq_falling_callback(void)
 			break;
 		default :
 			{	//接收结束		
-				HAL_TIM_Base_Stop_IT(&htim16);	
+				HAL_TIM_Base_Stop_IT(&htim17);	
 				owb_frame.busTime=0;						
 				txrxBit=0;							
 				txrxData=0;
@@ -245,7 +245,7 @@ void owb_dq_falling_callback(void)
 		pFrame->txLength=length;
 		memcpy(owb_txBuff,pData,length);		
 		OWB_DQ_OUT_H;
-		HAL_TIM_Base_Start_IT(&htim16);	
+		HAL_TIM_Base_Start_IT(&htim17);	
 	}
 }	
 /************************************************************************//**
@@ -298,7 +298,7 @@ void owb_tim_callback(unsigned int timeUs)
 						owb_frame.busTime = 0;
 						owb_frame.busIdleFlag = 0;
 						owb_frame.err = HAL_ERROR;
-						HAL_TIM_Base_Stop_IT(&htim16);	
+						HAL_TIM_Base_Stop_IT(&htim17);	
 					}														
 				}			
 			}
@@ -351,7 +351,7 @@ void owb_tim_callback(unsigned int timeUs)
 							OWB_DQ_OUT_H;	
 							if(owb_txrxLength+1==owb_frame.txLength)
 							{
-								HAL_TIM_Base_Stop_IT(&htim16);
+								HAL_TIM_Base_Stop_IT(&htim17);
 								OWB_DQ_OUT_H;							
 								owb_frame.busIdleFlag=0;
 								owb_frame.busAck=0;
@@ -407,7 +407,7 @@ void owb_tim_callback(unsigned int timeUs)
 							owb_frame.busTime = 0;
 							owb_frame.busIdleFlag = 0;
 							owb_frame.err = HAL_OK;
-							HAL_TIM_Base_Stop_IT(&htim16);	
+							HAL_TIM_Base_Stop_IT(&htim17);	
 						}
 					}									
 				}						
@@ -420,7 +420,7 @@ void owb_tim_callback(unsigned int timeUs)
 				startFlag=0;						
 				txrxBit=0;
 				owb_frame.err=HAL_TIMEOUT;
-				HAL_TIM_Base_Stop_IT(&htim16);	
+				HAL_TIM_Base_Stop_IT(&htim17);	
 			}			
 			break;
 	}

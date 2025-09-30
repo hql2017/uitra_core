@@ -13,7 +13,7 @@
 void RGB_shutdown(unsigned char status );
 
 #ifdef  FL3236_USED
-static uint8_t rgb_breath_frq=0;///0关闭，1快，2中，3慢
+static uint8_t rgbBreathCountMs=0;//
 #else
 #define shutdown_chip    0
 #define start_chip       1
@@ -244,37 +244,34 @@ void rgb_color_all(unsigned short int color)
 		is_12_all_rgb(0);
 		#else 
 		rgb_buff[1]=0;
-			rgb_buff[0]=0;//++;   
-			rgb_buff[2]=0;			
-			rgb_buff[3]=0;//updata
-			ISI3_IIC_Write(IS3_REG_CHANNEL1_PWM,rgb_buff,4); 
-			rgb_buff[0]=0x00;
-			ISI3_IIC_Write(IS3_T0_4_UPDATA,rgb_buff,1);//updata tim 
+    rgb_buff[0]=0;//++;   
+    rgb_buff[2]=0;			
+    rgb_buff[3]=0;//updata
+    ISI3_IIC_Write(IS3_REG_CHANNEL1_PWM,rgb_buff,4); 
+    rgb_buff[0]=0x00;
+    ISI3_IIC_Write(IS3_T0_4_UPDATA,rgb_buff,1);//updata tim 
 		#endif
-	}
-		
+	}		
 }
-
 /************************************************************************//**
   * @brief   rgb呼吸控制
-  * @param   breathCount 0关闭；1慢：2中；3快速；>3 慢速     
+  * @param   breathFreq freq     
     @param   rgbValue颜色值
   * @note   高电平有效
   * @retval None
  ******************************************************************************/
- void app_rgb_breath_ctl(unsigned char breathCount,unsigned short int rgbValue)//tim callback
+ void app_rgb_breath_ctl(unsigned char breathFreq,unsigned short int rgbValue)//tim callback
  { 
-		#ifdef  FL3236_USED//12路 
-		if(rgb_breath_frq!=breathCount)
-		{
-			rgb_breath_frq=breathCount;//
-		}	
-    if(breathCount==0)
+		#ifdef  FL3236_USED//12路
+    if(breathFreq==0)
     {   					
       is_12_all_rgb(0);//关闭
+      rgbBreathCountMs=0;
     }
-    else //if(breathCount==0xFF)
-    {  	
+    else //if(breathFreq==0xFF)
+    {  
+      if(rgbBreathCountMs>100) rgbBreathCountMs=100;	//10ms	
+      rgbBreathCountMs = 1000/breathFreq;
       High_Breath();	//刷一次465ms    
     }		
 		#else	
@@ -500,11 +497,13 @@ void IC_WriteBuff_Pro(void)
     fl3236_data[4] = I2C_WriteBuffer(&fl3236_data[6], fl3236_data[62] - 2, fl3236_data[4], fl3236_data[5]);
   }
 }
-
 void Green_Breath(void )//呼吸一次，约耗时465ms，单色约600/128=4.7ms
 {
-  uint8_t i,j; 
-  for (j=0; j<128; j++)	 
+  uint8_t i; 
+  static uint8_t j;
+  //for (j=0; j<128; j++)	
+  j++;
+  j%=128;
   {
     for (i=0; i<12; i++) //R
     { // R  G  B  
@@ -524,9 +523,7 @@ void High_Breath(void )//呼吸一次，
   uint8_t i,j; 
 	static uint32_t local_stick;
 	static uint8_t breath_falg;
-	if(rgb_breath_frq<1) rgb_breath_frq=1;//
-	else if(rgb_breath_frq>100) rgb_breath_frq=100;	//
-	if(osKernelGetTickCount()> local_stick+(1000/rgb_breath_frq))
+	if(osKernelGetTickCount()> local_stick+rgbBreathCountMs)
 	{
 		local_stick=osKernelGetTickCount();
 		if(breath_falg==0)

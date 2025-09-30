@@ -24,10 +24,24 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h> 
+
 static void FDCAN1_filter_config(void);
 static FDCAN_RxHeaderTypeDef RxHeader;
 
 static  void FDCAN1_filter_config(void);
+unsigned char fd_canRxBuff[MAX_FDCAN_FRAME_DATALEN+1]={0};
+unsigned short int  fd_canRxLen=0;
+typedef struct{
+  //unsigned short int frameHeader;
+  unsigned char frameHeaderL;
+  unsigned char frameHeaderH;
+  unsigned char frameDatalen;
+  unsigned char frameCode;
+  unsigned char *pData;
+  //unsigned short int frameCrc;
+  unsigned char frameCrcL;
+  unsigned char frameCrcH;
+}hmi_can_frame;
 /* USER CODE END 0 */
 
 FDCAN_HandleTypeDef hfdcan1;
@@ -68,7 +82,7 @@ void MX_FDCAN1_Init(void)
   hfdcan1.Init.RxBufferSize = FDCAN_DATA_BYTES_8;
   hfdcan1.Init.TxEventsNbr = 0;
   hfdcan1.Init.TxBuffersNbr = 0;
-  hfdcan1.Init.TxFifoQueueElmtsNbr = 32;
+  hfdcan1.Init.TxFifoQueueElmtsNbr = 3;
   hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
   hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_8;
   if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
@@ -195,34 +209,34 @@ ErrorStatus FDCAN3_Send_Msg(uint8_t* msg,uint16_t targetID)
   if(HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1,&TxHeader,msg)!=HAL_OK)  return ERROR;
 	return SUCCESS;	
 }
-extern   void app_canBbus_receive_semo(void);
+extern  void app_canBbus_receive_semo(void);
 /**
-  * @brief  FDCAN1接收消息处理
+  * @brief  FDCAN1接收消息处理，轮询模式
   * @param  buf: 数据缓存
   * @param  Identifier: ID
   * @param  len: datalen
   * @retval 0:无数据
   *         DataLength: 数据包长度
   */
- uint8_t FDCAN1_Receive_Msg(uint8_t *buf, uint32_t *Identifier, uint8_t *len)
+ uint16_t FDCAN1_Receive_Msg(uint8_t *buf, uint32_t *Identifier, uint16_t *len)
  {
     // check FIFO0 
-    if (HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0) == 0) 
+    uint16_t ret_len;
+    if (HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0) == 0)
     {
       return 0; 
-    }
-    // copy data from  FIFO0 
+    }    
     if (HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &RxHeader, buf) != HAL_OK)
-    {			
-      DEBUG_PRINTF("HAL_FDCAN_GetRxMessage---------------EEROR\n");
-      return 0; 
-    }	
-    if(HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0)!=0)	
     {
-      app_canBbus_receive_semo();//还有数据继续处理
-    }//success
+      Error_Handler();
+      DEBUG_PRINTF("HAL_FDCAN_GetRxMessage---------------EEROR\n");
+    }	      
     *Identifier = RxHeader.Identifier;
     *len = RxHeader.DataLength; 
+    memcpy(fd_canRxBuff,buf,RxHeader.DataLength);
+    fd_canRxLen+=RxHeader.DataLength;
+    fd_canRxLen%=MAX_FDCAN_FRAME_DATALEN;
+    app_canBbus_receive_semo();
     return RxHeader.DataLength;
  }
  /**
@@ -235,61 +249,63 @@ extern   void app_canBbus_receive_semo(void);
   */
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
-{
-	uint8_t canRxData[8];
+{	
   if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != 0)
-  {		
-		app_canBbus_receive_semo();
+  {	 
     /* Retrieve Rx messages from RX FIFO0 */    
-//   if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, canRxData) != HAL_OK)
-//   {
-//      Error_Handler();
-//		  DEBUG_PRINTF("HAL_FDCAN_GetRxMessage---------------EEROR\n");
-//    }	
+   if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, &fd_canRxBuff[fd_canRxLen]) != HAL_OK)
+   {
+      Error_Handler();
+		  DEBUG_PRINTF("HAL_FDCAN_GetRxMessage---------------EEROR\n");
+    }	   
+    fd_canRxLen+=RxHeader.DataLength;
+    fd_canRxLen%=(MAX_FDCAN_FRAME_DATALEN+1);    
+    app_canBbus_receive_semo();   
   }
 }
-
-
 /***************************************************************************//**
-
-
  * @brief 发送数据包
- * @param 
+ * @param  dataLen 8的整数倍，不足部分补0
  * @note  该模块1秒间隔返回固定长度格式数据 包含，参考温度(f摄氏度);频率(mHz)；电容值（pF）
  * @return 返回ID
 *******************************************************************************/
-void APP_CAN_SEND_DATA(	uint8_t *data,uint8_t dataLen,uint16_t tartgetID)
+void APP_CAN_SEND_DATA(	uint8_t *data,uint16_t dataLen,uint16_t targetID)
 {		
-  ErrorStatus err;
-	uint32_t timeOut=0;
-	timeOut=0;
-	if(dataLen>8)//需要分包
-	{
-		dataLen=8;//暂时不分
-	}
-	while(HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) != 32) 
-	{
-		timeOut+=100;
-		HAL_Delay(50);
-		if(timeOut>5000) 
-		{
-			HAL_FDCAN_Stop(&hfdcan1);
-			break;
-		}
-	}
-	if(timeOut<50000)	err=FDCAN3_Send_Msg(data,tartgetID);
-	else 
-	{//restart
-		if (HAL_FDCAN_Start(&hfdcan1) != HAL_OK)
-		{
-			DEBUG_PRINTF("Error_Handler()\n");
-			Error_Handler();
-		}	
-	}	
-	if(err!=SUCCESS) 
+  HAL_StatusTypeDef err;	
+  uint32_t time_out;  
+  uint16_t txlen;
+  FDCAN_TxHeaderTypeDef TxHeader;	
+	TxHeader.Identifier = targetID;
+	TxHeader.IdType = FDCAN_STANDARD_ID;
+	TxHeader.TxFrameType = FDCAN_DATA_FRAME;
+	TxHeader.DataLength = FDCAN_DLC_BYTES_8;
+	TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+	TxHeader.BitRateSwitch = FDCAN_BRS_OFF;
+	TxHeader.FDFormat = FDCAN_CLASSIC_CAN;
+	TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+	TxHeader.MessageMarker = 0x01;  
+  txlen = 0;  
+	while(txlen<dataLen) 
 	{	
-		DEBUG_PRINTF("can_tx  error\r\n"); 
-	}
-	//else DEBUG_PRINTF("can_send  succese\r\n");
+    time_out=0;
+    while(HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) !=3)
+    {   
+      HAL_Delay(1); 
+      time_out++;
+      if(time_out>100) break;
+    }         
+    err = HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1,&TxHeader,data+txlen);
+    if(err!=HAL_OK) 
+    {//restart      
+      DEBUG_PRINTF("can_txerror%d\r\n",err);  
+      HAL_FDCAN_Stop(&hfdcan1);      
+      if(HAL_FDCAN_Start(&hfdcan1) == HAL_OK)
+      {
+        //DEBUG_PRINTF("can_txerror\r\n");      
+      }	
+      break;
+    }     
+    txlen+=FDCAN_DLC_BYTES_8;    
+	}  
 }
 /* USER CODE END 1 */

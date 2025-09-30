@@ -85,10 +85,10 @@ void MX_SPI4_Init(void)
   hspi4.Init.Mode = SPI_MODE_MASTER;
   hspi4.Init.Direction = SPI_DIRECTION_2LINES;
   hspi4.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi4.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi4.Init.CLKPolarity = SPI_POLARITY_HIGH;
   hspi4.Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi4.Init.NSS = SPI_NSS_SOFT;
-  hspi4.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
+  hspi4.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
   hspi4.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi4.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi4.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -184,19 +184,19 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
     PD7     ------> SPI1_MOSI
     PB3(JTDO/TRACESWO)     ------> SPI1_SCK
     */
-    GPIO_InitStruct.Pin = DAC_SPI1_MOSI_Pin;
+    GPIO_InitStruct.Pin = DAC_DIN_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
-    HAL_GPIO_Init(DAC_SPI1_MOSI_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(DAC_DIN_GPIO_Port, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = DAC_SPI1_SCK_Pin;
+    GPIO_InitStruct.Pin = DAC_CLK_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
-    HAL_GPIO_Init(DAC_SPI1_SCK_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(DAC_CLK_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN SPI1_MspInit 1 */
 
@@ -297,9 +297,9 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* spiHandle)
     PD7     ------> SPI1_MOSI
     PB3(JTDO/TRACESWO)     ------> SPI1_SCK
     */
-    HAL_GPIO_DeInit(DAC_SPI1_MOSI_GPIO_Port, DAC_SPI1_MOSI_Pin);
+    HAL_GPIO_DeInit(DAC_DIN_GPIO_Port, DAC_DIN_Pin);
 
-    HAL_GPIO_DeInit(DAC_SPI1_SCK_GPIO_Port, DAC_SPI1_SCK_Pin);
+    HAL_GPIO_DeInit(DAC_CLK_GPIO_Port, DAC_CLK_Pin);
 
   /* USER CODE BEGIN SPI1_MspDeInit 1 */
 

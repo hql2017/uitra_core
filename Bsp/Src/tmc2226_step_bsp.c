@@ -9,6 +9,7 @@
 #include "tmc2226_step_bsp.h"
 #include "main.h"
 #include "usart.h"
+#include "tim.h"
 
 #ifndef TMC_USART_USED
 /******************LSB**************/
@@ -55,22 +56,25 @@ typedef struct {
   unsigned char data[4];
   unsigned char crc;
 }TMC_USART_FRAME;
+
 #endif
 
-#define TMC_ONE_CIRCLE_STEPS  200// �����1.8��
+#define TMC_ONE_CIRCLE_STEPS  200
+
 typedef struct {
   unsigned char run;//0，stop;1 low;2,mid,3high;
   unsigned char dir;  
   unsigned char errStatus;
-  unsigned char  rdb_speed;
+  unsigned char rdb_speed;
   unsigned int  pulse_count;//
 }TMC_INFO;
+
 static TMC_INFO tmc2226_rdb_info;
 static unsigned char tmc_usart_config[8]={0};
 static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,50ml/Min ~200ml/min
-extern TIM_HandleTypeDef htim7;
+
 //extern UART_HandleTypeDef huart10;;
-// usart change speed
+//usart change speed
 //??? = ?8 +?2 + ?1 + ?0
 /**
   * @brief swuart_calcCRC
@@ -100,43 +104,41 @@ extern TIM_HandleTypeDef htim7;
       }
       currentByte = currentByte >> 1;
     } // for CRC bit
-  } // for message byte  
+  }   // for message byte  
  }
-
 /**
-  * @brief tmc2226_en
+  * @brief  tmc2226_en
   * @param  void
   * @note   蠕动泵使能
   * @retval None
   */
- void tmc2226_en(unsigned  char en)
- {
-  if(en!=0)  
+  void tmc2226_en ( unsigned  char en )
   {
-    HAL_GPIO_WritePin(TMC2226_EN_out_GPIO_Port, TMC2226_EN_out_Pin, GPIO_PIN_RESET);    
-  } 
-  else 
-  {
-    HAL_GPIO_WritePin(TMC2226_EN_out_GPIO_Port, TMC2226_EN_out_Pin, GPIO_PIN_SET);   
-  }  
- }
+    if(en!=0)  
+    {
+      HAL_GPIO_WritePin ( TMC2226_EN_out_GPIO_Port , TMC2226_EN_out_Pin , GPIO_PIN_RESET );    
+    } 
+    else 
+    {
+      HAL_GPIO_WritePin ( TMC2226_EN_out_GPIO_Port , TMC2226_EN_out_Pin , GPIO_PIN_SET );   
+    }  
+  }
  /**
   * @brief  void tmc2226_param_default(void)
-
   * @param  void
   * @note  蠕动泵默认参数
   * @retval None
   */
- void tmc2226_param_default(void)
- {
-  tmc2226_rdb_info.run=0;
-  tmc2226_rdb_info.dir =0;
-  tmc2226_rdb_info.errStatus=0;
-  tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.laser_config_param.t_water_low;
-  if(tmc2226_rdb_info.rdb_speed<5) tmc2226_rdb_info.rdb_speed=5;
-  if(tmc2226_rdb_info.rdb_speed>35) tmc2226_rdb_info.rdb_speed=35;
-  tmc2226_rdb_info.pulse_count=0;//用于脉冲计数
- }
+  void tmc2226_param_default ( void )
+  {
+      tmc2226_rdb_info.run = 0;
+      tmc2226_rdb_info.dir = 0;
+      tmc2226_rdb_info.errStatus = 0;
+      tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.laser_config_param.t_water_mid;
+      if(tmc2226_rdb_info.rdb_speed < 5) tmc2226_rdb_info.rdb_speed = 5;
+      if(tmc2226_rdb_info.rdb_speed >35) tmc2226_rdb_info.rdb_speed = 35;
+      tmc2226_rdb_info.pulse_count=0;//用于脉冲计数
+  }
 /**
   * @brief tmc2226_dir
   * @param  void
@@ -149,8 +151,7 @@ extern TIM_HandleTypeDef htim7;
 //  else HAL_GPIO_WritePin(TMC2226_DIR_out_GPIO_Port, TMC2226_DIR_out_Pin, GPIO_PIN_SET); 
 	//固定	 
 	 HAL_GPIO_WritePin(TMC2226_DIR_out_GPIO_Port, TMC2226_DIR_out_Pin, GPIO_PIN_RESET);
- }
- 
+ } 
 /**
   * @brief temc2226_init
   * @param  void
@@ -161,6 +162,34 @@ extern TIM_HandleTypeDef htim7;
  {
     tmc2226_param_default(); 
     tmc2226_stop();//art(0,100);     
+ }
+ /**
+  * @brief tem2226_step_pwm
+  * @param  void
+  * @note   蠕动泵PWM控制step
+  * @retval None
+  */
+ void tem2226_step_pwm(unsigned  char rdbSpd)
+ { 
+  if(rdbSpd!=0)
+  {    
+		unsigned int timeUs;
+		unsigned short int period;
+		//check freq,timer1 10M clock freq
+		if(rdbSpd<5) rdbSpd=5;     //1k
+		if(rdbSpd>35)   rdbSpd=35;//8k
+		//period=(1000000/freq);
+    period=4550/rdbSpd;	//
+		__HAL_TIM_SetAutoreload(&htim16,period-1);//low 1K  MAX 8kHz
+		//duty 1%  100%; 0% close	
+		timeUs=period /2;	//duty 50%
+		__HAL_TIM_SetCompare(&htim16,TIM_CHANNEL_1,timeUs-1);
+		HAL_TIM_PWM_Start(&htim16,TIM_CHANNEL_1);
+  }
+  else
+  {
+    HAL_TIM_PWM_Stop(&htim16,TIM_CHANNEL_1);
+  }	
  }
 /**
   * @brief app_steps_pulse
@@ -175,7 +204,7 @@ void app_steps_pulse(int steps)
   {    
     if(steps==CONTINUOUS_STEPS_COUNT)
     {
-      HAL_GPIO_TogglePin(TMC2226_STEP_out_GPIO_Port, TMC2226_STEP_out_Pin);       
+      //HAL_GPIO_TogglePin(TMC_STEP_TIM16CH1_PWM_out_GPIO_Port, TMC_STEP_TIM16CH1_PWM_out_Pin);       
       tmc2226_rdb_info.pulse_count++;
     }
     else if(steps==0)
@@ -186,13 +215,13 @@ void app_steps_pulse(int steps)
     {      
       if(tmc2226_rdb_info.run==0) 
       {
-        tmc2226_start(0,100); 
+        tmc2226_start(0,100);         
         tmc2226_rdb_info.run=1;
       }
       //if(tmc2226_rdb_info.A_phase_count*200<steps)
       if(tmc2226_rdb_info.pulse_count*200<steps)
       {
-        HAL_GPIO_TogglePin(TMC2226_STEP_out_GPIO_Port, TMC2226_STEP_out_Pin); 
+        //HAL_GPIO_TogglePin(TMC_STEP_TIM16CH1_PWM_out_GPIO_Port, TMC_STEP_TIM16CH1_PWM_out_Pin); 
       }
       else tmc2226_stop();          
     }   
@@ -208,8 +237,7 @@ void app_steps_pulse(int steps)
   */
 void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
 {
-	unsigned short int timeUs;
-	
+	unsigned short int timeUs;	
 	//check status ,error status	
 	if(spdLevel==0)
 	{
@@ -218,30 +246,9 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
 	else 
 	{
 		tmc2226_dir(dir);
-    if(tmc2226_rdb_info.rdb_speed<0) tmc2226_rdb_info.rdb_speed=5;// (5~35)
-    if(tmc2226_rdb_info.rdb_speed>35)  tmc2226_rdb_info.rdb_speed=35;
-		if(spdLevel==1)//5~20ml/min (1K~4.5k)(111~500)
-		{	 
-      //timeUs=500;//1K,5ml/min   
-      //timeUs=500/((8/35)*tmc2226_rdb_info.rdb_speed);
-      tmc2226_rdb_info.rdb_speed=u_sys_param.sys_config_param.laser_config_param.t_water_low;//15;//ml/min
-		}
-		else if(spdLevel==2)//20~30ml/min(4.5k~6.83k)(73~111)
-		{
-			//timeUs=125;//4k//250/2k  (4K)17.5ml/min 
-      tmc2226_rdb_info.rdb_speed=u_sys_param.sys_config_param.laser_config_param.t_water_mid;//20;//ml/min
-		}
-		else //if(spdLevel==3)//30~40ml/min   35ml/min (6.83k~8K)
-		{			
-      //timeUs=65;//8K 35ml/min
-      tmc2226_rdb_info.rdb_speed=u_sys_param.sys_config_param.laser_config_param.t_water_high;//35;//ml/min
-		}
-    timeUs=2275/tmc2226_rdb_info.rdb_speed;
-		//1000·100 freq =1K ~8K
-   // timeUs 500~62;//8K 		
-		__HAL_TIM_SetAutoreload(&htim7,timeUs-1);
-		tmc2226_rdb_info.run=spdLevel;
-		HAL_TIM_Base_Start_IT(&htim7);		
+    app_tmc2226_sped_set(spdLevel);
+    tmc2226_rdb_info.run=spdLevel;
+    tem2226_step_pwm(tmc2226_rdb_info.rdb_speed);
 		tmc2226_en(1);
 	}
 }
@@ -254,7 +261,7 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
   unsigned int  tmc2226_stop(void)
   {
     unsigned int retS;
-    HAL_TIM_Base_Stop_IT(&htim7); 
+    HAL_TIM_PWM_Stop(&htim16,TIM_CHANNEL_1);
     tmc2226_rdb_info.run=0;	
     tmc2226_en(0);
     //timeus=2275/tmc2226_rdb_info.rdb_speed;    
@@ -262,34 +269,37 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
     tmc2226_rdb_info.pulse_count=tmc2226_rdb_info.pulse_count-retS*1000000;
     u_sys_param.sys_config_param.laser_config_param.RDB_use_timeS+=retS;
     HAL_Delay(1);
-    return retS;
+    return retS; 
   } 
  /************************************************************************//**
   * @brief 设置蠕动泵速度等级
- * @param spdLevel: 0,1,2,3
-  * @note   0关闭  3最快
-   
+  * @param spdLevel: 0,1,2,3
+  * @note   0关闭  3最快   
   * @retval 无
   *****************************************************************************/
  void app_tmc2226_sped_set(unsigned char spdLevel)
  {
-		 if(spdLevel==0)
-		 {
-				tmc2226_stop();
-		 }
-		 else 
-		 {
-			 if(spdLevel==1)//低速
-			 {        
-				 tmc2226_rdb_info.rdb_speed=u_sys_param.sys_config_param.laser_config_param.t_water_low;//20;//ml/min         
-			 }
-			 else if(spdLevel==2)
-			 {
-				  tmc2226_rdb_info.rdb_speed=u_sys_param.sys_config_param.laser_config_param.t_water_mid;//25;//ml/min 
-			 }
-			 else //if(spdLevel==3)//高速
-			 {
-				  tmc2226_rdb_info.rdb_speed=u_sys_param.sys_config_param.laser_config_param.t_water_high;//32;//ml/min 
-			 }
-		 }
+    if(spdLevel==0)
+    {
+      tmc2226_stop();
+    }
+    else 
+    {
+      if(spdLevel==1)//5~20ml/min (1K~4.5k)(111~500)
+      {	
+        //timeUs=500;//1K,5ml/min   
+        //timeUs=500/((8/35)*tmc2226_rdb_info.rdb_speed);
+        tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.laser_config_param.t_water_low;//15;//ml/min
+      }
+      else if(spdLevel==2)//20~30ml/min(4.5k~6.83k)(73~111)
+      { //timeUs=125;//4k//250/2k  (4K)17.5ml/min 
+        tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.laser_config_param.t_water_mid;//20;//ml/min
+      }
+      else //if(spdLevel==3)//30~40ml/min 35ml/min (6.83k~8K)
+      {	//timeUs=65;//8K 35ml/min
+        tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.laser_config_param.t_water_high;//35;//ml/min
+      }
+      if(tmc2226_rdb_info.rdb_speed<0)   tmc2226_rdb_info.rdb_speed=5;// (5~35)
+      if(tmc2226_rdb_info.rdb_speed>35)  tmc2226_rdb_info.rdb_speed=35;
+    }
  }

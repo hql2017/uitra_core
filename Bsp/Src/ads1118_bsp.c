@@ -5,9 +5,7 @@
  * @warning This software AD1118 Drivers
  *
  * @copyright http://www.ti.com/
- *
  */
-
  #include "ads1118_bsp.h"
  #include "spi.h"
  #include "stdlib.h"
@@ -112,12 +110,12 @@
      }
      for(i=0;i<190;i++)
      {
-         if((temp<k_temprature_voltage_list[i+1])&&(temp>=k_temprature_voltage_list[i])) 
-         {              
+        if((temp<k_temprature_voltage_list[i+1])&&(temp>=k_temprature_voltage_list[i])) 
+        {              
             t0_F=(temp-k_temprature_voltage_list[i])/(k_temprature_voltage_list[i+1]-k_temprature_voltage_list[i]);          
             T=((short int)i)*1.0-40+t0_F;          
             break;
-         }          
+        }          
      }      
      return T;
  }
@@ -606,8 +604,7 @@
         ret_tmprature = tmprature_T2_laser;          
      }     
      return ret_tmprature;
-  }
- 
+  } 
    /************************************************************************//**
    * @brief 读取指定通道测量值
    * @param adChannel,指定通道号,0冷端；1：K1； 2：K2；
@@ -619,13 +616,13 @@
     adcStartup();
     kalman_filter_init(&kf0, 25.0, 0.2);
     kalman_filter_init(&kf1, 25.0, 0.2);
-    kalman_filter_init(&kf2, 25.0, 0.2);
+    kalman_filter_init(&kf2, 25.0, 0.2);        
   }
   /********************MAX31865*****************************************/	
 	#ifdef MAX_31865_PT1000	
 	static void setMax3185CS(unsigned char sel)
 	{	
-		setCS(sel);
+	    setCS(sel);
 	}
 	/*err
 float Get_tempture(void)//PT100
@@ -692,7 +689,7 @@ void MAX31865_SB_Write(uint8_t addr,uint8_t wdata)//SPI Single-Byte Write
 void max_3185_pt1000(void)
 {	
 	MAX31865_SB_Write(0x80,0xC1);//二线、四线配置
-	// MAX31865_SB_Write(0x80,0xD1);//三线配置
+	//MAX31865_SB_Write(0x80,0xD1);//三线配置
 }	
 #endif
 	

@@ -9,10 +9,10 @@
 #define USER_CAN1_H_
 
 #include "main.h"
-#define HMI_CMD_ACK_MASK        0x80 //命令响应
+#define HMI_CMD_ACK_MASK         0x80 //命令响应
 #define HMI_BROADCAST_ADDR       0
-#define HMI_CAN_FRAME_HEADER  0x7E
-#define HMI_CAN_FRAME_DELAY_TIME  50 //最小数据帧间隔150
+#define HMI_CAN_FRAME_HEADER     0x7E //7E
+#define HMI_CAN_FRAME_DELAY_TIME  100//50 //最小数据帧间隔150
 
 typedef enum {
 	HMI_NONE_CMD=0,
@@ -38,5 +38,7 @@ typedef enum {
 void  HMI_Parse_Data(unsigned char  *data, unsigned int  length) ;
 void app_hmi_report_status(sys_genaration_status *sys_status) ;
 void app_hmi_report_pulse_count(void) ;
+void app_hmi_sysnc_req(void) ;
+unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int buffLen) ;
 #endif /* CAN_CAN1_H_ */
 

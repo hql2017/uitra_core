@@ -35,6 +35,9 @@ extern "C" {
 extern FDCAN_HandleTypeDef hfdcan1;
 
 /* USER CODE BEGIN Private defines */
+#define MAX_FDCAN_FRAME_DATALEN  312
+extern unsigned char fd_canRxBuff[MAX_FDCAN_FRAME_DATALEN+1];
+extern unsigned short int  fd_canRxLen;
 
 /* USER CODE END Private defines */
 
@@ -42,8 +45,8 @@ void MX_FDCAN1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 void HAL_FDCAN_MspDeInit(FDCAN_HandleTypeDef* fdcanHandle);
-uint8_t FDCAN1_Receive_Msg(uint8_t *buf, uint32_t *Identifier, uint8_t *len);
-void APP_CAN_SEND_DATA(	uint8_t *data,uint8_t dataLen,uint16_t tartgetID);
+uint16_t FDCAN1_Receive_Msg(uint8_t *buf, uint32_t *Identifier, uint16_t *len);
+void APP_CAN_SEND_DATA(	uint8_t *data,uint16_t dataLen,uint16_t targetID);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

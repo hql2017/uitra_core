@@ -181,6 +181,7 @@ static void M117Z_IIC_Write(unsigned short int reg,unsigned char *data,unsigned 
 	  buff[1]	=reg&0xFF;
     buff[2]	=data[0];
 	  buff[3]	=data[1];
+    
 	  buff[4]	=crc8(buff, 4);//�̶�����5bytes
     err=HAL_I2C_Mem_Write(&hi2c1,M117Z_REAL_ADDR,reg,I2C_MEMADD_SIZE_16BIT,&buff[2],3,M117Z_I2C_TIMEOUT);
   }   

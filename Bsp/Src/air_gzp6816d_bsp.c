@@ -134,7 +134,7 @@ void GZP6816D_get_cal(float *preKpa,float *enTemprature) //The function of readi
 *******************************************************************************/
 unsigned char  app_gzp6816d_listen(unsigned int sysTick,float *envirPresure,float *envirTemprature)
 {	
-  unsigned char  status=1;
+  unsigned char  status=0;
   static unsigned int localTick=0;
   if(sysTick>=localTick+500)
   {

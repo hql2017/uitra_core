@@ -34,14 +34,13 @@
 
 #define  GE2117_REG_SPD_STRAT       0x6000//速度启动指令
 //0x1006~0x103F  保持默认
-
-#define  GE2117_REG_STATUS1	        0x2000//0待机；!0工作
-#define  GE2117_REG_STATUS2_SPD	        0x2001//当前速度
-#define  GE2117_REG_STATUS3_REV	        0x2002//保留
-#define  GE2117_REG_STATUS4_VOLTAGE	        0x2003//当前电压  0.01V
-#define  GE2117_REG_STATUS5_CURRENT        0x2004//当前电流 0.01A
-#define  GE2117_REG_STATUS6_ERR       0x2005//错误编码
-#define  GE2117_REG_STATUS7_TEMPRATURE       0x2006//驱动器温度
+#define  GE2117_REG_STATUS1	                    0x2000//0待机；!0工作
+#define  GE2117_REG_STATUS2_SPD	                0x2001//当前速度
+#define  GE2117_REG_STATUS3_REV	                0x2002//保留
+#define  GE2117_REG_STATUS4_VOLTAGE	            0x2003//当前电压  0.01V
+#define  GE2117_REG_STATUS5_CURRENT             0x2004//当前电流 0.01A
+#define  GE2117_REG_STATUS6_ERR                 0x2005//错误编码
+#define  GE2117_REG_STATUS7_TEMPRATURE          0x2006//驱动器温度
 
 void ge2117_speed_set(unsigned short int spd);
 void ge2117_start_up_set(unsigned short int startFlag);

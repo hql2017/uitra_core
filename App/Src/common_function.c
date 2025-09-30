@@ -6,6 +6,17 @@
  */
 
 #include "common_function.h" 
+
+/*************************************** *//*
+CRC16——modbus
+uint16_t crc_table_list[256]=
+{0x40BF,0x807E,
+
+}
+
+
+
+*/
 // 初始化滤波器
 void kalman_filter_init(KalmanFilter* kf, double initial_estimate, double variance) {
     kf->last_estimate = initial_estimate;
@@ -73,6 +84,28 @@ HAL_StatusTypeDef compare_buff_no_change(unsigned char *buff1,unsigned char *buf
 	}	
   return ret;                        
 }
+// CRC32校验函数,LSB
+unsigned  int crc32_MPEG(unsigned char *pData,unsigned  int length)
+{
+	uint32_t crc = 0xFFFFFFFF;// 初始值
+	uint32_t CRC32_POLY=0xEDB88320; // 多项式0x04C11DB7的反码
+    for (int i = 0; i < length; i++) 
+	{
+        crc ^= pData[i]; // 将当前字节与CRC寄存器进行XOR
+        for (int j = 0; j < 8; j++) 
+		{
+            if (crc & 1) 
+			{ // 如果最低位是1
+                crc = (crc >> 1) ^ CRC32_POLY; // 右移一位后与多项式进行XOR
+            } 
+			else 			
+			{
+                crc >>= 1; // 否则只右移一位
+            }
+        }
+    }	
+	return crc;
+}
 // 和校验函数
  unsigned int sumCheck(unsigned char *pData,unsigned  int length)
 {
@@ -83,7 +116,7 @@ HAL_StatusTypeDef compare_buff_no_change(unsigned char *buff1,unsigned char *buf
 	}
 	return sum;
 }
-// CRC校验函数
+// CRC校验函数,LSB
  unsigned short int crc16Num(unsigned char *pData,unsigned  int length)
 {
 	uint16_t crc = 0xFFFF;	
@@ -92,15 +125,15 @@ HAL_StatusTypeDef compare_buff_no_change(unsigned char *buff1,unsigned char *buf
 		crc ^= pData[i];			
 		for (int j = 0; j < 8; j++)
 		{
-				if (crc & 1)
-				{
-						crc >>= 1;
-						crc ^= 0xA001;
-				}
-				else
-				{
-						crc >>= 1;
-				}
+			if (crc & 1)
+			{
+				crc >>= 1;
+				crc ^= 0xA001;			
+			}
+			else
+			{
+				crc >>= 1;
+			}
 		}
 	}
 	return crc;

@@ -12,7 +12,6 @@
 #include "stdio.h"
 #include "gpio.h"
 
-
 #define JDQ_DAC_CS_ENABLE  HAL_GPIO_WritePin(DAC_CS_GPIO_Port, DAC_CS_Pin, GPIO_PIN_RESET)
 #define JDQ_DAC_CS_DISABLE  HAL_GPIO_WritePin(DAC_CS_GPIO_Port, DAC_CS_Pin, GPIO_PIN_SET)
 #define JDQ_LDAC_ENABLE  HAL_GPIO_WritePin(DAC_LD_GPIO_Port, DAC_LD_Pin, GPIO_PIN_RESET)
@@ -23,8 +22,6 @@
 extern TIM_HandleTypeDef htim3;
 
 //JDQ POWER
-
-
 #define  STS_1200_OUT_VOLTAGE_LIMIT	220.0f//最大输出220V（MAX220）100mV分辨率
 #define  STS_1200_OUT_CURRENT_LIMIT	100.0f//最大输出100A（MAX220）
 #define  STS_1200_DEVICE_ADDV	0x01//电源通信地址
@@ -49,17 +46,22 @@ static JDQ_sts_local_param jdq_sts_param;
 */
 static uint16_t jdq_sts_reg_value[8];
 
-
 static unsigned char  jdq_rs485_receiv_len,rs485_rec_byte;
 static unsigned char UART1_TX_BUFF[MAX_UART1_BUFF_LENTH+1]={0};
 static unsigned char UART1_RX_BUFF[MAX_UART1_BUFF_LENTH+1]={0};
 
-#define JDQ_RS485_TX  HAL_GPIO_WritePin(RS485_DIR_GPIO_Port, RS485_DIR_Pin, GPIO_PIN_SET)
-#define JDQ_RS485_RX  HAL_GPIO_WritePin(RS485_DIR_GPIO_Port, RS485_DIR_Pin, GPIO_PIN_RESET)
+#define JDQ_RS485_TX  HAL_GPIO_WritePin(RS485_DIR_out_GPIO_Port, RS485_DIR_out_Pin, GPIO_PIN_SET)
+#define JDQ_RS485_RX  HAL_GPIO_WritePin(RS485_DIR_out_GPIO_Port, RS485_DIR_out_Pin, GPIO_PIN_RESET)
 
 /****************ADS1110**IO 模拟I2C****0.4M~3.4M************************/
 #ifdef ADS1110_JDQ_USED
-#include "soft_i2C_bsp.h"
+#if 0
+	#include "soft_i2C_bsp.h"
+#else
+	#include "i2c.h"
+	#define TRUE1	1
+	#define FALSE1 0
+#endif
 static unsigned char ads1110_i2C_receive_buff[3];
 static unsigned char ads1110_reg_config;
 //static unsigned short int ads1110_reg_data;//16bit
@@ -70,8 +72,12 @@ static unsigned char ads1110_reg_config;
  * @return 
 *******************************************************************************/
 void app_jdq_ads1110_init(void)
-{	
-	soft_I2C_GPIO_Init();
+{
+	#if 0
+ 	soft_I2C_GPIO_Init();
+	#else 
+	app_I2C_start(&hi2c1);
+	#endif
 	ads1110_reg_config=0x8C;
 	ads1110_reg_config=ADS1110_CONFIG_15SPS|ADS1110_CONFIG_CONTINUS_SAMPLING|ADS1110_CONFIG_1PGA|ADS1110_CONFIG_START_SAMP;
 	//ads1110_reg_data=0;
@@ -86,7 +92,8 @@ void app_jdq_ads1110_init(void)
 /***************************************************************************************************************/
 uint8_t ads1110_read( uint8_t *data)
 {
-	if(soft_I2C_ReadBuffer(data,3,ADS1110_I2C_SLAVE_ADDR)==TRUE1)
+	//if(soft_I2C_ReadBuffer(data,3,ADS1110_I2C_SLAVE_ADDR)==TRUE1)
+	if(HAL_I2C_Master_Receive(&hi2c1,ADS1110_I2C_SLAVE_ADDR|0x01,data,3,100)==HAL_OK)
 	{
 		ads1110_reg_config=data[2];
 		//ads1110_reg_data=(data[0]<<8)|data[1];
@@ -97,9 +104,10 @@ uint8_t ads1110_read( uint8_t *data)
 /***************************************************************************************************************/
 uint8_t ads1110_write( uint8_t data)
 {
-	if( soft_I2C_WriteByte(ADS1110_I2C_SLAVE_ADDR, data)==TRUE1)
+	//if( soft_I2C_WriteByte(ADS1110_I2C_SLAVE_ADDR, data)==TRUE1)
+	if(HAL_I2C_Master_Transmit(&hi2c1,ADS1110_I2C_SLAVE_ADDR,&data,1,100)==HAL_OK)
 	{
-		ads1110_reg_config=data;
+		ads1110_reg_config = data;
 		return TRUE1;
 	}
 	return FALSE1;
@@ -108,10 +116,11 @@ uint8_t ads1110_write( uint8_t data)
 uint8_t ads1110_available(void)//读取转换状态
 {
   uint8_t data[3];   
-  if(soft_I2C_ReadBuffer(data,3,ADS1110_I2C_SLAVE_ADDR)==TRUE1)
+  //if(soft_I2C_ReadBuffer(data,3,ADS1110_I2C_SLAVE_ADDR)==TRUE1)
+  if(ads1110_read(data)==TRUE1)
   {
-    if ((data[2]&ADS1110_CONFIG_START_SAMP) == 0)
-      return TRUE1;
+    if((data[2]&ADS1110_CONFIG_START_SAMP) == 0)
+    return TRUE1;
   }
   return TRUE1;
 }
@@ -119,10 +128,9 @@ uint8_t ads1110_available(void)//读取转换状态
 uint8_t ads1110_read_raw( int16_t *adc_raw)
 {
   uint8_t data[3];    
-  if (ads1110_read(data))
+  if(ads1110_read(data)==TRUE1)
   {
-    *adc_raw = data[0] << 8;
-    *adc_raw |= data[1];	
+    *adc_raw = (data[0] << 8)|data[1];    
     return TRUE1;    
   }
   return FALSE1; 
@@ -158,10 +166,7 @@ uint8_t ads1110_read_mv( float *adc_mv)
   *adc_mv = ((float)adc_raw * (ADS1110_REF / res_div)) / gain;
   return TRUE1;
 }
-
-
 #endif
-
  /***************************************************************************//**
  * @brief MODBUS/CRC-16
  * @param *data缓存，长度len
@@ -172,7 +177,6 @@ uint16_t jdq_crc16_modbus(const  uint8_t *data, uint16_t len)
 {  
 	uint16_t crc = 0xFFFF;  // 初始值
 	uint16_t polynomial=0xA001;
-
 	for (size_t pos = 0; pos < len; pos++) 
 	{
 		crc ^= (uint16_t)data[pos];  
@@ -190,40 +194,30 @@ uint16_t jdq_crc16_modbus(const  uint8_t *data, uint16_t len)
 		}
 	}
 	return  crc;
+} 
 
-}  
- /***************************************************************************//**
- * @brief 电源从机应答帧
- * @param listenReg侦听端口，datalen，侦听数据长度
- * @note 
- * @return 
-*******************************************************************************/
-void app_jdq_rs485_receive_data_handle(void)
+/**
+ * @brief jdq_reley_charge 
+ * @param  void
+ * @note   init
+ * @retval None
+ */
+void jdq_reley_charge(unsigned char onOff)
 {
-	uint16_t crcValue,regStart,regNum;
-	uint8_t readDataLen;
+	if(onOff==0) HAL_GPIO_WritePin(JDQ_STAND_GPIO_Port, JDQ_STAND_Pin, GPIO_PIN_RESET);
+	else HAL_GPIO_WritePin(JDQ_STAND_GPIO_Port, JDQ_STAND_Pin, GPIO_PIN_SET); 
 }
 /**
-  * @brief jdq_reley_charge 
-  * @param  void
-  * @note   init
-  * @retval None
-  */
- void jdq_reley_charge(unsigned char onOff)
- {
-  if(onOff==0) HAL_GPIO_WritePin(JDQ_STAND_GPIO_Port, JDQ_STAND_Pin, GPIO_PIN_RESET);
-  else HAL_GPIO_WritePin(JDQ_STAND_GPIO_Port, JDQ_STAND_Pin, GPIO_PIN_SET); 
- }/**
-  * @brief jdq_reley_charge_ready 
-  * @param  void
-  * @note   init
-  * @retval None
-  */
- void jdq_reley_charge_ready(unsigned char onOff)
- {
-  if(onOff==0) HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_RESET);
-  else HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_SET); 
- }
+ * @brief jdq_reley_charge_ready 
+ * @param  void
+ * @note   init
+ * @retval None
+ */
+void jdq_reley_charge_ready(unsigned char onOff)
+{
+	if(onOff==0) HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_RESET);
+	else HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_SET); 
+}
 /**
   * @brief jdq_init 
   * @param  voidvoid
@@ -237,8 +231,7 @@ void jdq_init(void)
 	JDQ_LDAC_DISABLE; 	
 	jdq_reley_charge(0);//限流负载A端接地
 	jdq_reley_charge_ready(0);//限流负载B端接电容正极	
-	JDQ_RS485_RX;
-	app_high_voltage_solenoid(ENABLE);//打开交流接触器	
+	JDQ_RS485_RX;	
 	HAL_Delay(1500);		
 }
 //***************************AD5541ABRMZ********����ʽdac***************************************//
@@ -392,21 +385,6 @@ HAL_StatusTypeDef app_jdq_write_req_frame(uint16_t regStart,uint16_t data)
 { 
 	HAL_StatusTypeDef err=HAL_OK;
 	UART1_TX_BUFF[0]=STS_1200_DEVICE_ADDV;
-//	if(jdq_rs485_sta.frame_regStart!=0) 
-//	{
-//		jdq_rs485_sta.frame_timeout++;
-//		if(jdq_rs485_sta.frame_timeout>2)//多次超时，清除等待
-//		{
-//			jdq_rs485_sta.frame_regStart=0;
-//			jdq_rs485_sta.frame_timeout=0;		
-//		}	
-//		return HAL_BUSY;		
-//	}
-//	if(regStart<STS_1200_REG_SET_VOLTAGE||regStart>STS_1200_REG_RUN_STOP)
-//	{	
-//		jdq_rs485_sta.frame_regStart=0;
-//		return HAL_ERROR;		
-//	}
 	UART1_TX_BUFF[1]=0x06;
 	UART1_TX_BUFF[2]=(regStart>>8)&0xFF;
 	UART1_TX_BUFF[3]=regStart&0xFF;		
@@ -526,8 +504,6 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
  {
 	HAL_StatusTypeDef err;	
 	int sendBuff;
-
-	
 	if(voltage<12.0) sendBuff=120;
 	else if(voltage>220.0) sendBuff=2200; 
 	else sendBuff=(int)(voltage*100);//100倍
@@ -615,27 +591,23 @@ float app_jdq_get_laser_v(void)
   */
  void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq)
  { 
-	unsigned short int countor,timeload;
+	unsigned short int counter,timeload;
 	if(timeUs!=0)
 	{
-		if(timeUs<160) timeUs=160;
-		if(timeUs>300) timeUs=300;
 		//if( freq > 60 )  countor =1666;// (100000/60);
-		if( freq > 100 )  countor =1000;// (100000/60);
-		else if( freq < 5 )  countor = 20000; //(100000/5)
-		else countor=(100000/freq);
-		if( timeUs > 500 )  timeload = 50;//check pulse timeUs
-		else if( timeUs < 100 )  timeload = 10;//check pulse timeUs		
+		if( freq > 100 )  counter =1000;// (100000/60);
+		else if( freq < 5 )  counter = 20000; //(100000/5)
+		else counter=(100000/freq);
+		if( timeUs > 300 )  timeload = 50;//check pulse timeUs
+		else if( timeUs < 120 )  timeload = 12;//check pulse timeUs		
 		else timeload=timeUs/10;
-		__HAL_TIM_SetAutoreload(&htim3,countor-1);
+		__HAL_TIM_SetAutoreload(&htim3,counter-1);
 		__HAL_TIM_SetCompare(&htim3,TIM_CHANNEL_2,timeload-1);
-		HAL_TIM_PWM_Start_IT(&htim3,TIM_CHANNEL_2);		
-		HAL_TIM_Base_Start_IT(&htim3);	
+		HAL_TIM_PWM_Start_IT(&htim3,TIM_CHANNEL_2);	
 	}
 	else 
 	{
-		HAL_TIM_PWM_Stop_IT(&htim3,TIM_CHANNEL_2);		
-		HAL_TIM_Base_Stop(&htim3);	
+		HAL_TIM_PWM_Stop_IT(&htim3,TIM_CHANNEL_2);	
 	}	
  }
   /************************************************************************//**
