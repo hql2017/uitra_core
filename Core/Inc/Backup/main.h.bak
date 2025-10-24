@@ -153,6 +153,7 @@ void Error_Handler(void);
 #define TMC2226_ERROR_out_GPIO_Port GPIOD
 #define FOOT_SWITCH_IN_Pin GPIO_PIN_15
 #define FOOT_SWITCH_IN_GPIO_Port GPIOD
+#define FOOT_SWITCH_IN_EXTI_IRQn EXTI15_10_IRQn
 #define KEY_PWR_SWITCH_Pin GPIO_PIN_6
 #define KEY_PWR_SWITCH_GPIO_Port GPIOC
 #define HV_ONE_PULSE_out_Pin GPIO_PIN_7
@@ -214,9 +215,9 @@ void Error_Handler(void);
 
 #define MAX_TMC2226_NTC_TEMPRATURE  85.0f//85.0
 //激光工作环境温度，冷却液温度（允许温差3度）
-#define MIN_TEMPRATURE_LASER  22.0f
-#define MID_TEMPRATURE_LASER  23.0f//最佳工作温度
-#define MAX_TEMPRATURE_LASER  24.0f
+#define MIN_TEMPRATURE_LASER  21.0f
+#define MID_TEMPRATURE_LASER  22.0f//最佳工作温度
+#define MAX_TEMPRATURE_LASER  23.0f
 
 #define ERR_LOW_TEMPRATURE_LASER    -40.0f //温度低边界
 #define ERR_HIGH_TEMPRATURE_LASER   100.0f//温度高边界
@@ -245,7 +246,7 @@ void Error_Handler(void);
 
 #define EEROM_DATA_ERR_CHECK_FLAG  0xFF
 
-#ifdef ONE_WIRE_BUS_JT_SLAVE 
+#ifndef ONE_WIRE_BUS_JT_SLAVE 
 #define ONE_WIRE_BUS_JT_SLAVE 
 #endif
 
@@ -258,11 +259,14 @@ void Error_Handler(void);
 #else
 #define DEBUG_PRINTF(fmt, ...) do { } while(0)
 #endif
+
+#define  SYS_LASER_CONFIG_PARAM_LENGTH   sizeof(SYS_CONFIG_PARAM)-4// 215
 typedef enum{ 
   IO_KEY_IDLE=0,
   KEY_SHORT_PRESS,//短按
   KEY_LONG_PRESS,//长按2
   KEY_LONG_RELEASE,//长按释放3
+  KEY_LOW_POWER,//电量低4
   KEY_NO_CONNECT//失联
 }KEY_VALUE;
 typedef enum{ 
@@ -291,19 +295,24 @@ typedef struct{
 		float air_gzp_temprature;             //环境气压计温度
 		float air_gzp_enviroment_pressure_kpa;//环境气压计,kpa  //平原气压约90~100kPa，西藏约80kPa
 		float treatment_water_depth;          //治疗水位
-    float cool_water_depth;          //冷却水位
-  
+    float cool_water_depth;          //冷却水位  
 		//lite增加部分
 		float tec_current_out;//制冷片
     unsigned int JT_ID;
+    unsigned char JT_bat;//(vbat/100)
  }sys_enviroment_assistant_param;//辅助参数
  extern sys_enviroment_assistant_param sEnvParam;
+
  typedef struct{  
   short int energe_cali;          //）能量校准值
   short int power_cali;           //）功率校准值
 }ENERGE_CALIBRATION;
 typedef struct
 {   
+  //unsigned char  headH;                //
+  //unsigned char  headL;                //
+  //unsigned char  len;                  //215           
+  //unsigned char  code; //0x20
   unsigned char  synchronousFlag;           // 同步标志0，未同步；1下载；2上传；3已同步；EEROM_DATA_ERR_CHECK_FLAG 未同步，无屏幕通信;0xFF未初始化 
 	unsigned int  equipmentId;                //设备ID
   unsigned int  jtId;                       //脚踏ID
@@ -332,22 +341,24 @@ typedef struct
   unsigned char clean_time_min;             //）冲洗时间分钟
   unsigned char tec_switch;                 //）制冷片开关
   unsigned char low_freq;                   //）重频模式（低重频(<20Hz)，高重频freq>1K）
-  unsigned char laser_puse_width_us;        //）出光脉宽
+  unsigned char laser_pulse_pp_us;          //）出光脉宽
   unsigned char charge_width_us;            //）充电脉冲
   unsigned char laser_led_light;            //）激光指示灯亮度
   unsigned char rgb_light;                  //）rgb状态指示灯亮度
   unsigned char beep;                       //）音量
   ENERGE_CALIBRATION  e_cali[40];
-}__attribute__ ((packed)) LASER_CONFIG_PARAM;//激光参数
-typedef struct {
-  LASER_CONFIG_PARAM laser_config_param;
-  unsigned int  checkSum;               // 校验和 
+  //unsigned char  crcL;                //
+  //unsigned char  CRCH;                //
+  //unsigned char  endH;                //0x0D           
+  //unsigned char  endl;                //0x0A
+  unsigned int  checkSum;// 校验和 
 }__attribute__ ((packed)) SYS_CONFIG_PARAM ;//系统配置参数
 typedef union 
 {
 	SYS_CONFIG_PARAM sys_config_param;
 	unsigned char data[sizeof(SYS_CONFIG_PARAM)];
 }U_SYS_CONFIG_PARAM;
+
 extern U_SYS_CONFIG_PARAM u_sys_param;
 extern U_SYS_CONFIG_PARAM u_sys_default_param;
 typedef enum{
@@ -356,9 +367,9 @@ typedef enum{
 }laser_type;
 typedef struct
 {   
-	unsigned char       laserType;         	  //0:1064（Nd：YAG）;1:980（连续激光）；2：（半导体）
   unsigned short int  laserEnerge;          //能量值
   unsigned char   laserFreq;         			  //激光频率 1~100（100表示980激光，）
+  unsigned char   laserType;         	  //0:1064（Nd：YAG）;1:980（连续激光）；2：（半导体）
 	unsigned char   treatmentWaterLevel;      //治疗水流等级0~3（0,表示关闭）
 	unsigned char   airPressureLevel;         //气流等级0~3（0,表示关闭）
 	unsigned char   ledLightLevel;         	  //激光指示灯led光亮等级0~100（0,表示关闭）//duty
@@ -381,6 +392,7 @@ typedef struct{
 	unsigned char laser_run_B3_laser_pilot_lamp_status;     //Bit3：指示灯状态
 	unsigned char laser_run_B4_laser_980_out_status;        //Bit4：（980）出光状态
   unsigned char laser_run_B5_timer_status;                //Bit5：定时器状态
+  unsigned char laser_run_B6_close_device_status;         //Bit6：关机状态（1关机指令）
 	unsigned char laser_param_B01_energe_status;            //Bit0~Bit1:激光能量计状态：
 	unsigned char laser_param_B23_air_pump_pressure_status;	//Bit2~Bit3:循环气泵压力状态：
 	unsigned char laser_param_B456_jt_status;               //Bit4~Bit6:脚踏状态：

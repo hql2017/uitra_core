@@ -9,6 +9,10 @@
 #define JDQ_BSP_H_
 void jdq_init(void);
 float AD5541A_SetVoltage(float outVoltage, float vRef);
+extern void AD5541A_SetVoltage_Load_enable(void);
+extern void AD5541A_SetVoltage_Load_disable(void);
+extern void AD5541A_SetVoltage_noLoad(float outVoltage, float vRef);
+
 void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq);
 float app_jdq_voltage_monitor(void);
 void app_jdq_current_limit_charge(void);
@@ -35,7 +39,7 @@ unsigned char  app_jdq_rs485_check_rec_len(void);
 void app_jdq_rs485_receive_data(void);
 void app_jdq_sts_1200_receive_handle(void);
 
-#define JDQ_RS485_FRAME_MAX_DELAY_MS 1500
+#define JDQ_RS485_FRAME_MAX_DELAY_MS 500
 #define JDQ_RS485_FRAME_MIN_MS 100
  #define MAX_UART1_BUFF_LENTH 64
  
@@ -46,9 +50,11 @@ void app_jdq_sts_1200_receive_handle(void);
 #define  STS_1200_REG_RUN_STOP	        1006//电源输出/停止 0停止；1输出。
 
 #define LASER_PULSE_STOP  0
-#define LASER_JDQ_VOLTAGE_F  150.0f
-#define LASER_JDQ_VOLTAGE  150
-#define  LASER_JDQ_CHARGE_TIMEOUT_MS  90000//60S
+
+#define LASER_JDQ_PREAPARE_VOLTAGE_F   80.0f
+#define LASER_JDQ_VOLTAGE_F 150.0f
+#define LASER_JDQ_VOLTAGE   150
+#define  LASER_JDQ_CHARGE_TIMEOUT_MS  30000//60S
 
 #ifndef  ADS1110_JDQ_USED
 #define  ADS1110_JDQ_USED 

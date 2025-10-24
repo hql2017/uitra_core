@@ -7,6 +7,7 @@
 #include "main.h"
 #include "ge2117_gp_bsp.h" 
 #include "usart.h" 
+#include "fan_bsp.h"
 #include <stdio.h>
 
 #define MAX_GE_UART_BUFF_LENTH 64
@@ -115,7 +116,7 @@ void app_ge2117_receive_data_handle(void)
 				crcValue=UART_GE_RX_BUFF[6]|(UART_GE_RX_BUFF[7]<<8);
 				if(crcValue==ge_crc16_modbus(UART_GE_RX_BUFF, 6))
 				{	 
-					DEBUG_PRINTF("regWriteOk\r\n");
+					//DEBUG_PRINTF("regWriteOk\r\n");
 					ge_run_sta.listenReg=0;
 					ge_run_sta.frame_length = 0;
 					ge_run_sta.frame_bus_timeOut=0;
@@ -166,20 +167,20 @@ void app_ge2117_receive_data_handle(void)
 					if(crcValue==ge_crc16_modbus(UART_GE_RX_BUFF, readDataLen+3))
 					{ 
 						regNum=readDataLen>>1;	
-						DEBUG_PRINTF("regRead:");
+						//DEBUG_PRINTF("regRead:");
 						for(uint8_t i=0;i<regNum;i++)
 						{
 							ge2117_reg_sta[regStart+i]=UART_GE_RX_BUFF[3+2*i]<<8|UART_GE_RX_BUFF[4+2*i];						
-							DEBUG_PRINTF("  %04x",ge2117_reg_sta[regStart+i]);	
+						//	DEBUG_PRINTF("  %04x",ge2117_reg_sta[regStart+i]);	
 						}
+						//DEBUG_PRINTF("\r\n");
 						geWksta.workStaus      =    ge2117_reg_sta[0];//工作状态
 						geWksta.compressorRunSpd  = ge2117_reg_sta[1];						
 						geWksta.compressorVoltage = ge2117_reg_sta[3];
 						geWksta.compressorCurrent = ge2117_reg_sta[4];
 						geWksta.errrCode       =    ge2117_reg_sta[5];
 						geWksta.driverTemprature  = ge2117_reg_sta[6];				
-						geWksta.wkTimeOut=0;
-						//DEBUG_PRINTF(" regend\r\n");
+						geWksta.wkTimeOut=0;						
 						ge_run_sta.listenReg=0;
 						ge_run_sta.frame_length =0;
 						ge_run_sta.frame_err=0;	
@@ -285,7 +286,7 @@ HAL_StatusTypeDef app_ge_write_req_frame(uint16_t regStart,uint16_t data)
 	{
 		geWksta.compressorSetSpd=data;
 		if(geWksta.compressorSetSpd<3000) geWksta.compressorSetSpd=3000;
-		if(geWksta.compressorSetSpd>7000) geWksta.compressorSetSpd=7000;
+		if(geWksta.compressorSetSpd>6000) geWksta.compressorSetSpd=6000;
 	}
 	UART_GE_TX_BUFF[4]=(data>>8)&0xFF;
 	UART_GE_TX_BUFF[5]=data&0xFF;  
@@ -395,64 +396,84 @@ void app_ge2117_gp_ctr_frame(void)
  /***************************************************************************//**
  * @brief 压缩机控制函数，1秒调用一次
  * @param circleWaterTmprature 冷却水温度，
- * @note 循环水需要维持24~26摄氏度，25℃最佳
+ * @note 循环水需要维持23~26摄氏度，25℃最佳
  * @return 
 *******************************************************************************/
 void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 {	
-	static unsigned char bus_idle_flag=0,runFlag=0;		
-	static unsigned int geRunTime=0;//压缩机持续时间
+	static unsigned char bus_idle_flag=0;		
+	static unsigned int geRunTime=0;
 	geWksta.geTimeS=sysTimeS;	
-	if(geWksta.geTimeS>10)//10秒后开始通讯
+	if(geWksta.geTimeS>10)
 	{ 	
-		if(runFlag==0)	
-		{				
-			if(geWksta.workStaus!=0) 
+		if(circleWaterTmprature<MID_TEMPRATURE_LASER)
+		{
+			if(fan_get_run_spd(FAN38_COMPRESSOR_NUM)>2100)
 			{
-				runFlag=1;
+				fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
 			}
-			else 
-			{
-				if(circleWaterTmprature>MAX_TEMPRATURE_LASER&&bus_idle_flag==0)
-				{
-					geWksta.compressorSetSpd=3000+500*(circleWaterTmprature-MAX_TEMPRATURE_LASER);
-					ge2117_start_up_set(GE2117_START_CMD);
-					bus_idle_flag=2;					
-				}					
-			}					
 		}
 		else
 		{
-			geRunTime++;
-			if(geWksta.workStaus==0)
+			if(circleWaterTmprature>=MAX_TEMPRATURE_LASER)
 			{
-				runFlag=0;
-			}	
+				if(fan_get_run_spd(FAN38_COMPRESSOR_NUM)==0)
+				{
+					fan_spd_set(FAN38_COMPRESSOR_NUM,3000);	
+				}					
+			}
+		}		
+		if(geWksta.workStaus==0)
+		{
+			if(circleWaterTmprature>MAX_TEMPRATURE_LASER)
+			{
+				geRunTime++;
+				if(bus_idle_flag==0&&geRunTime>60) 
+				{	
+					DEBUG_PRINTF("festart\r\n");
+					geRunTime=0;
+					geWksta.compressorSetSpd=3000+500*(circleWaterTmprature-MAX_TEMPRATURE_LASER);
+					ge2117_start_up_set(GE2117_START_CMD);
+					bus_idle_flag=3;	
+				}
+			}				
+		}
+		else 
+		{
+			if(circleWaterTmprature>MAX_TEMPRATURE_LASER)
+			{
+				geRunTime++;
+				if(geRunTime>120&&bus_idle_flag==0)	 
+				{					
+					DEBUG_PRINTF("festa++\r\n");
+					geRunTime=0;						
+					geWksta.compressorSetSpd = geWksta.compressorRunSpd+500;
+					if(geWksta.compressorSetSpd >6000) geWksta.compressorSetSpd =6000;
+					fan_spd_set(FAN38_COMPRESSOR_NUM,geWksta.compressorSetSpd);												
+					ge2117_speed_set(geWksta.compressorSetSpd);					
+					bus_idle_flag=3;
+				}	
+			}
 			else
 			{
-				if(geRunTime>60&&(circleWaterTmprature>MAX_TEMPRATURE_LASER))	 
-				{					
-					geRunTime=0;	
-					geWksta.compressorSetSpd=geWksta.compressorRunSpd+500;	
-					if(bus_idle_flag==0)	
-					{						
-						ge2117_speed_set(geWksta.compressorSetSpd);					
-						bus_idle_flag=2;
-					}						
-				}
-				else 	
-				{					
-					if(circleWaterTmprature<=MID_TEMPRATURE_LASER&&bus_idle_flag==0)
-					{
-						ge2117_start_up_set(GE2117_STOP_CMD);
-						bus_idle_flag=2;
-					}
-				}					
-			}	
+				if(circleWaterTmprature<=MID_TEMPRATURE_LASER&&bus_idle_flag==0)
+				{
+					DEBUG_PRINTF("festop\r\n");
+					fan_spd_set(FAN38_COMPRESSOR_NUM,2000);//slow						
+					geRunTime=0;
+					ge2117_start_up_set(GE2117_STOP_CMD);
+					bus_idle_flag=3;					
+				}						
+			}
 		}
-		if(bus_idle_flag==2)
+		if(bus_idle_flag>2)
 		{ 
-			bus_idle_flag=1;
+			bus_idle_flag--;
+		}
+		else if(bus_idle_flag==2)
+		{
+			app_ge2117_gp_ctr_frame();
+			bus_idle_flag--;
 		}
 		else if(bus_idle_flag==1)
 		{

@@ -44,6 +44,11 @@ typedef struct{
 }JDQ_sts_local_param;
 static JDQ_sts_local_param jdq_sts_param;
 */
+//0~200mJ =5*40
+static float laser_target_energe_list[40]={
+	0,0,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,
+
+};
 static uint16_t jdq_sts_reg_value[8];
 
 static unsigned char  jdq_rs485_receiv_len,rs485_rec_byte;
@@ -289,6 +294,53 @@ float AD5541A_SetVoltage(float outVoltage, float vRef)
 	delay_us(1);
 	JDQ_LDAC_DISABLE;    
    return actualVoltage;
+}
+/***************************************************************************//**
+ * @brief 设置输出电压,不更新
+ *
+ * @param outVoltage - 输出电压
+ * @param vRef - 参考电压4.096V
+ *
+ * @return 
+*******************************************************************************/
+
+void AD5541A_SetVoltage_noLoad(float outVoltage, float vRef)
+{	
+    unsigned short registerValue = 0;
+    float          actualVoltage = 0;
+    float          code          = 0;   
+	JDQ_LDAC_DISABLE;
+    if (vRef == 0)
+    {
+    	vRef = 4.096;//2.5;
+    }		
+    /* Get raw data from the user's desired voltage value. */
+    code = (outVoltage / vRef) * 65536;
+    /* Round to the nearest integer. */
+    registerValue = (unsigned short)(code + 0.5);
+		
+		
+    /* Write to DAC register. */
+    AD5541A_SetRegisterValue(registerValue);
+    /* Calculate the voltage value that can be outtputed by the device. */
+    actualVoltage = vRef * ((float)registerValue / 65536);
+	//**application new voltage
+	
+}
+/***************************************************************************//**
+ * @brief 使能设定值
+ * @param 
+ * @param vRef - 参考电压4.096V
+ *
+ * @return 
+*******************************************************************************/
+void AD5541A_SetVoltage_Load_enable(void)
+{
+	JDQ_LDAC_ENABLE;
+}
+void AD5541A_SetVoltage_Load_disable(void)
+{
+	JDQ_LDAC_DISABLE;
 }
 //***************************AD5541ABRMZ********dac***************************************//
 
@@ -583,6 +635,7 @@ float app_jdq_get_laser_v(void)
  }
 //JDQ 继电器 逻辑 (LL HL  LH LL) (stand ,ready)
 //***************************laser pulse (100us~500us) timer3***************************************//
+
 /**
   * @brief app_laser_pulse_start 
   * @param  
@@ -598,16 +651,18 @@ float app_jdq_get_laser_v(void)
 		if( freq > 100 )  counter =1000;// (100000/60);
 		else if( freq < 5 )  counter = 20000; //(100000/5)
 		else counter=(100000/freq);
-		if( timeUs > 300 )  timeload = 50;//check pulse timeUs
+		if( timeUs > 300 )  timeload = 30;//check pulse timeUs
 		else if( timeUs < 120 )  timeload = 12;//check pulse timeUs		
 		else timeload=timeUs/10;
 		__HAL_TIM_SetAutoreload(&htim3,counter-1);
 		__HAL_TIM_SetCompare(&htim3,TIM_CHANNEL_2,timeload-1);
-		HAL_TIM_PWM_Start_IT(&htim3,TIM_CHANNEL_2);	
+		HAL_TIM_PWM_Start_IT(&htim3,TIM_CHANNEL_2);		
+		HAL_TIM_Base_Start_IT(&htim3);
 	}
 	else 
 	{
 		HAL_TIM_PWM_Stop_IT(&htim3,TIM_CHANNEL_2);	
+		HAL_TIM_Base_Stop_IT(&htim3);
 	}	
  }
   /************************************************************************//**
@@ -618,22 +673,14 @@ float app_jdq_get_laser_v(void)
   *****************************************************************************/
  float app_jdq_voltage_monitor(void)
  {
-	float retVoltage,cvolt;
-	static float historyVoltage=0;
-	//延时osDelay(2000);	
+	float retVoltage=0,cvolt;		
 	if(ads1110_available()==TRUE1)
 	{		 
 		if(ads1110_read_mv(&cvolt)==TRUE1)
 		{		
-			retVoltage = cvolt*91.9*0.001+12.0;//12.0V隔离地偏差			
-			historyVoltage = retVoltage;
-		}
-		else retVoltage = historyVoltage;
-	}
-	else
-	{		 
-		retVoltage = historyVoltage;
-	} 	
+			retVoltage = cvolt*0.0919+12.0;//91.9*0.001+12.0;//12.0V隔离地偏差	
+		}	
+	}	
 	return retVoltage;
  } 
   /************************************************************************//**
@@ -645,8 +692,8 @@ float app_jdq_get_laser_v(void)
  void app_jdq_current_limit_charge(void)
  {	
 	jdq_reley_charge(1);
-	jdq_reley_charge_ready(0);	
-	delay_us(150);	
+	jdq_reley_charge_ready(0);
+		
  }
    /************************************************************************//**
   * @brief 激光充电完成，电源直连

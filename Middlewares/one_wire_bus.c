@@ -1,3 +1,4 @@
+
 #include "one_wire_bus.h"
 
 #include "tim.h"
@@ -12,6 +13,7 @@
 #define  OWB_FRAME_RESET_TIM      	480 //us
 #define  OWB_FRAME_WIDTH_TIM      	60 //60~120us，写帧间隔
 #define  OWB_FRAME_START_TIM     	5 //帧起始信号>1us
+#define  OWB_FRAME_READ_TIM    30 //us,读间隔
 #define  OWB_FRAME_MINI_L_TIM     	15 //us,帧间隔最小低电平,15us后从机回复，等待释放总线
 #define  OWB_FRAME_ACK_L_TIM      	240//60 //60~240us
 #define  OWB_FRAME_MAX_DELAY_TIM  	485 //us
@@ -20,7 +22,8 @@
 #define  OWB_DQ_OUT_L   HAL_GPIO_WritePin(FOOT_SWITCH_IN_GPIO_Port,FOOT_SWITCH_IN_Pin,GPIO_PIN_RESET)
 #define  OWB_DQ_READ    HAL_GPIO_ReadPin(FOOT_SWITCH_IN_GPIO_Port, FOOT_SWITCH_IN_Pin)
 
-typedef struct {	
+typedef struct {
+	unsigned char busStart;//0关闭，1启动
 	unsigned char busIdleFlag;//0总线空闲,1 ack;2tx;3rx
 	unsigned char busAck;//0,noACK;1等ack（低电平）
 	unsigned short int txLength;//发送数据包长度
@@ -34,30 +37,28 @@ static ONE_BUS_FRAME owb_frame;
 #define OWB_MAX_FRAME_LENGTH 16
 static unsigned char owb_rxBuff[OWB_MAX_FRAME_LENGTH+1]={0};
 static unsigned char owb_txBuff[OWB_MAX_FRAME_LENGTH+1]={0};
-
+#ifdef ONE_WIRE_BUS_JT_SLAVE 
+//从机
 /************************************************************************//**
   * @brief one_wire_bus_init
   * @param 
   * @note  
   * @retval  
   *****************************************************************************/
-void one_wire_bus_intit(void)
+void one_wire_bus_init(void)
 {
+	/*
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
-	__HAL_RCC_GPIOD_CLK_ENABLE();
+	__HAL_RCC_GPIOD_CLK_ENABLE();	
 	GPIO_InitStruct.Pin = FOOT_SWITCH_IN_Pin;
-	#ifdef ONE_WIRE_BUS_SLAVE 
 	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-	#else 
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
-	#endif
-	GPIO_InitStruct.Pull = GPIO_PULLUP;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	HAL_GPIO_Init(FOOT_SWITCH_IN_GPIO_Port, &GPIO_InitStruct);
-	//tim
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(FOOT_SWITCH_IN_GPIO_Port, &GPIO_InitStruct);	
+	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+	*/
+	owb_frame.busStart=1;
 }
-#ifdef ONE_WIRE_BUS_SLAVE 
-//从机
 /************************************************************************//**
 	* @brief receive data handlehandle
   * @param 
@@ -65,8 +66,9 @@ void one_wire_bus_intit(void)
   * @retval  
   *****************************************************************************/
  unsigned short int  app_owb_get_receive_pack_len(void)
- {	
-	return owb_frame.rxLength;
+ {
+	unsigned short int ret=owb_frame.rxLength;
+	return ret;
  }
 /************************************************************************//**
 	* @brief receive data handlehandle
@@ -74,37 +76,66 @@ void one_wire_bus_intit(void)
   * @note  采用定长数据，调用一次清空缓存
   * @retval  
   *****************************************************************************/
- void app_owb_receive_handle(unsigned char *pData,unsigned short int length)
+void  app_owb_receive_handle(unsigned char *pData,unsigned short int length)
  {
-	if(length!=0)
-	{	
-		memcpy(pData,owb_rxBuff,length);	
-	 	owb_frame.rxLength=0;
-		owb_frame.busIdleFlag=0;
+	unsigned short int  i=0;
+	while(i+7<owb_frame.rxLength)
+	{
+		if(owb_rxBuff[i]=='['&&owb_rxBuff[i+7]==']')
+		{
+			memcpy(pData,&owb_rxBuff[i],8);	
+			owb_frame.busIdleFlag=1;
+			owb_frame.rxLength=0;
+			break;
+		}
+		i++;		
 	}
+	owb_frame.rxLength=0;	
  }
 /************************************************************************//**
-	* @brief 数据接口下降沿
+	* @brief 数据接口边沿触发(上升沿)
   * @param 
   * @note  
   * @retval  
   *****************************************************************************/
-void owb_dq_falling_callback(void)
+void owb_dq_edge_callback(void)
 {	
-	if(owb_frame.busIdleFlag==0) 
-	{	
-		owb_frame.busTime=0;//next bit	
-		owb_frame.busAck=0;		
-		owb_frame.busIdleFlag=1;//reset	
-		owb_frame.rxLength=0;
-		__HAL_TIM_SetAutoreload(&htim17,29);
-		HAL_TIM_Base_Start_IT(&htim17);	
+	if(owb_frame.busStart )
+	{
+		if(owb_frame.busIdleFlag==0)
+		{
+			HAL_TIM_Base_Stop_IT(&htim17);
+			owb_frame.busIdleFlag=4;//reset丢弃第一包
+			owb_frame.busTime=HAL_GetTick();
+		}
+		else if(owb_frame.busIdleFlag==1) 
+		{	
+			owb_frame.busTime=OWB_FRAME_RESET_TIM;//next bit						
+			__HAL_TIM_SetAutoreload(&htim17,OWB_FRAME_RESET_TIM-100);
+			HAL_TIM_Base_Start_IT(&htim17);	
+		}
+		else if(owb_frame.busIdleFlag==3) 
+		{	
+			owb_frame.busTime=OWB_FRAME_READ_TIM;//next bit	
+			__HAL_TIM_SetAutoreload(&htim17,OWB_FRAME_READ_TIM-1);
+			HAL_TIM_Base_Start_IT(&htim17);
+		}
+		else if(owb_frame.busIdleFlag==4)
+		{
+			if(HAL_GetTick()>owb_frame.busTime+50)
+			{//start
+				owb_frame.busIdleFlag=1;
+				owb_frame.busTime=OWB_FRAME_RESET_TIM;//next bit						
+				__HAL_TIM_SetAutoreload(&htim17,OWB_FRAME_RESET_TIM-100);
+				HAL_TIM_Base_Start_IT(&htim17);		
+			}
+		}
 	}
-	else if(owb_frame.busIdleFlag==3) 
-	{	
-		owb_frame.busTime=0;//next bit	
-		__HAL_TIM_SetAutoreload(&htim17,29);
-		HAL_TIM_Base_Start_IT(&htim17);
+	else 
+	{
+		HAL_TIM_Base_Stop_IT(&htim17);
+		owb_frame.busTime=0;
+		owb_frame.busIdleFlag=0;		
 	}
 }
 /************************************************************************//**
@@ -115,100 +146,74 @@ void owb_dq_falling_callback(void)
   *****************************************************************************/
  void owb_tim_callback(unsigned int timeUs)
  {	
-	static unsigned char txrxData,txrxBit=0;	
-	owb_frame.busTime += timeUs;
-	if (owb_frame.busTime>OWB_FRAME_MAX_DELAY_TIM)
-	{		
-		HAL_TIM_Base_Stop_IT(&htim17);	
+	static unsigned char txrxData,txrxBit=0;
+	HAL_TIM_Base_Stop_IT(&htim17);
+	if (owb_frame.busTime>OWB_FRAME_MAX_DELAY_TIM)//err
+	{	
 		owb_frame.busTime=0;						
 		txrxBit=0;							
 		txrxData=0;
 		owb_frame.busIdleFlag=0;		
-	}	
-	 switch(owb_frame.busIdleFlag)
-	 {	
-		case 1://ack		
-			if(owb_frame.busAck==0)
-			{				
+	}
+	if(owb_frame.busStart==0)
+	{
+		owb_frame.busTime=0;						
+		txrxBit=0;							
+		txrxData=0;
+		owb_frame.busIdleFlag=0;	
+	}
+	else 
+	{
+		switch(owb_frame.busIdleFlag)
+		{	
+			case 1://ack		
 				if(owb_frame.busTime>=OWB_FRAME_RESET_TIM)//reset semr
 				{
-					HAL_TIM_Base_Stop_IT(&htim17);
 					if(OWB_DQ_READ==GPIO_PIN_RESET)
-					{
-						//owb_frame.busAck=1;//reset info														
-						owb_frame.busAck=3;//no ack
+					{	
 						owb_frame.busTime=0;
 						owb_frame.busIdleFlag=3;
 						txrxData=0;
 						txrxBit=0;
-						owb_frame.rxLength=0;
 					}
 					else 
 					{	
-						owb_frame.busIdleFlag=0;	//err						
+						txrxData=0;
+						txrxBit=0;
+						owb_frame.busTime=0;
+						owb_frame.busIdleFlag = 0;	//err						
 					}				
-				}				
-			}
-			else  if(owb_frame.busAck==1)
-			{
-				if(owb_frame.busTime>OWB_FRAME_RESET_TIM+OWB_FRAME_MINI_L_TIM)
+				}	
+				break;	
+			case 3://rx
+				if(owb_frame.busTime>=OWB_FRAME_READ_TIM)//最少15us后读取
 				{
-					OWB_DQ_OUT_L;//ack				
-					owb_frame.busAck=2;
-					owb_frame.busTime=0;										
-				}				
-			}
-			else if(owb_frame.busAck==2) 			
-			{
-				if(owb_frame.busTime>=OWB_FRAME_ACK_L_TIM)
-				{
-					OWB_DQ_OUT_H;					
-					owb_frame.busAck=3;
 					owb_frame.busTime=0;
-					owb_frame.busIdleFlag=3;//等待数据
-					txrxData=0;
-					txrxBit=0;								
-					HAL_TIM_Base_Stop_IT(&htim17);					
+					if(OWB_DQ_READ==GPIO_PIN_SET)	
+					{
+						txrxData|=(0x01<<txrxBit);	
+					}	
+					txrxBit+=1;	
+					if(txrxBit>7) 
+					{
+						txrxBit=0;	
+						owb_frame.rxLength%=(OWB_MAX_FRAME_LENGTH+1);
+						owb_rxBuff[owb_frame.rxLength]=txrxData;			
+						txrxData=0;										
+						owb_frame.rxLength+=1;//=1;	
+					}				
 				}
-			}	
-			else 
-			{
-				owb_frame.busIdleFlag=4;
-			}		 
-			break;
-		 case 2://tx
-			owb_frame.busIdleFlag=4;			
-			break;
-		 case 3://rx
-			if(owb_frame.busTime>OWB_FRAME_MINI_L_TIM)//15us后读取
-			{
-				if(OWB_DQ_READ)	
-				{
-					txrxData|=(0x01<<txrxBit);	
-				}	
-				txrxBit+=1;		
-				owb_frame.busTime=0;
-				HAL_TIM_Base_Stop_IT(&htim17);	
-				if(txrxBit>7) 
-				{
-					txrxBit=0;	
-					owb_rxBuff[owb_frame.rxLength]=txrxData;			
+				break;
+			default :
+				{	//接收结束	
+					owb_frame.busTime=0;						
+					txrxBit=0;							
 					txrxData=0;
-					owb_frame.rxLength+=1;//=1;	
-					owb_frame.busTime=0;			 	
-				}	
-			}
-			break;
-		default :
-			{	//接收结束		
-				HAL_TIM_Base_Stop_IT(&htim17);	
-				owb_frame.busTime=0;						
-				txrxBit=0;							
-				txrxData=0;
-				owb_frame.busIdleFlag=0;
-			}			
-			break;
-	 }	 	 
+					owb_frame.busIdleFlag=0;
+				}			
+				break;
+		}	
+	} 	 
  }
 #else 
 //主机,只写

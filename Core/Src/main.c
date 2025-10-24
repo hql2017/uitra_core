@@ -139,6 +139,8 @@ int main(void)
   MX_SPI1_Init();
   MX_TIM17_Init();
   MX_TIM15_Init();
+  MX_TIM4_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
   DWT_Init(); 
   #ifdef DEBUG_MSG_UART 
@@ -292,7 +294,7 @@ void MPU_Config(void)
 
 /**
   * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM6 interrupt took place, inside
+  * @note   This function is called  when TIM7 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
   * a global variable "uwTick" used as application time base.
   * @param  htim : TIM handle
@@ -303,18 +305,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM6) {
+  if (htim->Instance == TIM7) {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-  //if (htim->Instance == TIM3)  u_sys_param.sys_config_param.laser_config_param.laser_pulse_count;//用光电管更好  
-   if (htim->Instance == TIM3)      
-   {
-     // HAL_GPIO_WritePin(LASER_1064_AD_DOWN_out_GPIO_Port,LASER_1064_AD_DOWN_out_Pin,GPIO_PIN_SET);
-     // HAL_ADC_Start_IT(&hadc2); 
-   }
-  if (htim->Instance == TIM16)  app_steps_pulse(0xFFFFFFFF);
-  if (htim->Instance == TIM17)  owb_tim_callback(30);
+  if(htim->Instance == TIM3)  {    
+    pulse_adc_start();
+    u_sys_param.sys_config_param.laser_pulse_count++;     
+  }  
+  if(htim->Instance == TIM17) {
+     owb_tim_callback(30);
+  }
   /* USER CODE END Callback 1 */
 }
 

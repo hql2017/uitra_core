@@ -21,6 +21,7 @@
 #include "adc.h"
 
 /* USER CODE BEGIN 0 */
+#include "tim.h"
 
 #define AD_VREF_VOLTAGE  3000
 
@@ -147,12 +148,12 @@ void MX_ADC2_Init(void)
   hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
   hadc2.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   hadc2.Init.LowPowerAutoWait = ENABLE;
-  hadc2.Init.ContinuousConvMode = ENABLE;
+  hadc2.Init.ContinuousConvMode = DISABLE;
   hadc2.Init.NbrOfConversion = 1;
   hadc2.Init.DiscontinuousConvMode = DISABLE;
-  hadc2.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T3_TRGO;
+  hadc2.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T6_TRGO;
   hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
-  hadc2.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_CIRCULAR;
+  hadc2.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_ONESHOT;
   hadc2.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   hadc2.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
   hadc2.Init.OversamplingMode = DISABLE;
@@ -372,21 +373,49 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
   */
 static unsigned short int adBuff[MAX_AD_BUFF_LENGTH];
 static unsigned short int advalue[4];
-static unsigned short int ad2Buff[64];
+static unsigned short int ad2Buff[32];
 static unsigned short int ad2vale;
 void app_start_multi_channel_adc(void)
 {  
-  HAL_ADC_Start_DMA(&hadc1,(unsigned int*)adBuff,MAX_AD_BUFF_LENGTH);  //5*64
-  //HAL_ADC_Start_IT(&hadc2);  //5*64
-  HAL_ADC_Start_DMA(&hadc2,(unsigned int*)ad2Buff,64);  //5*64
+  HAL_ADC_Start_DMA(&hadc1,(unsigned int*)adBuff,MAX_AD_BUFF_LENGTH);  //5*64 
 }
+/**
+  * @brief pulse_adc_start
+  * @param void
+  * @note   脉冲AD采集,tmeus =32*5=160us
+  * @retval None
+  */
+void pulse_adc_start(void)
+{  
+	HAL_ADC_Start_DMA(&hadc2,(unsigned int*)ad2Buff,32);  //5*64
+  HAL_TIM_Base_Start(&htim6);
+}
+/**
+  * @brief 
+  * @param unsigned short int buff
+  * @note   有效值计算
+  * @retval None
+  */
+ unsigned short int ad_square_value(unsigned short int *enerAdBuff,unsigned char len)
+ {
+  unsigned short int ret,i;  
+  long unsigned  int sum; 
+  sum=0;
+  for(i=0;i<len;i++)
+  {
+    sum+=(enerAdBuff[i]*enerAdBuff[i]);
+  }
+  sum = sqrt(sum/len);   
+  ret=sum;
+  return ret;
+ } 
 /**
   * @brief filter
   * @param void
   * @note   均值滤波
   * @retval None
   */
-void filter_ad(void)
+void filter_ad1(void)
 {
   long unsigned int sum=0,j;
   unsigned int i,ch;	
@@ -408,67 +437,44 @@ void filter_ad(void)
   * @note   
   * @retval None 
   */
- void app_in_energe_adc_value(void);
+void app_in_energe_adc_value(void);
 void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 { 
   if(hadc->Instance==ADC1)
-  {
-    filter_ad();     //ad一轮采集时间约2us
+  {    
+    filter_ad1();     
   }
   if(hadc->Instance==ADC2)
   { 
-    //ad2Buff[0]=HAL_ADC_GetValue(&hadc2);      
+    HAL_TIM_Base_Stop(&htim6);
     app_in_energe_adc_value();
-   //
   }
 }
-static unsigned short int energe_ad_buff[90]={0};//数量=180/2=90
 /**
   * @brief app_get_energe_adc_value
   * @param void         
   * @note   
   * @retval None
   */
- void app_in_energe_adc_value(void)
- {
-  long unsigned int sum=0;
-  unsigned int i,ch,j;	
-	SCB_InvalidateDCache_by_Addr(ad2Buff, 64);
-  for(ch=0;ch<4;ch++)
+  void app_in_energe_adc_value(void)
   {
-    sum=0;
-    j=0;
-    for(i=0;i<64;i++)
+    SCB_InvalidateDCache_by_Addr(ad2Buff, 32);
+    #if 1
+    ad2vale = ad_square_value(ad2Buff,32);
+    #else
+    long unsigned int sum=0;
+    unsigned short int i, j=0;
+    for(i=0;i<32;i++)
     {  
-      if(ad2Buff[i]>3000) 
+      if(ad2Buff[i]>30) 
       {        
         j++;
-        sum+=ad2Buff[i];
+        sum+=ad2Buff[i];      
       }       
     } 
-    if(j>0)ad2vale=(unsigned short int)(sum/j); 
-    //else ad2vale=7;       
-  }	 
- }
- /**
-  * @brief app_get_energe_adc_value
-  * @param void         
-  * @note   
-  * @retval None
-  */
-  unsigned short app_get_energe_value(unsigned char flag,unsigned short *vBuff)
- {
-  static unsigned int sum=0;
-  if(flag!=0) 
-  {
-    for(uint8_t i=0;i<64;i++)//掐头去尾,取中间64个
-    {
-      sum+=energe_ad_buff[14+i];
-    } 
-    sum>>=6; 
-  }  
-  return (unsigned short)sum;
- }
+    if(j>0) ad2vale=(unsigned short int)(sum/j);
+    #endif   
+  }
 /**
   * @brief NTC_T cal
   * @param void         

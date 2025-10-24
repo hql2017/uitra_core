@@ -134,7 +134,7 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
       tmc2226_rdb_info.run = 0;
       tmc2226_rdb_info.dir = 0;
       tmc2226_rdb_info.errStatus = 0;
-      tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.laser_config_param.t_water_mid;
+      tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.t_water_mid;
       if(tmc2226_rdb_info.rdb_speed < 5) tmc2226_rdb_info.rdb_speed = 5;
       if(tmc2226_rdb_info.rdb_speed >35) tmc2226_rdb_info.rdb_speed = 35;
       tmc2226_rdb_info.pulse_count=0;//用于脉冲计数
@@ -267,7 +267,7 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
     //timeus=2275/tmc2226_rdb_info.rdb_speed;    
     retS=(tmc2226_rdb_info.pulse_count*0.002275)/tmc2226_rdb_info.rdb_speed;//S 
     tmc2226_rdb_info.pulse_count=tmc2226_rdb_info.pulse_count-retS*1000000;
-    u_sys_param.sys_config_param.laser_config_param.RDB_use_timeS+=retS;
+    u_sys_param.sys_config_param.RDB_use_timeS+=retS;
     HAL_Delay(1);
     return retS; 
   } 
@@ -289,15 +289,15 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
       {	
         //timeUs=500;//1K,5ml/min   
         //timeUs=500/((8/35)*tmc2226_rdb_info.rdb_speed);
-        tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.laser_config_param.t_water_low;//15;//ml/min
+        tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.t_water_low;//15;//ml/min
       }
       else if(spdLevel==2)//20~30ml/min(4.5k~6.83k)(73~111)
       { //timeUs=125;//4k//250/2k  (4K)17.5ml/min 
-        tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.laser_config_param.t_water_mid;//20;//ml/min
+        tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.t_water_mid;//20;//ml/min
       }
       else //if(spdLevel==3)//30~40ml/min 35ml/min (6.83k~8K)
       {	//timeUs=65;//8K 35ml/min
-        tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.laser_config_param.t_water_high;//35;//ml/min
+        tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.t_water_high;//35;//ml/min
       }
       if(tmc2226_rdb_info.rdb_speed<0)   tmc2226_rdb_info.rdb_speed=5;// (5~35)
       if(tmc2226_rdb_info.rdb_speed>35)  tmc2226_rdb_info.rdb_speed=35;

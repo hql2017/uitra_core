@@ -54,6 +54,7 @@ void MX_ADC2_Init(void);
 /* USER CODE BEGIN Prototypes */
 void app_get_adc_value(unsigned char adChannel,float *vBuff);
 void app_start_multi_channel_adc(void);
+extern void pulse_adc_start(void);
 
 /* USER CODE END Prototypes */
 

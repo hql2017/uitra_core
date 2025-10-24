@@ -13,8 +13,7 @@
  #define RGB_LASER_PREPARE_OK      2//激光准备OK
  #define RGB_LASER_WORK_STATUS     3//激光工作指示灯
  #ifndef  FL3236_USED//12路
- #define  FL3236_USED
- 
+ #define  FL3236_USED 
  #define Addr_GND_GND   0x78
  #include "stdint.h"
  #if 0

@@ -7,7 +7,6 @@
 #include "main.h"
 #include "tim.h"
 
-
 #define FAN_CLK_FREQ  10000//10M 9000//9M
 #define FAN_SPD_FREQ  25// 10//10K//1~20K
  typedef struct
@@ -38,8 +37,8 @@ typedef enum{
  //static unsigned short int fan_duty_buff[13]={0,20,112,148,192,254,324,390,479,559,640,710,890};//0,0,2000~11000RPM,890 ，10k
  
  //static const unsigned short int fan_duty_buff[13]={0,40,80,120,160,200,240,280,320,360,360,360,360};//0,1,500~6400RPM,25K
-   static unsigned short int fan_duty_buff[13]={0,10, 17, 40, 65, 90, 98, 98, 98, 98, 98, 99, 100 };//%
-  
+   static unsigned short int fan_duty_buff[13]={0,10, 17, 40, 65, 90, 98, 98, 98, 98, 98, 99, 100 };//%fan25
+   static unsigned short int fan2_38_duty_buff[13]={0, 20, 32, 57, 78, 97, 98, 98, 98, 98, 99, 100,100 };//%fan38
  /************************************************************************//**
   * @brief 
   * @param 无
@@ -159,9 +158,9 @@ void fan_spd_pid(unsigned char runFlag,unsigned int P)
 	if(temp2!=0)//fan2
 	{
 		spd_num=fanParam.fan_set_speed[0]/1000;	
-		if(fanParam.fan_speed[0]<fanParam.fan_set_speed[0]&&fanParam.fan_duty_count[0]<(fan_duty_buff[spd_num]*4))		
+		if(fanParam.fan_speed[0]<fanParam.fan_set_speed[0]&&fanParam.fan_duty_count[0]<(fan2_38_duty_buff[spd_num]*4))		
 		{//slow start 
-			fanParam.fan_duty_count[0]=(fanParam.fan_duty_count[0]+fan_duty_buff[spd_num]*4)>>1;
+			fanParam.fan_duty_count[0]=(fanParam.fan_duty_count[0]+fan2_38_duty_buff[spd_num]*4)>>1;
 			duty=0xFF&(fanParam.fan_duty_count[0]>>2);
 			app_fan_pwm_set(duty,2);	
 		}
@@ -320,12 +319,29 @@ void fan_stop(unsigned char stopFlag)
 * @brief 
 * @param 无
 * @note   
+* @retval run speed
+*****************************************************************************/
+unsigned short int fan_get_run_spd(unsigned char fanNumber)
+{	
+	if(fanNumber==1)
+	{
+		return fanParam.fan_speed[1];
+	}
+	else
+	{		
+		return fanParam.fan_speed[0];
+	} 
+}
+/************************************************************************//**
+* @brief 
+* @param 无
+* @note   
 * @retval 
-
 *****************************************************************************/
 void fan_init(void)
 {
-	fan_spd_set(3,2000);
+	fan_spd_set(FAN25_NUM,2000);
+	fan_spd_set(FAN38_COMPRESSOR_NUM,2000);
 	fan_start(3);
 }
 /************************************************************************//**

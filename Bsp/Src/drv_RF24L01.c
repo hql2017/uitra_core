@@ -30,7 +30,7 @@ uint8_t drv_spi_read_write_byte(uint8_t TxByte)
     if(status != HAL_OK)
     {        
        return 0xFF; 
-    }    
+    } 
     return RxByte;
 }
 
@@ -490,12 +490,12 @@ void NRF24L01_check( void )
   * @note  :无
   * @retval:无
   */
-void RF24L01_Set_Mode( nRf24l01ModeType Mode )
-{
-    uint8_t controlreg = 0;
+ void RF24L01_Set_Mode( nRf24l01ModeType Mode )
+ {
+  uint8_t controlreg = 0;
 	controlreg = NRF24L01_Read_Reg( CONFIG );
 	
-    if( Mode == MODE_TX )       
+  if( Mode == MODE_TX )       
 	{
 		controlreg &= ~( 1<< PRIM_RX );
 	}
@@ -506,8 +506,7 @@ void RF24L01_Set_Mode( nRf24l01ModeType Mode )
 			controlreg |= ( 1<< PRIM_RX ); 
 		}
 	}
-
-    NRF24L01_Write_Reg( CONFIG, controlreg );
+  NRF24L01_Write_Reg( CONFIG, controlreg );
 }
 
 /**
@@ -554,9 +553,9 @@ uint8_t NRF24L01_TxPacket( uint8_t *txbuf, uint8_t Length )
 	}
 	if( l_Status & TX_OK )	//发送完成
 	{
+				
 		return TX_OK;
-	}
-	
+	}	
 	return 0xFF;	//其他原因发送失败
 }
 
@@ -618,8 +617,8 @@ uint8_t NRF24L01_RxPacket( uint8_t *rxbuf )
 		if( 300 == l_100MsTimes )		//3s没接收过数据，重新初始化模块
 		{
       l_100MsTimes=0;
-			//NRF24L01_Gpio_Init( );
-			//RF24L01_Init( );
+			NRF24L01_Gpio_Init( );
+			RF24L01_Init( );
 			RF24L01_Set_Mode( MODE_RX );
 		}
 	}	
@@ -646,8 +645,10 @@ uint8_t NRF24L01_RxPacket( uint8_t *rxbuf )
   */
 void NRF24L01_Gpio_Init( void )
 {
-	RF24L01_SET_CE_LOW( );		//??24L01
-	RF24L01_SET_CS_HIGH( );		//??SPI??
+  RF24L01_SET_CS_LOW( );		//??SPI??
+  RF24L01_SET_CE_LOW( );		//??SPI??
+  delay_us(5);
+  RF24L01_SET_CS_HIGH( );		//??SPI??
 }
  /**
   * @brief :RF24L01模块初始化
@@ -659,17 +660,19 @@ void RF24L01_Init( void )
 {
   uint8_t addr[5] = {INIT_ADDR};
 
- // RF24L01_SET_CE_HIGH( );
+  RF24L01_SET_CE_HIGH( );
   NRF24L01_Clear_IRQ_Flag( IRQ_ALL );
 #if DYNAMIC_PACKET == 1
 
   NRF24L01_Write_Reg( DYNPD, ( 1 << 0 ) ); 	//使能通道1动态数据长度
   NRF24L01_Write_Reg( FEATRUE, 0x07 );
-  NRF24L01_Read_Reg( DYNPD );  
+  NRF24L01_Read_Reg( DYNPD );
   NRF24L01_Read_Reg( FEATRUE );
-	
+
 #elif DYNAMIC_PACKET == 0
+  
   L01_WriteSingleReg( L01REG_RX_PW_P0, FIXED_PACKET_LEN );	//固定数据长度
+
 #endif	//DYNAMIC_PACKET
 
   NRF24L01_Write_Reg( CONFIG, /*( 1<<MASK_RX_DR ) |*/		//接收中断
@@ -685,7 +688,7 @@ void RF24L01_Init( void )
 
   NRF24L01_Set_TxAddr( &addr[0], 5 );                      //设置TX地址
   NRF24L01_Set_RxAddr( 0, &addr[0], 5 );                   //设置RX地址
-  RF24L01_SET_CE_HIGH( );
+ 
 }
 /************************************************************************//**
   * @brief 来自RF24 无线脚踏
@@ -699,18 +702,26 @@ void RF24L01_Init( void )
     unsigned  int retKey=0;
     static unsigned  int historyKey=0;
     static unsigned  int timeout[2];
-    unsigned char g_RF24L01RxBuffer[12]={0};	
+    unsigned char g_RF24L01RxBuffer[12]={0};						
     rf24_rxLen = NRF24L01_RxPacket( g_RF24L01RxBuffer );		
     if( 0 != rf24_rxLen )
     {	
+      #if 0        
+      for(uint8_t i=0;i<8;i++)
+      {
+        DEBUG_PRINTF(" %02x", g_RF24L01RxBuffer[i]);
+      }
+      DEBUG_PRINTF("rflen=%d", rf24_rxLen);
+      #endif
       if(g_RF24L01RxBuffer[0]=='['&&g_RF24L01RxBuffer[7]==']')
       {
-      // DEBUG_PRINTF("leng=%d RF0=%d RF1=%dRF2=%dRF3=%d\r\n",rf24_rxLen,g_RF24L01RxBuffer[0],g_RF24L01RxBuffer[1],g_RF24L01RxBuffer[2],g_RF24L01RxBuffer[3]);
-        if(g_RF24L01RxBuffer[5]==2)
+        timeout[1]=0;
+        sEnvParam.JT_ID=g_RF24L01RxBuffer[1]|(g_RF24L01RxBuffer[2]<<8)|(g_RF24L01RxBuffer[3]<<16)|(g_RF24L01RxBuffer[4]<<24);
+        sEnvParam.JT_bat=g_RF24L01RxBuffer[6];      
+        if(g_RF24L01RxBuffer[5]==KEY_LONG_PRESS)
         {
           timeout[0]+=100;
-          timeout[1]=0;
-          if(timeout[0]>=1000)//1s 时间不大准
+          if(timeout[0]>=1000)//1s 
           {
             timeout[0]=0;						
             retKey=g_RF24L01RxBuffer[5]; 
@@ -719,40 +730,42 @@ void RF24L01_Init( void )
         }					
         else //if(g_RF24L01RxBuffer[1]==3)
         {
-          if(historyKey==2)//需要释放
+          if(historyKey==KEY_LONG_PRESS)
           {
-            historyKey=3;
-            retKey=3;
+            historyKey=KEY_LONG_RELEASE;
+            retKey=KEY_LONG_RELEASE;
             timeout[0]=0;
           }
           else 
           {
-            retKey=0;
+            historyKey=IO_KEY_IDLE;
+            retKey=IO_KEY_IDLE;
             timeout[0]=0;			
           }						
         }					               
       }
       else
       {			
-        timeout[0]=0;		
-        retKey=0;
+        timeout[0]=0;
+        historyKey=IO_KEY_IDLE;
+        retKey=IO_KEY_IDLE;
       }				
     } 
     else
     {	
-      
-        timeout[1]+=timeMs;
-        if(timeout[1]>1500&&historyKey!=4)
-        {
-          timeout[1] = 0;
-          timeout[0] = 0;
-          historyKey = 4;
-          retKey     = 4;//3;
-        }
-        else retKey=0;
-    }		
+      timeout[1]+=timeMs;
+      if(timeout[1]>1000&&historyKey!=KEY_NO_CONNECT)
+      {
+        timeout[1] = 0;
+        timeout[0] = 0;
+        historyKey = KEY_NO_CONNECT;
+        retKey     = KEY_NO_CONNECT;//3;
+      }
+      else retKey=IO_KEY_IDLE;
+    }	
     return retKey;
  }
+ 
 /************************************************************************//**
   * @brief RF24无线模块初始化
   * @param 
@@ -765,4 +778,5 @@ void RF24_init(void )
 	//NRF24L01_check( );			
 	RF24L01_Init( );	
 	RF24L01_Set_Mode( MODE_RX );	
+	
 }

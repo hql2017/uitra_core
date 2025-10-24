@@ -63,8 +63,7 @@ void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, RS485_DIR_out_Pin|H_AIR_EN_out_Pin|treatment_water_ready_ok_in_Pin|TMC2226_DIR_out_Pin
-                          |RF24_IRQ_in_Pin|circulating_water_pump_EN_Pin|PTC_EN_Pin|JDQ_STAND_Pin
-                          |JDQ_READY_Pin, GPIO_PIN_RESET);
+                          |circulating_water_pump_EN_Pin|PTC_EN_Pin|JDQ_STAND_Pin|JDQ_READY_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LCD_12V_ON_GPIO_Port, LCD_12V_ON_Pin, GPIO_PIN_RESET);
@@ -124,23 +123,27 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pins : RS485_DIR_out_Pin H_AIR_EN_out_Pin treatment_water_ready_ok_in_Pin TMC2226_DIR_out_Pin
-                           RF24_IRQ_in_Pin circulating_water_pump_EN_Pin PTC_EN_Pin JDQ_STAND_Pin
-                           JDQ_READY_Pin */
+                           circulating_water_pump_EN_Pin PTC_EN_Pin JDQ_STAND_Pin JDQ_READY_Pin */
   GPIO_InitStruct.Pin = RS485_DIR_out_Pin|H_AIR_EN_out_Pin|treatment_water_ready_ok_in_Pin|TMC2226_DIR_out_Pin
-                          |RF24_IRQ_in_Pin|circulating_water_pump_EN_Pin|PTC_EN_Pin|JDQ_STAND_Pin
-                          |JDQ_READY_Pin;
+                          |circulating_water_pump_EN_Pin|PTC_EN_Pin|JDQ_STAND_Pin|JDQ_READY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : TMC2226_index_in_Pin TMC2226_ERROR_out_Pin FOOT_SWITCH_IN_Pin Hyperbaria_OFF_Signal_Pin
+  /*Configure GPIO pins : RF24_IRQ_in_Pin TMC2226_index_in_Pin TMC2226_ERROR_out_Pin Hyperbaria_OFF_Signal_Pin
                            EMERGENCY_LASER_STOP_STATUS_in_Pin circulating_water_pump_status_in_Pin */
-  GPIO_InitStruct.Pin = TMC2226_index_in_Pin|TMC2226_ERROR_out_Pin|FOOT_SWITCH_IN_Pin|Hyperbaria_OFF_Signal_Pin
+  GPIO_InitStruct.Pin = RF24_IRQ_in_Pin|TMC2226_index_in_Pin|TMC2226_ERROR_out_Pin|Hyperbaria_OFF_Signal_Pin
                           |EMERGENCY_LASER_STOP_STATUS_in_Pin|circulating_water_pump_status_in_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : FOOT_SWITCH_IN_Pin */
+  GPIO_InitStruct.Pin = FOOT_SWITCH_IN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(FOOT_SWITCH_IN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LCD_12V_ON_Pin */
   GPIO_InitStruct.Pin = LCD_12V_ON_Pin;
@@ -170,8 +173,11 @@ void MX_GPIO_Init(void)
   HAL_NVIC_SetPriority(EXTI1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 6, 0);
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
@@ -236,7 +242,7 @@ void app_air_pump_switch( FunctionalState flag)
   /************************************************************************//**
   * @brief 循环水水加热管理  water 
   * @param circleWaterTmprature 冷却液温度
-  * @note    冷却水需维持22~26摄氏度，最佳22℃, 1秒调用一次
+  * @note    冷却水需维持22~26摄氏度，最佳25℃, 1秒调用一次
   * @retval None
   *****************************************************************************/
 void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTimeS)
@@ -244,31 +250,34 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   static unsigned  int ptcRunTime;
   static unsigned  char  PTC_flag;
   if(circleWaterTmprature>-40&&circleWaterTmprature<150)
-  {    
-    if(PTC_flag==0)
+  {  
+    if(circleWaterTmprature<MIN_TEMPRATURE_LASER)  
     {
-      if(circleWaterTmprature<MIN_TEMPRATURE_LASER)  
+      if(PTC_flag==0)
       {
+        fan_stop(FAN38_COMPRESSOR_NUM);//stop					
         PTC_flag=1;
         app_PTC_en_switch(ENABLE);
       }
     }
     else 
     {
-      if(circleWaterTmprature>=MID_TEMPRATURE_LASER) 
-      {
+      if(circleWaterTmprature>=MID_TEMPRATURE_LASER&&PTC_flag!=0) 
+      {        
         PTC_flag=0;
         app_PTC_en_switch(DISABLE);
-      }   
-      if(ptcRunTime>120) //升温超过2分钟，关闭一次
+      }  
+      else 
       {
-        PTC_flag=0;
-        ptcRunTime=0;
-        app_PTC_en_switch(DISABLE);
-      }
-    }    
-    if(PTC_flag!=0 ) ptcRunTime++;
-    else ptcRunTime=0; 
+        ptcRunTime++;
+        if(ptcRunTime>1200) //升温超过20分钟，关闭一次
+        {
+          ptcRunTime=0;
+          PTC_flag=0;          
+          app_PTC_en_switch(DISABLE);
+        }
+      }       
+    }        
   }
   else 
   {   //err
@@ -324,7 +333,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
  {
     ErrorStatus err;
     err=SUCCESS;
-    if(HAL_GPIO_ReadPin(REMOTE_ON_OFF_in_GPIO_Port,REMOTE_ON_OFF_in_Pin)==GPIO_PIN_SET)
+    if(HAL_GPIO_ReadPin(REMOTE_ON_OFF_in_GPIO_Port,REMOTE_ON_OFF_in_Pin)==GPIO_PIN_RESET)
     {
       err=ERROR;//遥控按下
     }    
@@ -393,6 +402,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   return key_message;
  }
  #ifdef ONE_WIRE_BUS_JT_SLAVE
+ #include "one_wire_bus.h"
    /************************************************************************//**
   * @brief key 信号,按键扫描单总线
   * @param 按键扫描间隔时间ms
@@ -406,17 +416,21 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   static unsigned  int historyKey=0;
   static unsigned  int timeout[2];
   recLen = app_owb_get_receive_pack_len();
-  if(recLen!=0)
-  {    
-    app_owb_receive_handle(owb_buff,recLen);     
-   // DEBUG_PRINTF("JT owb recLen= %d %d %d %d %d %d",recLen,owb_buff[0],owb_buff[1],owb_buff[2],owb_buff[3],owb_buff[4]);
+  if(recLen>7)
+  { 
+    app_owb_receive_handle(owb_buff,recLen); 
+
+    //DEBUG_PRINTF("JT owb recLen= %d %02x %02x %02x %02x %02x %02x %02x %02x \r\n",recLen,owb_buff[0],owb_buff[1],owb_buff[2],owb_buff[3],owb_buff[4],owb_buff[5],owb_buff[6],owb_buff[7]);
     if(owb_buff[0]=='[' && owb_buff[7]==']')
-    {      
-      if(owb_buff[5]==2)
+    { 
+      sEnvParam.JT_ID=owb_buff[1]|(owb_buff[2]<<8)|(owb_buff[3]<<16)|(owb_buff[4]<<24);
+      sEnvParam.JT_bat=owb_buff[6]; 
+      timeout[1]=0;
+      if(owb_buff[5]==KEY_LONG_PRESS)
       {
         timeout[0]+=100;
         timeout[1]=0;
-        if(timeout[0]>=1000)//1s 时间不大准
+        if(timeout[0]>=1000)
         {
           timeout[0]=0;						
           owb_key_value=owb_buff[5]; 
@@ -424,17 +438,17 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
         }
       }					
       else //if(owb_buff[5]==3)
-      {
-        timeout[1]=0;
-        if(historyKey==2)//需要释放
+      {        
+        if(historyKey==KEY_LONG_PRESS)
         {
-          historyKey=3;
-          owb_key_value=3;
+          historyKey=KEY_LONG_RELEASE;
+          owb_key_value=  KEY_LONG_RELEASE;
           timeout[0]=0;
         }
         else 
         {
-          owb_key_value=0;
+          historyKey=IO_KEY_IDLE;
+          owb_key_value=IO_KEY_IDLE;
           timeout[0]=0;			
         }						
       }					               
@@ -442,20 +456,22 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
     else
     {			
       timeout[0]=0;		
-      owb_key_value=0;
+      owb_key_value=IO_KEY_IDLE;
+      historyKey=IO_KEY_IDLE;
     }			
+    recLen=0;
   }
   else
   {
     timeout[1]+=timeMs;
-    if(timeout[1]>1500&&historyKey!=4)
-    {   
-      timeout[1] = 1600;
+    if(timeout[1]>1000&&historyKey!=KEY_NO_CONNECT)
+    {   //丢包
+      timeout[1] = 0;
       timeout[0]=0;
-      historyKey = 4;
-      owb_key_value  = 4;
+      historyKey = KEY_NO_CONNECT;
+      owb_key_value  = KEY_NO_CONNECT;
     }      
-    else owb_key_value=0;
+    else owb_key_value=IO_KEY_IDLE;
   }
   return   owb_key_value;
  }

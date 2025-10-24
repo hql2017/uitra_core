@@ -141,7 +141,6 @@ unsigned  int crc32_MPEG(unsigned char *pData,unsigned  int length)
 #if 0
 uint16_t crc16_modbus(const  uint8_t *data, uint16_t len)
 {  
-
 	uint16_t crc = 0xFFFF;  // 初始值
 	for (size_t pos = 0; pos < len; pos++) 
 	{
@@ -149,19 +148,19 @@ uint16_t crc16_modbus(const  uint8_t *data, uint16_t len)
 		for (uint8_t i = 8; i != 0; i--) 
 		{  // 处理每个字节的每一位
 			if ((crc & 0x0001) != 0) 
-			{  // 如果最低位是1
-					crc >>= 1;
-					crc ^= 0xA001;
+			{  //如果最低位是1
+				crc >>= 1;
+				crc ^= 0xA001;
 			} 
 			else 
 			{
-					crc >>= 1;
+				crc >>= 1;
 			}
 		}
 	}
-	// 最终结果需要再次进行反转，因为Modbus协议要求最终的CRC是高字节在前，低字节在后
+	//最终结果需要再次进行反转，因为Modbus协议要求最终的CRC是高字节在前，低字节在后
 	return  (crc << 8) | (crc >> 8);
-
+	
 }
 #endif
   
