@@ -531,9 +531,9 @@ void High_Breath(void )//呼吸一次，
 			breath_falg=1;
 			for (i=0; i<12; i++) //R
 			{ // R  G  B  
-				I2C_WriteByte(Addr_GND_GND,1+i*3,PWM_64_table[64]);//*(u_sys_param.sys_config_param.rgb_light*0.01));   //B//PWM       
+				I2C_WriteByte(Addr_GND_GND,1+i*3,64);//PWM_64_table[64]);//*(u_sys_param.sys_config_param.rgb_light*0.01));   //B//PWM       
 				I2C_WriteByte(Addr_GND_GND,2+i*3,0);   //PWM 
-				I2C_WriteByte(Addr_GND_GND,3+i*3,PWM_64_table[64]);//*(u_sys_param.sys_config_param.rgb_light*0.01));  //R
+				I2C_WriteByte(Addr_GND_GND,3+i*3,64);//PWM_64_table[64]);//*(u_sys_param.sys_config_param.rgb_light*0.01));  //R
 			}    
 		}
 		else

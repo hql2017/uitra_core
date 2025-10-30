@@ -309,13 +309,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-  if(htim->Instance == TIM3)  {    
-    pulse_adc_start();
-    u_sys_param.sys_config_param.laser_pulse_count++;     
-  }  
   if(htim->Instance == TIM17) {
      owb_tim_callback(30);
   }
+
   /* USER CODE END Callback 1 */
 }
 

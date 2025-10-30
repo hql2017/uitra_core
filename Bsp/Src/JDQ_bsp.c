@@ -363,6 +363,7 @@ void app_jdq_sts_1200_receive_handle(void)
 		{
 			printf(" %02x",UART1_RX_BUFF[i]);		
 		}
+		printf("\r\n");
 		#endif	
 		if(UART1_RX_BUFF[1]==0x03)
 		{
@@ -466,7 +467,7 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
 		if(jdq_rs485_sta.frame_timeout>2) 
 		{
 			jdq_rs485_sta.frame_regStart=0;
-			jdq_rs485_sta.frame_timeout=0;
+			jdq_rs485_sta.frame_timeout =0;
 		}
 		return HAL_BUSY;
 	}	
@@ -647,13 +648,13 @@ float app_jdq_get_laser_v(void)
 	unsigned short int counter,timeload;
 	if(timeUs!=0)
 	{
-		//if( freq > 60 )  countor =1666;// (100000/60);
-		if( freq > 100 )  counter =1000;// (100000/60);
-		else if( freq < 5 )  counter = 20000; //(100000/5)
-		else counter=(100000/freq);
-		if( timeUs > 300 )  timeload = 30;//check pulse timeUs
-		else if( timeUs < 120 )  timeload = 12;//check pulse timeUs		
-		else timeload=timeUs/10;
+		//if( freq > 60 )  countor =3332;// (200000/60);
+		if( freq > 100 )  counter =2000;// (200000/60);
+		else if( freq < 5 )  counter = 40000; //(200000/5)
+		else counter=(200000/freq);
+		if( timeUs > 300 )  timeload = 60;//check pulse timeUs
+		else if( timeUs < 120 )  timeload = 24;//check pulse timeUs		
+		else timeload=timeUs/5;
 		__HAL_TIM_SetAutoreload(&htim3,counter-1);
 		__HAL_TIM_SetCompare(&htim3,TIM_CHANNEL_2,timeload-1);
 		HAL_TIM_PWM_Start_IT(&htim3,TIM_CHANNEL_2);		

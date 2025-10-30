@@ -43,6 +43,7 @@ unsigned int sumCheck(unsigned char *pData,unsigned  int length);
 extern unsigned  int crc32_MPEG(unsigned char *pData,unsigned  int length);
 void kalman_filter_init(KalmanFilter* kf, double initial_estimate, double variance) ;
 double kalman_filter_update(KalmanFilter* kf, double measurement) ;
+void sord_data(unsigned  short int *dataBuff,unsigned  short int length,unsigned char falg );//排序
 
 HAL_StatusTypeDef compare_buff_no_change(unsigned char *buff1,unsigned char *buff2,unsigned int length);
 #endif /* COMMON_FUNCTION */

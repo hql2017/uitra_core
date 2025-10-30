@@ -15,8 +15,43 @@ uint16_t crc_table_list[256]=
 }
 
 
+/**
+  * @brief MAAX->MIN，冒泡排序
+  * @param dataBuff
+  * @note   
+  * @retval None
+  */
+ void sord_data(unsigned  short int *dataBuff,unsigned  short int length,unsigned char falg )
+ {
+	unsigned  short int minValue=0,i,j;
+	unsigned  short int maxValue=0xFFFF;	
+	for(j=0;j+1<length;j++)
+	{
+		for(i=j;i+1<length;i++)
+		{
+			if(falg==0)//min->MAX
+			{
+				if(dataBuff[i]>dataBuff[i+1])
+				{
+					maxValue=dataBuff[i];
+					dataBuff[i]=dataBuff[i+1];			
+					dataBuff[i+1]=maxValue;
+				}
+			}
+			else
+			{
+				if(dataBuff[i]<dataBuff[i+1])
+				{
+					minValue=dataBuff[i];
+					dataBuff[i]=dataBuff[i+1];			
+					dataBuff[i+1]=minValue;
+				}
+			}
+		}
+	}
+		
+} 
 
-*/
 // 初始化滤波器
 void kalman_filter_init(KalmanFilter* kf, double initial_estimate, double variance) {
     kf->last_estimate = initial_estimate;

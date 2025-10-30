@@ -22,7 +22,7 @@
 #include "gpio.h"
 
 /* USER CODE BEGIN 0 */
-
+#include "fan_bsp.h"
 /* USER CODE END 0 */
 
 /*----------------------------------------------------------------------------*/
@@ -191,9 +191,9 @@ void MX_GPIO_Init(void)
   ****************************************************************************/
 void app_air_pump_switch( FunctionalState flag)
 {
-  if(flag==DISABLE)  HAL_GPIO_WritePin(H_AIR_EN_out_GPIO_Port,H_AIR_EN_out_Pin,GPIO_PIN_RESET);
-  else HAL_GPIO_WritePin(H_AIR_EN_out_GPIO_Port,H_AIR_EN_out_Pin,GPIO_PIN_SET);
   app_intake_valve_air_solenoid(flag);
+  if(flag==DISABLE)  HAL_GPIO_WritePin(H_AIR_EN_out_GPIO_Port,H_AIR_EN_out_Pin,GPIO_PIN_RESET);
+  else HAL_GPIO_WritePin(H_AIR_EN_out_GPIO_Port,H_AIR_EN_out_Pin,GPIO_PIN_SET);  
 }
   /************************************************************************//**
   * @brief  循环水泵开关（冷却液）
@@ -255,7 +255,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
     {
       if(PTC_flag==0)
       {
-        fan_stop(FAN38_COMPRESSOR_NUM);//stop					
+        fan_spd_set(FAN38_COMPRESSOR_NUM,2000);						
         PTC_flag=1;
         app_PTC_en_switch(ENABLE);
       }
@@ -419,10 +419,10 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   if(recLen>7)
   { 
     app_owb_receive_handle(owb_buff,recLen); 
-
     //DEBUG_PRINTF("JT owb recLen= %d %02x %02x %02x %02x %02x %02x %02x %02x \r\n",recLen,owb_buff[0],owb_buff[1],owb_buff[2],owb_buff[3],owb_buff[4],owb_buff[5],owb_buff[6],owb_buff[7]);
     if(owb_buff[0]=='[' && owb_buff[7]==']')
     { 
+      DEBUG_PRINTF("jt own\r\n");
       sEnvParam.JT_ID=owb_buff[1]|(owb_buff[2]<<8)|(owb_buff[3]<<16)|(owb_buff[4]<<24);
       sEnvParam.JT_bat=owb_buff[6]; 
       timeout[1]=0;
@@ -438,19 +438,10 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
         }
       }					
       else //if(owb_buff[5]==3)
-      {        
-        if(historyKey==KEY_LONG_PRESS)
-        {
-          historyKey=KEY_LONG_RELEASE;
-          owb_key_value=  KEY_LONG_RELEASE;
-          timeout[0]=0;
-        }
-        else 
-        {
-          historyKey=IO_KEY_IDLE;
-          owb_key_value=IO_KEY_IDLE;
-          timeout[0]=0;			
-        }						
+      {  
+        historyKey=KEY_LONG_RELEASE;
+        owb_key_value=  KEY_LONG_RELEASE;
+        timeout[0]=0;
       }					               
     }
     else

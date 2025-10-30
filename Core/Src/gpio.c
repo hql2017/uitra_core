@@ -419,10 +419,10 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   if(recLen>7)
   { 
     app_owb_receive_handle(owb_buff,recLen); 
-
     //DEBUG_PRINTF("JT owb recLen= %d %02x %02x %02x %02x %02x %02x %02x %02x \r\n",recLen,owb_buff[0],owb_buff[1],owb_buff[2],owb_buff[3],owb_buff[4],owb_buff[5],owb_buff[6],owb_buff[7]);
     if(owb_buff[0]=='[' && owb_buff[7]==']')
     { 
+      DEBUG_PRINTF("jt own\r\n");
       sEnvParam.JT_ID=owb_buff[1]|(owb_buff[2]<<8)|(owb_buff[3]<<16)|(owb_buff[4]<<24);
       sEnvParam.JT_bat=owb_buff[6]; 
       timeout[1]=0;
@@ -438,19 +438,10 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
         }
       }					
       else //if(owb_buff[5]==3)
-      {        
-        if(historyKey==KEY_LONG_PRESS)
-        {
-          historyKey=KEY_LONG_RELEASE;
-          owb_key_value=  KEY_LONG_RELEASE;
-          timeout[0]=0;
-        }
-        else 
-        {
-          historyKey=IO_KEY_IDLE;
-          owb_key_value=IO_KEY_IDLE;
-          timeout[0]=0;			
-        }						
+      {  
+        historyKey=KEY_LONG_RELEASE;
+        owb_key_value=  KEY_LONG_RELEASE;
+        timeout[0]=0;
       }					               
     }
     else

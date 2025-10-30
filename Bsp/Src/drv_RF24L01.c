@@ -729,19 +729,10 @@ void RF24L01_Init( void )
           }
         }					
         else //if(g_RF24L01RxBuffer[1]==3)
-        {
-          if(historyKey==KEY_LONG_PRESS)
-          {
-            historyKey=KEY_LONG_RELEASE;
-            retKey=KEY_LONG_RELEASE;
-            timeout[0]=0;
-          }
-          else 
-          {
-            historyKey=IO_KEY_IDLE;
-            retKey=IO_KEY_IDLE;
-            timeout[0]=0;			
-          }						
+        {          
+          historyKey=KEY_LONG_RELEASE;
+          retKey=KEY_LONG_RELEASE;
+          timeout[0]=0;         
         }					               
       }
       else

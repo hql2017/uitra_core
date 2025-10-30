@@ -217,11 +217,10 @@ void Error_Handler(void);
 //激光工作环境温度，冷却液温度（允许温差3度）
 #define MIN_TEMPRATURE_LASER  22.0f
 #define MID_TEMPRATURE_LASER  23.0f//最佳工作温度
-#define MAX_TEMPRATURE_LASER  24.0f
+#define MAX_TEMPRATURE_LASER  23.8f
 
 #define ERR_LOW_TEMPRATURE_LASER    -40.0f //温度低边界
 #define ERR_HIGH_TEMPRATURE_LASER   100.0f//温度高边界
-
 //air pump 气泵 kPa,相对值
 #define MIN_AIR_PUMP_PRESSURE  150.0f//210.00f
 #define MID_AIR_PUMP_PRESSURE  180.0f//260.00f//最佳气压

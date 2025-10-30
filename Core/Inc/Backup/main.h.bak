@@ -215,13 +215,12 @@ void Error_Handler(void);
 
 #define MAX_TMC2226_NTC_TEMPRATURE  85.0f//85.0
 //激光工作环境温度，冷却液温度（允许温差3度）
-#define MIN_TEMPRATURE_LASER  21.0f
-#define MID_TEMPRATURE_LASER  22.0f//最佳工作温度
-#define MAX_TEMPRATURE_LASER  23.0f
+#define MIN_TEMPRATURE_LASER  22.0f
+#define MID_TEMPRATURE_LASER  23.0f//最佳工作温度
+#define MAX_TEMPRATURE_LASER  23.8f
 
 #define ERR_LOW_TEMPRATURE_LASER    -40.0f //温度低边界
 #define ERR_HIGH_TEMPRATURE_LASER   100.0f//温度高边界
-
 //air pump 气泵 kPa,相对值
 #define MIN_AIR_PUMP_PRESSURE  150.0f//210.00f
 #define MID_AIR_PUMP_PRESSURE  180.0f//260.00f//最佳气压
@@ -376,7 +375,8 @@ typedef struct
 	unsigned char   ctrTestMode;         		  //测试模式（光纤激活）0x01打开，0x00关闭，
 	unsigned char   proHotCtr;         			  //预燃控制0x01启动，0x00关闭
   unsigned char   proCali;         			    //是否校准0x01启动，0x00关闭
-  unsigned char   timerCtr;         			  //倒计时
+  unsigned char   timerCtr;         			  //倒计时时间
+  unsigned char   timerEnableFlag;         	//倒计时启动
   unsigned char   cleanCtr;         			  //清洗消毒
   unsigned char   air_water_prepare_ctr;    //水雾准备
 }LASER_CONTROL_PARAM;//ctr param
