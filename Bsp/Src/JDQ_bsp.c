@@ -22,10 +22,9 @@
 extern TIM_HandleTypeDef htim3;
 
 //JDQ POWER
-#define  STS_1200_OUT_VOLTAGE_LIMIT	220.0f//最大输出220V（MAX220）100mV分辨率
-#define  STS_1200_OUT_CURRENT_LIMIT	100.0f//最大输出100A（MAX220）
+#define  STS_1200_OUT_VOLTAGE_LIMIT	220.0f//最大输出220V（MAX220）10mV分辨率
+#define  STS_1200_OUT_CURRENT_LIMIT	2.7f//最大输出2.7A（MAX220）
 #define  STS_1200_DEVICE_ADDV	0x01//电源通信地址
-
 typedef struct{	
  	unsigned short int frame_regStart;//侦听起始地址
 	unsigned short int frame_len;//侦听长度
@@ -50,11 +49,9 @@ static float laser_target_energe_list[40]={
 
 };
 static uint16_t jdq_sts_reg_value[8];
-
 static unsigned char  jdq_rs485_receiv_len,rs485_rec_byte;
 static unsigned char UART1_TX_BUFF[MAX_UART1_BUFF_LENTH+1]={0};
 static unsigned char UART1_RX_BUFF[MAX_UART1_BUFF_LENTH+1]={0};
-
 #define JDQ_RS485_TX  HAL_GPIO_WritePin(RS485_DIR_out_GPIO_Port, RS485_DIR_out_Pin, GPIO_PIN_SET)
 #define JDQ_RS485_RX  HAL_GPIO_WritePin(RS485_DIR_out_GPIO_Port, RS485_DIR_out_Pin, GPIO_PIN_RESET)
 
@@ -204,7 +201,7 @@ uint16_t jdq_crc16_modbus(const  uint8_t *data, uint16_t len)
 /**
  * @brief jdq_reley_charge 
  * @param  void
- * @note   init
+ * @note   init,常闭
  * @retval None
  */
 void jdq_reley_charge(unsigned char onOff)
@@ -215,34 +212,38 @@ void jdq_reley_charge(unsigned char onOff)
 /**
  * @brief jdq_reley_charge_ready 
  * @param  void
- * @note   init
+ * @note   init，常闭
  * @retval None
  */
 void jdq_reley_charge_ready(unsigned char onOff)
 {
-	if(onOff==0) HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_RESET);
-	else HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_SET); 
+	if(onOff==0) HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_SET);
+	else HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_RESET); 
 }
 /**
   * @brief jdq_init 
   * @param  voidvoid
   * @note   init
   * @retval None
-  */
+  */ 
 void jdq_init(void)
 {
 	//spi only send
 	app_jdq_ads1110_init();//电压反馈	
 	JDQ_LDAC_DISABLE; 	
-	jdq_reley_charge(0);//限流负载A端接地
-	jdq_reley_charge_ready(0);//限流负载B端接电容正极	
+	jdq_reley_charge_ready(0);//限流负载B端接电容正极
+	HAL_Delay(50);		
+	jdq_reley_charge(1);//限流负载A端接地	
+	HAL_Delay(1500);	
 	JDQ_RS485_RX;	
-	HAL_Delay(1500);		
+		
 }
 //***************************AD5541ABRMZ********����ʽdac***************************************//
 #define  AD5541_VREF   4.096f//2.5//2.5V
 /***************************************************************************//**
  * @brief ͨspi发送寄存器设置值
+ * 
+
  *
  * @param registerValue - 设置值
  *
@@ -258,7 +259,7 @@ void AD5541A_SetRegisterValue(unsigned short registerValue)
 	dLength=2;
 	JDQ_DAC_CS_ENABLE;
 	delay_us(1);
-	err=HAL_SPI_Transmit(&hspi1, TXdata, dLength, 100);//HAL_MAX_DELAY);
+	err = HAL_SPI_Transmit(&hspi1, TXdata, dLength, 100);//HAL_MAX_DELAY);
 	JDQ_DAC_CS_DISABLE; 
 	delay_us(1);
 }
@@ -498,13 +499,13 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
 	HAL_StatusTypeDef err;	
 	unsigned short int regStart;
 	int volBuff,currentBuff;
-	if(powerVolotage<12.0) volBuff=120;
-	else if(powerVolotage>STS_1200_OUT_VOLTAGE_LIMIT) volBuff=(int)(STS_1200_OUT_VOLTAGE_LIMIT*10);
-	else volBuff=(int) (powerVolotage*10);
+	if(powerVolotage<12.0) volBuff=1200;
+	else if(powerVolotage>STS_1200_OUT_VOLTAGE_LIMIT) volBuff=(int)(STS_1200_OUT_VOLTAGE_LIMIT*100);
+	else volBuff=(int) (powerVolotage*100);
 
-	if(powerCurrent<1.0) currentBuff=10;
-	else if(powerCurrent>STS_1200_OUT_CURRENT_LIMIT) currentBuff=(int)(STS_1200_OUT_CURRENT_LIMIT*10);
-	else currentBuff=(int) (powerCurrent*10);	
+	if(powerCurrent<1.0) currentBuff=0;
+	else if(powerCurrent>STS_1200_OUT_CURRENT_LIMIT) currentBuff=(int)(STS_1200_OUT_CURRENT_LIMIT*100);
+	else currentBuff=(int) (powerCurrent*100);	
 	if(jdq_rs485_sta.frame_regStart!=0) 
 	{
 		jdq_rs485_sta.frame_timeout++;
@@ -512,7 +513,7 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
 		{
 			jdq_rs485_sta.frame_regStart=0;
 			jdq_rs485_sta.frame_timeout=0;
-		}	
+		}
 	}
 	UART1_TX_BUFF[0]=STS_1200_DEVICE_ADDV;
 	regStart=STS_1200_REG_SET_VOLTAGE;
@@ -535,30 +536,30 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
   /************************************************************************//**
   * @brief 设置总电源电流值
   * @param powerCurrent电流值 
-  * @note   0.1A分辨率
+  * @note   0.01A分辨率
   * @retval 
   *****************************************************************************/
  void app_jdq_bus_current_set(float  powerCurrent)
  {
 	HAL_StatusTypeDef err;	
 	unsigned short int sendBuff;
-	if(powerCurrent<1.0) sendBuff=10;
-	else if(powerCurrent>100.0) sendBuff=1000; //max100A
-	else sendBuff=(int)(powerCurrent*10);
+	if(powerCurrent<1.0) sendBuff=100;
+	else if(powerCurrent>2.7) sendBuff=270; //max2.7A
+	else sendBuff=(int)(powerCurrent*100);
 	err= app_jdq_write_req_frame(STS_1200_REG_SET_CURRENT,(uint16_t)sendBuff);	
  }
   /************************************************************************//**
   * @brief 设置总电源电压值
   * @param powerCurrent电流值
-  * @note   0.1V分辨率
+  * @note   0.01V分辨率
   * @retval 
   *****************************************************************************/
  void app_jdq_bus_voltage_set(float  voltage)
  {
 	HAL_StatusTypeDef err;	
 	int sendBuff;
-	if(voltage<12.0) sendBuff=120;
-	else if(voltage>220.0) sendBuff=2200; 
+	if(voltage<12.0) sendBuff=1200;
+	else if(voltage>220.0) sendBuff=22000; 
 	else sendBuff=(int)(voltage*100);//100倍
 	err= app_jdq_write_req_frame(STS_1200_REG_SET_VOLTAGE,(uint16_t)sendBuff);		
  }
@@ -571,7 +572,7 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
  void app_jdq_bus_get_v_c_req(void)
  {
 	HAL_StatusTypeDef err;	
-	err= app_jdq_read_req_frame(STS_1200_REG_SET_VOLTAGE,4);
+	err = app_jdq_read_req_frame(STS_1200_REG_SET_VOLTAGE,4);
  }
    /************************************************************************//**
   * @brief 读总电源电压输出状态请求
@@ -592,19 +593,8 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
   *****************************************************************************/
  void app_jdq_bus_get_set_v_c(float *voltage,float *current)
  {
-	*voltage=jdq_sts_reg_value[0]*0.1;
-	*current=jdq_sts_reg_value[1]*0.1;
- }
- /************************************************************************//**
-  * @brief 读电容端电压
-  * @param  *outVoltage 电压, 
-  * @note   
-  * @retval 
-  *****************************************************************************/
-float app_jdq_get_laser_v(void)
- {
-	float outVoltage=jdq_sts_reg_value[2]*0.1;
-	return outVoltage;
+	*voltage=jdq_sts_reg_value[0]*0.01;
+	*current=jdq_sts_reg_value[1]*0.01;
  }
   /************************************************************************//**
   * @brief 读电源输出状态
@@ -636,34 +626,45 @@ float app_jdq_get_laser_v(void)
  }
 //JDQ 继电器 逻辑 (LL HL  LH LL) (stand ,ready)
 //***************************laser pulse (100us~500us) timer3***************************************//
-
+void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if(htim->Channel ==	HAL_TIM_ACTIVE_CHANNEL_1)
+	{    
+		
+	  HAL_GPIO_WritePin(GPIOC, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET); 
+	}
+}
 /**
   * @brief app_laser_pulse_start 
-  * @param  
+  * @param  time100ns=0.1us;
   * @note   laser pulse width(l_pulse) 100us~230us   ；voltage pulse width (v_pulse)  v_pulse ≈ l_pulse+40;（140~270us）
   * @retval None
   */
- void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq)
+ void app_laser_pulse_start(unsigned short int time100ns,unsigned short int freq)
  { 
-	unsigned short int counter,timeload;
-	if(timeUs!=0)
+	unsigned short int timeload;
+	unsigned  int counter;
+	
+	if(time100ns!=0)
 	{
-		//if( freq > 60 )  countor =3332;// (200000/60);
-		if( freq > 100 )  counter =2000;// (200000/60);
-		else if( freq < 5 )  counter = 40000; //(200000/5)
-		else counter=(200000/freq);
-		if( timeUs > 300 )  timeload = 60;//check pulse timeUs
-		else if( timeUs < 120 )  timeload = 24;//check pulse timeUs		
-		else timeload=timeUs/5;
-		__HAL_TIM_SetAutoreload(&htim3,counter-1);
-		__HAL_TIM_SetCompare(&htim3,TIM_CHANNEL_2,timeload-1);
-		HAL_TIM_PWM_Start_IT(&htim3,TIM_CHANNEL_2);		
-		HAL_TIM_Base_Start_IT(&htim3);
+		if( time100ns > 5000 )  timeload = 5000;//check pulse timeUs
+		else if( time100ns < 1200 )  timeload = 1200;//check pulse timeUs		
+		else timeload=time100ns;
+		//__HAL_TIM_SetAutoreload(&htim3,4999);//MAx500us
+		//__HAL_TIM_SetCompare(&htim3,TIM_CHANNEL_2,timeload-1);
+		//HAL_TIM_OnePulse_Start(&htim3,TIM_CHANNEL_2);
+		if( freq > 60 ) counter = 1667;// (100000/100);
+		else if( freq < 1 )  counter = 100000; //(100000/1)
+		else counter=(100000/freq);
+		__HAL_TIM_SetAutoreload(&htim2,counter-1);//1~100HZ	
+		__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_1,30-1);	
+		HAL_TIM_OC_Start_IT(&htim2,TIM_CHANNEL_1);	
+		HAL_TIM_Base_Start_IT(&htim2);	
 	}
 	else 
-	{
-		HAL_TIM_PWM_Stop_IT(&htim3,TIM_CHANNEL_2);	
-		HAL_TIM_Base_Stop_IT(&htim3);
+	{		
+		HAL_TIM_OC_Stop_IT(&htim2,TIM_CHANNEL_1);
+		HAL_TIM_Base_Stop_IT(&htim2);	
 	}	
  }
   /************************************************************************//**
@@ -679,7 +680,7 @@ float app_jdq_get_laser_v(void)
 	{		 
 		if(ads1110_read_mv(&cvolt)==TRUE1)
 		{		
-			retVoltage = cvolt*0.0919+12.0;//91.9*0.001+12.0;//12.0V隔离地偏差	
+			retVoltage = cvolt*0.0919+12.0;//91.9*0.001+12.0;//12.0V隔离地偏差			  	
 		}	
 	}	
 	return retVoltage;
@@ -692,20 +693,9 @@ float app_jdq_get_laser_v(void)
   *****************************************************************************/
  void app_jdq_current_limit_charge(void)
  {	
-	jdq_reley_charge(1);
 	jdq_reley_charge_ready(0);
-		
- }
-   /************************************************************************//**
-  * @brief 激光充电完成，电源直连
-  * @param 无
-  * @note   
-  * @retval 
-  *****************************************************************************/
- void app_jdq_direct_160v(void)
- {
-	jdq_reley_charge(1);
-	jdq_reley_charge_ready(1);
+	HAL_Delay(1);
+	jdq_reley_charge(1);		
  }
  
 /***************************************************************************//**
@@ -722,7 +712,7 @@ void app_jdq_rs485_receive_data(void)
 	if(HAL_UART_Receive_IT(&huart1, &rs485_rec_byte,1)!=HAL_OK)
 	{
 	 /*Transfer error in reception process */
-		Error_Handler();			
+		//Error_Handler();			
 	}	
 }
 /***************************************************************************//**

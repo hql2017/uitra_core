@@ -26,7 +26,7 @@ void app_hmi_sysnc_req(void)
 	can_tx_data[1]=0x7E;	
 	can_tx_data[2]=13;
 	can_tx_data[3]=HMI_CODE_CONFIG_PARAM_SYNCHRONOUS|HMI_CMD_ACK_MASK;
-	can_tx_data[4]= 3;//u_sys_param.sys_config_param.synchronousFlag;
+	can_tx_data[4]= 0;//u_sys_param.sys_config_param.synchronousFlag;
 	can_tx_data[5]= u_sys_param.sys_config_param.equipmentId&0xFF;
 	can_tx_data[6]=(u_sys_param.sys_config_param.equipmentId>>8)&0xFF;
 	can_tx_data[7]=(u_sys_param.sys_config_param.equipmentId>>16)&0xFF;
@@ -197,8 +197,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 				laser_ctr_param.proHotCtr = data[4];
 				laser_ctr_param.proCali=data[6];			
 				app_laser_preapare_semo();	
-				app_hmi_cmd_ack
-				(hmi_code) ;
+				app_hmi_cmd_ack(hmi_code) ;
 			}	
 			break;
 		case HMI_CODE_PULSE_COUNT_AND_TIME:	
@@ -318,8 +317,8 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			{				
 				can_tx_data[2]=SYS_LASER_CONFIG_PARAM_LENGTH+8;
 				u_sys_param.sys_config_param.synchronousFlag=2;	
-				can_tx_data[4]=2;//;//syncFlag				
-				memcpy(&can_tx_data[4],&u_sys_param.data[0],SYS_LASER_CONFIG_PARAM_LENGTH);								
+				can_tx_data[4]=2;//3;//;//syncFlag				
+				memcpy(&can_tx_data[4],&u_sys_param.data[0],SYS_LASER_CONFIG_PARAM_LENGTH);												
 				can_tx_data[SYS_LASER_CONFIG_PARAM_LENGTH+5]=(crc16Num(can_tx_data,SYS_LASER_CONFIG_PARAM_LENGTH+4)>>8)&0xFF;
 				can_tx_data[SYS_LASER_CONFIG_PARAM_LENGTH+4]=crc16Num(can_tx_data,SYS_LASER_CONFIG_PARAM_LENGTH+4)&0xFF;
 				can_tx_data[SYS_LASER_CONFIG_PARAM_LENGTH+6]=0x0D;

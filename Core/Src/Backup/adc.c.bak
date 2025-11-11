@@ -57,11 +57,11 @@ void MX_ADC1_Init(void)
   hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   hadc1.Init.LowPowerAutoWait = ENABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.NbrOfConversion = 4;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T6_TRGO;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
   hadc1.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_CIRCULAR;
   hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   hadc1.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
@@ -148,11 +148,11 @@ void MX_ADC2_Init(void)
   hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
   hadc2.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   hadc2.Init.LowPowerAutoWait = ENABLE;
-  hadc2.Init.ContinuousConvMode = DISABLE;
+  hadc2.Init.ContinuousConvMode = ENABLE;
   hadc2.Init.NbrOfConversion = 1;
   hadc2.Init.DiscontinuousConvMode = DISABLE;
-  hadc2.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T6_TRGO;
-  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc2.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_ONESHOT;
   hadc2.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   hadc2.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
@@ -371,17 +371,17 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
   * @note   
   * @retval None
   */
-#define  MAX_AD2_ENERGE_BUFF_LENGTH 28
+#define  MAX_AD2_ENERGE_BUFF_LENGTH 36//一个时间约6us=2.96*2(387.5cycle 2.96us)
 static unsigned short int adBuff[MAX_AD_BUFF_LENGTH];
 static unsigned short int advalue[4];
 static unsigned short int ad2Buff[MAX_AD2_ENERGE_BUFF_LENGTH];
 static unsigned short int ad2vale,ad2hle;
 
-KalmanFilter kalmAd2;
+extern TIM_HandleTypeDef htim6;//hal tick timer
 void app_start_multi_channel_adc(void)
-{  
-  kalman_filter_init(&kalmAd2, 1.0,0.02);
-  HAL_ADC_Start_DMA(&hadc1,(unsigned int*)adBuff,MAX_AD_BUFF_LENGTH);  //5*64 
+{    
+	tim_triger_ad(&htim6);//low power 
+  HAL_ADC_Start_DMA(&hadc1,(unsigned int*)adBuff,MAX_AD_BUFF_LENGTH);  //4*64 
 }
 /**
   * @brief pulse_adc_start
@@ -391,8 +391,7 @@ void app_start_multi_channel_adc(void)
   */
 void pulse_adc_start(void)
 {  
-	HAL_ADC_Start_DMA(&hadc2,(unsigned int*)ad2Buff,MAX_AD2_ENERGE_BUFF_LENGTH);  //5*64
-  HAL_TIM_Base_Start(&htim6);
+	HAL_ADC_Start_DMA(&hadc2,(unsigned int*)ad2Buff,MAX_AD2_ENERGE_BUFF_LENGTH);  //5*64 
 }
 /**
   * @brief 
@@ -405,11 +404,11 @@ void pulse_adc_start(void)
   unsigned short int ret,i;  
   long unsigned  int sum; 
   sum=0;
-  for(i=3;i<16;i++)
+  for(i=1;i<20;i++)//120us，去除头尾
   {
     sum+=(enerAdBuff[i]*enerAdBuff[i]);
   }
-  sum = sqrt(sum/13);   
+  sum = sqrt(sum/19);   
   ret=sum;
   return ret;
  } 
@@ -421,21 +420,21 @@ void pulse_adc_start(void)
   */
 void filter_ad1(void)
 {
-  long unsigned int sum=0,j;
-  unsigned int i,ch;	
-	SCB_InvalidateDCache_by_Addr(adBuff, MAX_AD_BUFF_BYTES_LENGTH);
-  for(ch=0;ch<4;ch++)
-  {
-    sum=0;
-    j=0;
-    for(i=0;i<64;i++)
-    {   
-      sum+=adBuff[i*4+ch];
-    } 
-    advalue[ch]=(unsigned short int)(sum>>6);        
-  }		 
+  long unsigned int sum[4]={0};  	
+	SCB_InvalidateDCache_by_Addr(adBuff, MAX_AD_BUFF_BYTES_LENGTH); 
+  for(unsigned int i=0;i<64;i++)
+  {   
+    sum[0]+=adBuff[i*4];
+    sum[1]+=adBuff[i*4+1];
+    sum[2]+=adBuff[i*4+2];
+    sum[3]+=adBuff[i*4+3];
+  } 
+  advalue[0]=(unsigned short int)(sum[0]>>6);        
+  advalue[1]=(unsigned short int)(sum[1]>>6);  
+  advalue[2]=(unsigned short int)(sum[2]>>6); 
+  advalue[3]=(unsigned short int)(sum[3]>>6); 
 } 
-
+ 
 /**
   * @brief HAL_ADC_ConvCpltCallback
   * @param void
@@ -451,7 +450,6 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
   }
   if(hadc->Instance==ADC2)
   { 
-    HAL_TIM_Base_Stop(&htim6); 
     app_in_energe_adc_value();
   }
 }
@@ -471,15 +469,23 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     unsigned short int i, j=0;
     for(i=0;i<MAX_AD2_ENERGE_BUFF_LENGTH;i++)
     {  
-      if(i>2&&i<16) 
+      if(i<20) 
       {       
         sum+=ad2Buff[i];      
       }       
     } 
-    ad2vale=(unsigned short int)(sum/13);
+    ad2vale=(unsigned short int)(sum/20);
     ad2hle=ad2vale;
-    kalman_filter_update(&kalmAd2, ad2vale);
-    #endif   
+    //kalman_filter_update(&kalmAd2, ad2vale);
+    #endif 
+    #if 1
+   DEBUG_PRINTF("laserAD=\r\n");
+   for(int i=0;i<MAX_AD2_ENERGE_BUFF_LENGTH;i++)
+   {
+    DEBUG_PRINTF(" %d",ad2Buff[i]);
+   }
+   DEBUG_PRINTF(" leve=%d ad2=%d\r\n",ad2vale,ad2hle);   
+   #endif   
   }
 /**
   * @brief NTC_T cal

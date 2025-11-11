@@ -72,7 +72,7 @@ extern  void app_steps_pulse(int steps);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-extern TIM_HandleTypeDef htim6;
+
 /* USER CODE END 0 */
 
 /**
@@ -140,7 +140,7 @@ int main(void)
   MX_TIM17_Init();
   MX_TIM15_Init();
   MX_TIM4_Init();
-  MX_TIM6_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   DWT_Init(); 
   #ifdef DEBUG_MSG_UART 
@@ -294,7 +294,7 @@ void MPU_Config(void)
 
 /**
   * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM7 interrupt took place, inside
+  * @note   This function is called  when TIM6 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
   * a global variable "uwTick" used as application time base.
   * @param  htim : TIM handle
@@ -305,13 +305,21 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM7) {
+  if (htim->Instance == TIM6) {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
   if(htim->Instance == TIM17) {
-     owb_tim_callback(30);
+     owb_tim_callback(30);     
   }
+	 if (htim->Instance == TIM2) 
+  {    
+    HAL_GPIO_WritePin(GPIOC, HV_ONE_PULSE_out_Pin, GPIO_PIN_SET); 
+  }
+  if (htim->Instance == TIM3) 
+  {
+    HAL_GPIO_WritePin(GPIOC, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET);
+  }  
 
   /* USER CODE END Callback 1 */
 }

@@ -34,11 +34,11 @@ extern "C" {
 
 extern TIM_HandleTypeDef htim1;
 
+extern TIM_HandleTypeDef htim2;
+
 extern TIM_HandleTypeDef htim3;
 
 extern TIM_HandleTypeDef htim4;
-
-extern TIM_HandleTypeDef htim6;
 
 extern TIM_HandleTypeDef htim8;
 
@@ -53,9 +53,9 @@ extern TIM_HandleTypeDef htim17;
 /* USER CODE END Private defines */
 
 void MX_TIM1_Init(void);
+void MX_TIM2_Init(void);
 void MX_TIM3_Init(void);
 void MX_TIM4_Init(void);
-void MX_TIM6_Init(void);
 void MX_TIM8_Init(void);
 void MX_TIM15_Init(void);
 void MX_TIM16_Init(void);
@@ -66,6 +66,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 /* USER CODE BEGIN Prototypes */
 extern  void app_auxiliary_bulb_pwm(unsigned char lightLevel,FunctionalState flag);
 extern  void app_fan_pwm_set(unsigned char duty,unsigned char fanNum);
+extern void tim_triger_ad(TIM_HandleTypeDef *htim);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

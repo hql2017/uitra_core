@@ -28,7 +28,6 @@ typedef struct {
 	unsigned char 		startUpStaus;// 启动标志0关机；1开机器
 	unsigned char 		wkTimeOut;// 串口周期时间,超时时间
 	unsigned char 		ge_seriel_err;// 串口周期时间,超时时间0 正常；1超时；
-
 	unsigned short int  workStaus;// 工作状态1工作；0待机	//	reg0x2000	
 	unsigned short int  compressorRunSpd;//压缩机运行转速
 	unsigned short int  reverse;//保留

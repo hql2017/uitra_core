@@ -59,7 +59,7 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, PWR_SYS_ON_Pin|EEROM_W_EN_out_Pin|S31FL3193_SDB_out_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, RF24_SP6_CS_out_Pin|RF24_SDN_out_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, RF24_SP6_CS_out_Pin|RF24_SDN_out_Pin|HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, RS485_DIR_out_Pin|H_AIR_EN_out_Pin|treatment_water_ready_ok_in_Pin|TMC2226_DIR_out_Pin
@@ -87,10 +87,10 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PWR_SYS_ON_Pin RF24_SP6_CS_out_Pin RF24_SDN_out_Pin EEROM_W_EN_out_Pin
-                           S31FL3193_SDB_out_Pin */
-  GPIO_InitStruct.Pin = PWR_SYS_ON_Pin|RF24_SP6_CS_out_Pin|RF24_SDN_out_Pin|EEROM_W_EN_out_Pin
-                          |S31FL3193_SDB_out_Pin;
+  /*Configure GPIO pins : PWR_SYS_ON_Pin RF24_SP6_CS_out_Pin RF24_SDN_out_Pin HV_ONE_PULSE_out_Pin
+                           EEROM_W_EN_out_Pin S31FL3193_SDB_out_Pin */
+  GPIO_InitStruct.Pin = PWR_SYS_ON_Pin|RF24_SP6_CS_out_Pin|RF24_SDN_out_Pin|HV_ONE_PULSE_out_Pin
+                          |EEROM_W_EN_out_Pin|S31FL3193_SDB_out_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

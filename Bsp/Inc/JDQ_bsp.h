@@ -13,10 +13,9 @@ extern void AD5541A_SetVoltage_Load_enable(void);
 extern void AD5541A_SetVoltage_Load_disable(void);
 extern void AD5541A_SetVoltage_noLoad(float outVoltage, float vRef);
 
-void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq);
+void app_laser_pulse_start(unsigned short int time100ns,unsigned short int freq);
 float app_jdq_voltage_monitor(void);
 void app_jdq_current_limit_charge(void);
-void app_jdq_direct_160v(void);
 void app_jdq_consume_remaining_power_160v(void);
 
 //电源模块
@@ -50,10 +49,11 @@ void app_jdq_sts_1200_receive_handle(void);
 #define  STS_1200_REG_RUN_STOP	        1006//电源输出/停止 0停止；1输出。
 
 #define LASER_PULSE_STOP  0
-
-#define LASER_JDQ_PREAPARE_VOLTAGE_F   80.0f
-#define LASER_JDQ_VOLTAGE_F 150.0f
+#define LASER_JDQ_PREAPARE_VOLTAGE_F   80.00f
+#define LASER_JDQ_VOLTAGE_F 150.00f
 #define LASER_JDQ_VOLTAGE   150
+#define LASER_JDQ_CURRENT_LIMIT_F   2.30f
+#define LASER_JDQ_CURRENT_LIMIT     2
 #define  LASER_JDQ_CHARGE_TIMEOUT_MS  30000//60S
 
 #ifndef  ADS1110_JDQ_USED
