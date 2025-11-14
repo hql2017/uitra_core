@@ -305,8 +305,8 @@ typedef struct{
  extern sys_enviroment_assistant_param sEnvParam;
 
  typedef struct{  
-  short int energe_cali;          //）能量校准值
-  short int power_cali;           //）功率校准值
+  unsigned short int energe_cali;          //）能量校准值
+  unsigned short int power_cali;           //）功率校准值
 }ENERGE_CALIBRATION;
 typedef struct
 {   
@@ -342,17 +342,17 @@ typedef struct
   unsigned char clean_time_min;             //）冲洗时间分钟
   unsigned char tec_switch;                 //）制冷片开关
   unsigned char low_freq;                   //）重频模式（低重频(<20Hz)，高重频freq>1K）
-  unsigned char laser_pulse_pp_us;          //）出光脉宽
-  unsigned char charge_width_us;            //）充电脉冲
+  unsigned short int charge_width_us;       //）充电脉冲
   unsigned char laser_led_light;            //）激光指示灯亮度
   unsigned char rgb_light;                  //）rgb状态指示灯亮度
   unsigned char beep;                       //）音量
   ENERGE_CALIBRATION  e_cali[40];
+	
   //unsigned char  crcL;                //
   //unsigned char  CRCH;                //
   //unsigned char  endH;                //0x0D           
   //unsigned char  endl;                //0x0A
-  unsigned int  checkSum;// 校验和 
+  unsigned int  checkSum;// 校验和 (通信包不会发送)
 }__attribute__ ((packed)) SYS_CONFIG_PARAM ;//系统配置参数
 typedef union 
 {

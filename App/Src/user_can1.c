@@ -90,7 +90,7 @@ void app_hmi_report_status(sys_genaration_status *sys_status)
 *******************************************************************************/
 void app_hmi_report_pulse_count(void) 
 {
-	uint8_t  can_tx_data[24];
+	uint8_t  can_tx_data[24];	
 	can_tx_data[0]=0x7E;
 	can_tx_data[1]=0x7E;
 	can_tx_data[2]=20;
@@ -205,8 +205,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			break;
 		case HMI_CODE_PULSE_WIDTH_US:
 			//u_sys_param.sys_config_param.laser_pulse_width_us=data[4]|data[5]<<8;				
-			u_sys_param.sys_config_param.charge_width_us=data[6];
-			u_sys_param.sys_config_param.laser_pulse_pp_us=data[4];
+			u_sys_param.sys_config_param.charge_width_us=data[6];		
 			u_sys_param.sys_config_param.laser_pulse_width_us=data[4]|(data[5]<<8);
 			app_hmi_cmd_ack(hmi_code) ;
 			break;
@@ -297,6 +296,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			app_hmi_cmd_ack(hmi_code);
 			break;
 		case HMI_CODE_CONFIG_PARAM_SYNCHRONOUS:
+		
 			if(data[4]==1)//load param			
 			{
 				memcpy(&u_sys_param.data[0],&data[4],SYS_LASER_CONFIG_PARAM_LENGTH);
@@ -314,11 +314,11 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 				APP_CAN_SEND_DATA(can_tx_data,12,HMI_BROADCAST_ADDR);//ack			
 			}
 			else if(data[4]==2)//up param				 
-			{				
+			{		
 				can_tx_data[2]=SYS_LASER_CONFIG_PARAM_LENGTH+8;
-				u_sys_param.sys_config_param.synchronousFlag=2;	
-				can_tx_data[4]=2;//3;//;//syncFlag				
-				memcpy(&can_tx_data[4],&u_sys_param.data[0],SYS_LASER_CONFIG_PARAM_LENGTH);												
+				u_sys_param.sys_config_param.synchronousFlag=3;									
+				memcpy(&can_tx_data[4],&u_sys_param.data[0],SYS_LASER_CONFIG_PARAM_LENGTH);	
+				can_tx_data[4]=2;//;//syncFlag											
 				can_tx_data[SYS_LASER_CONFIG_PARAM_LENGTH+5]=(crc16Num(can_tx_data,SYS_LASER_CONFIG_PARAM_LENGTH+4)>>8)&0xFF;
 				can_tx_data[SYS_LASER_CONFIG_PARAM_LENGTH+4]=crc16Num(can_tx_data,SYS_LASER_CONFIG_PARAM_LENGTH+4)&0xFF;
 				can_tx_data[SYS_LASER_CONFIG_PARAM_LENGTH+6]=0x0D;

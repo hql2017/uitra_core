@@ -62,8 +62,8 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, RF24_SP6_CS_out_Pin|RF24_SDN_out_Pin|HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, RS485_DIR_out_Pin|H_AIR_EN_out_Pin|treatment_water_ready_ok_in_Pin|TMC2226_DIR_out_Pin
-                          |circulating_water_pump_EN_Pin|PTC_EN_Pin|JDQ_STAND_Pin|JDQ_READY_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, RS485_DIR_out_Pin|H_AIR_EN_out_Pin|TMC2226_DIR_out_Pin|circulating_water_pump_EN_Pin
+                          |PTC_EN_Pin|JDQ_STAND_Pin|JDQ_READY_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LCD_12V_ON_GPIO_Port, LCD_12V_ON_Pin, GPIO_PIN_RESET);
@@ -122,19 +122,19 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : RS485_DIR_out_Pin H_AIR_EN_out_Pin treatment_water_ready_ok_in_Pin TMC2226_DIR_out_Pin
-                           circulating_water_pump_EN_Pin PTC_EN_Pin JDQ_STAND_Pin JDQ_READY_Pin */
-  GPIO_InitStruct.Pin = RS485_DIR_out_Pin|H_AIR_EN_out_Pin|treatment_water_ready_ok_in_Pin|TMC2226_DIR_out_Pin
-                          |circulating_water_pump_EN_Pin|PTC_EN_Pin|JDQ_STAND_Pin|JDQ_READY_Pin;
+  /*Configure GPIO pins : RS485_DIR_out_Pin H_AIR_EN_out_Pin TMC2226_DIR_out_Pin circulating_water_pump_EN_Pin
+                           PTC_EN_Pin JDQ_STAND_Pin JDQ_READY_Pin */
+  GPIO_InitStruct.Pin = RS485_DIR_out_Pin|H_AIR_EN_out_Pin|TMC2226_DIR_out_Pin|circulating_water_pump_EN_Pin
+                          |PTC_EN_Pin|JDQ_STAND_Pin|JDQ_READY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : RF24_IRQ_in_Pin TMC2226_index_in_Pin TMC2226_ERROR_out_Pin Hyperbaria_OFF_Signal_Pin
-                           EMERGENCY_LASER_STOP_STATUS_in_Pin circulating_water_pump_status_in_Pin */
-  GPIO_InitStruct.Pin = RF24_IRQ_in_Pin|TMC2226_index_in_Pin|TMC2226_ERROR_out_Pin|Hyperbaria_OFF_Signal_Pin
-                          |EMERGENCY_LASER_STOP_STATUS_in_Pin|circulating_water_pump_status_in_Pin;
+  /*Configure GPIO pins : treatment_water_ready_ok_in_Pin RF24_IRQ_in_Pin TMC2226_index_in_Pin TMC2226_ERROR_out_Pin
+                           Hyperbaria_OFF_Signal_Pin EMERGENCY_LASER_STOP_STATUS_in_Pin circulating_water_pump_status_in_Pin */
+  GPIO_InitStruct.Pin = treatment_water_ready_ok_in_Pin|RF24_IRQ_in_Pin|TMC2226_index_in_Pin|TMC2226_ERROR_out_Pin
+                          |Hyperbaria_OFF_Signal_Pin|EMERGENCY_LASER_STOP_STATUS_in_Pin|circulating_water_pump_status_in_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
@@ -419,10 +419,10 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   if(recLen>7)
   { 
     app_owb_receive_handle(owb_buff,recLen); 
-    //DEBUG_PRINTF("JT owb recLen= %d %02x %02x %02x %02x %02x %02x %02x %02x \r\n",recLen,owb_buff[0],owb_buff[1],owb_buff[2],owb_buff[3],owb_buff[4],owb_buff[5],owb_buff[6],owb_buff[7]);
+   //DEBUG_PRINTF("JT owb recLen= %d %02x %02x %02x %02x %02x %02x %02x %02x \r\n",recLen,owb_buff[0],owb_buff[1],owb_buff[2],owb_buff[3],owb_buff[4],owb_buff[5],owb_buff[6],owb_buff[7]);
     if(owb_buff[0]=='[' && owb_buff[7]==']')
     { 
-      DEBUG_PRINTF("jt own\r\n");
+      //DEBUG_PRINTF("jt own\r\n");
       sEnvParam.JT_ID=owb_buff[1]|(owb_buff[2]<<8)|(owb_buff[3]<<16)|(owb_buff[4]<<24);
       sEnvParam.JT_bat=owb_buff[6]; 
       timeout[1]=0;
@@ -450,7 +450,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
       owb_key_value=IO_KEY_IDLE;
       historyKey=IO_KEY_IDLE;
     }			
-    recLen=0;
+    recLen=0;    
   }
   else
   {
@@ -460,7 +460,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
       timeout[1] = 0;
       timeout[0]=0;
       historyKey = KEY_NO_CONNECT;
-      owb_key_value  = KEY_NO_CONNECT;
+      owb_key_value  =KEY_LONG_RELEASE;// KEY_NO_CONNECT;
     }      
     else owb_key_value=IO_KEY_IDLE;
   }

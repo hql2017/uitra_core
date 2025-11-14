@@ -20,12 +20,12 @@ void app_jdq_consume_remaining_power_160v(void);
 
 //电源模块
 void app_jdq_bus_power_in(unsigned short int powerVolotage);
-void app_jdq_bus_current_set(float  powerCurrent);
-void app_jdq_bus_voltage_set(float  voltage);
+
+extern unsigned short int  app_jdq_get_vbus_sta(void );
 void app_jdq_bus_get_v_c_req(void);
 void app_jdq_bus_power_onoff_sta_req();
 void app_jdq_bus_get_set_v_c(float *voltage,float *current);
-unsigned short int  app_jdq_get_vbus_sta(void );
+
 void app_jdq_bus_power_on_off(unsigned char flag);
 void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent);
 float app_jdq_get_laser_v(void);
@@ -40,13 +40,27 @@ void app_jdq_sts_1200_receive_handle(void);
 
 #define JDQ_RS485_FRAME_MAX_DELAY_MS 500
 #define JDQ_RS485_FRAME_MIN_MS 100
- #define MAX_UART1_BUFF_LENTH 64
- 
-#define  STS_1200_REG_SET_VOLTAGE 	    1000//设定电压
-#define  STS_1200_REG_SET_CURRENT	    1001//设定电流，
-#define  STS_1200_REG_VOLTAGE_DISPLAY	1002//电压显示
-#define  STS_1200_REG_CURRENT_DISPLAY	1003//电流显示
-#define  STS_1200_REG_RUN_STOP	        1006//电源输出/停止 0停止；1输出。
+#define MAX_UART1_BUFF_LENTH 128
+
+#ifndef JDQ_PWR_GWB_3200W
+    #define JDQ_PWR_GWB_3200W   
+
+    #define JDQ_GWB_3200W_RS485_BD_ADDR  0x99//广播地址，不返回报文
+    #define  GWB_3200_REG_VOLTAGE_CURRENT_DISPLAY	0x03//查询电压、电流  
+    #define  GWB_3200_REG_RUN_STOP	        0x04//电源输出/停止 0开机；1关机。
+    #define  GWB_3200_REG_SET_VOLTAGE_CURRENT  0x06//设定电压、电流
+    #define  GWB_3200_REG_READ_ALL_PARAM  0x20//查询模块内部数据
+    #define  GWB_3200_REG_READ_TMPEATURE  0x38//查询模块内部温度
+#else
+    #define  STS_1200_REG_SET_VOLTAGE 	    1000//设定电压
+    #define  STS_1200_REG_SET_CURRENT	    1001//设定电流，
+    #define  STS_1200_REG_VOLTAGE_DISPLAY	1002//电压显示
+    #define  STS_1200_REG_CURRENT_DISPLAY	1003//电流显示
+    #define  STS_1200_REG_RUN_STOP	        1006//电源输出/停止 0停止；1输出。
+
+    void app_jdq_bus_voltage_set(float  voltage);
+    void app_jdq_bus_current_set(float  powerCurrent);    
+#endif
 
 #define LASER_PULSE_STOP  0
 #define LASER_JDQ_PREAPARE_VOLTAGE_F   80.00f
@@ -54,7 +68,7 @@ void app_jdq_sts_1200_receive_handle(void);
 #define LASER_JDQ_VOLTAGE   150
 #define LASER_JDQ_CURRENT_LIMIT_F   2.30f
 #define LASER_JDQ_CURRENT_LIMIT     2
-#define  LASER_JDQ_CHARGE_TIMEOUT_MS  30000//60S
+#define LASER_JDQ_CHARGE_TIMEOUT_MS  30000//60S
 
 #ifndef  ADS1110_JDQ_USED
 #define  ADS1110_JDQ_USED 

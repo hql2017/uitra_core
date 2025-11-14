@@ -704,7 +704,7 @@ void RF24L01_Init( void )
     rf24_rxLen = NRF24L01_RxPacket( g_RF24L01RxBuffer );		
     if( 0 != rf24_rxLen )
     {	
-      #if 0        
+      #if 1        
       for(uint8_t i=0;i<8;i++)
       {
         DEBUG_PRINTF(" %02x", g_RF24L01RxBuffer[i]);
@@ -748,7 +748,7 @@ void RF24L01_Init( void )
         timeout[1] = 0;
         timeout[0] = 0;
         historyKey = KEY_NO_CONNECT;
-        retKey     = KEY_NO_CONNECT;//3;
+        retKey     =KEY_LONG_RELEASE;// KEY_NO_CONNECT;//3;
       }
       else retKey=IO_KEY_IDLE;
     }	

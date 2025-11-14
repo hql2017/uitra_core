@@ -478,7 +478,7 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     ad2hle=ad2vale;
     //kalman_filter_update(&kalmAd2, ad2vale);
     #endif 
-    #if 1
+    #if 0
    DEBUG_PRINTF("laserAD=\r\n");
    for(int i=0;i<MAX_AD2_ENERGE_BUFF_LENGTH;i++)
    {
@@ -539,7 +539,7 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
   {
     temp=(ad2vale*AD_VREF_VOLTAGE)>>16;  //(((advalue[AD2_LASER_1064_INDEX]*AD_VREF_VOLTAGE)>>16));///10;
     *vBuff= temp*1.0 ;//LASER064ADAD,   
-   #if 1
+   #if 0
    DEBUG_PRINTF("laserAD=");
    for(int i=0;i<MAX_AD2_ENERGE_BUFF_LENGTH;i++)
    {

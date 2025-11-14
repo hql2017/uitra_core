@@ -313,8 +313,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
      owb_tim_callback(30);     
   }
 	 if (htim->Instance == TIM2) 
-  {    
-    HAL_GPIO_WritePin(GPIOC, HV_ONE_PULSE_out_Pin, GPIO_PIN_SET); 
+  {  
+    HAL_GPIO_WritePin(GPIOC, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET); 
   }
   if (htim->Instance == TIM3) 
   {

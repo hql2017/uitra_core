@@ -259,8 +259,9 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 		  DEBUG_PRINTF("HAL_FDCAN_GetRxMessage---------------EEROR\n");
     }	   
     fd_canRxLen+=RxHeader.DataLength;
-    fd_canRxLen%=(MAX_FDCAN_FRAME_DATALEN+1);    
-    if (HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0) == 0) app_canBbus_receive_semo();   
+    fd_canRxLen%=(MAX_FDCAN_FRAME_DATALEN+1);  
+    if (HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0) == 0) app_canBbus_receive_semo();     
+        
   }
 }
 /***************************************************************************//**

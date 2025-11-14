@@ -348,6 +348,7 @@ typedef struct
   unsigned char rgb_light;                  //）rgb状态指示灯亮度
   unsigned char beep;                       //）音量
   ENERGE_CALIBRATION  e_cali[40];
+	
   //unsigned char  crcL;                //
   //unsigned char  CRCH;                //
   //unsigned char  endH;                //0x0D           
