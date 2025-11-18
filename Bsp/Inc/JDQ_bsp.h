@@ -13,7 +13,7 @@ extern void AD5541A_SetVoltage_Load_enable(void);
 extern void AD5541A_SetVoltage_Load_disable(void);
 extern void AD5541A_SetVoltage_noLoad(float outVoltage, float vRef);
 
-void app_laser_pulse_start(unsigned short int time100ns,unsigned short int freq);
+void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq);
 float app_jdq_voltage_monitor(void);
 void app_jdq_current_limit_charge(void);
 void app_jdq_consume_remaining_power_160v(void);
@@ -46,11 +46,15 @@ void app_jdq_sts_1200_receive_handle(void);
     #define JDQ_PWR_GWB_3200W   
 
     #define JDQ_GWB_3200W_RS485_BD_ADDR  0x99//广播地址，不返回报文
-    #define  GWB_3200_REG_VOLTAGE_CURRENT_DISPLAY	0x03//查询电压、电流  
+    #define  GWB_3200_REG_VOLTAGE_CURRENT_DISPLAY	0x03//查询当前输出电压、电流  
     #define  GWB_3200_REG_RUN_STOP	        0x04//电源输出/停止 0开机；1关机。
     #define  GWB_3200_REG_SET_VOLTAGE_CURRENT  0x06//设定电压、电流
     #define  GWB_3200_REG_READ_ALL_PARAM  0x20//查询模块内部数据
     #define  GWB_3200_REG_READ_TMPEATURE  0x38//查询模块内部温度
+
+    #define JDQ_PWR_GWB_3200W_ERROR_FLAG  0xFFFF//严重错误
+
+    unsigned char  app_jdq_rs485_check_gwb3200_rec_package(void);
 #else
     #define  STS_1200_REG_SET_VOLTAGE 	    1000//设定电压
     #define  STS_1200_REG_SET_CURRENT	    1001//设定电流，
@@ -64,11 +68,12 @@ void app_jdq_sts_1200_receive_handle(void);
 
 #define LASER_PULSE_STOP  0
 #define LASER_JDQ_PREAPARE_VOLTAGE_F   80.00f
+#define LASER_JDQ_CHARGE_CURRENT_F 8.0f// 1.9f//1.9A充电时间6S  8.0A 充电时间1S(风扇未启动) 5.0A充电时间1.8秒
 #define LASER_JDQ_VOLTAGE_F 150.00f
 #define LASER_JDQ_VOLTAGE   150
-#define LASER_JDQ_CURRENT_LIMIT_F   2.30f
+#define LASER_JDQ_CURRENT_LIMIT_F  1.9f
 #define LASER_JDQ_CURRENT_LIMIT     2
-#define LASER_JDQ_CHARGE_TIMEOUT_MS  30000//60S
+#define LASER_JDQ_CHARGE_TIMEOUT_MS  10000//30000//60S
 
 #ifndef  ADS1110_JDQ_USED
 #define  ADS1110_JDQ_USED 

@@ -63,7 +63,7 @@ extern void app_laser1064_AD_sampling_sw(FunctionalState flag);
 extern ErrorStatus app_get_io_status(genaration_IONum  IoNum);
 extern unsigned int  app_IO_key_scan(unsigned short int timeMs);
 extern app_key_message  app_key_value_analysis(unsigned  int keyValue);
-extern  void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTimeS);
+extern  void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTimeMs);
 extern void app_intake_valve_air_solenoid(FunctionalState flag);
 extern void app_deflate_air_solenoid(FunctionalState flag);
 extern ErrorStatus app_remote_key_sta(void);

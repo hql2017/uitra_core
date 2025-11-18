@@ -190,8 +190,8 @@ void fan_spd_pid(unsigned char runFlag,unsigned int P)
 *****************************************************************************/
 static void get_fan_spd_calcu(unsigned int run_tick)
 {
-	fanParam.fan_speed[1]= get_fan_count(1)*30;	//spd=count_freq*30;
-	fanParam.fan_speed[0]= get_fan_count(2)*30; //spd=count_freq*30
+	fanParam.fan_speed[1]= get_fan_count( FAN25_NUM )*30;	//spd=count_freq*30;
+	fanParam.fan_speed[0]= get_fan_count(FAN38_COMPRESSOR_NUM )*30; //spd=count_freq*30
 	if(fanParam.runflag!=0)
 	{ 
 		fan_spd_pid(fanParam.runflag,30);		
@@ -340,8 +340,8 @@ unsigned short int fan_get_run_spd(unsigned char fanNumber)
 *****************************************************************************/
 void fan_init(void)
 {
-	fan_spd_set(FAN25_NUM,2000);
-	fan_spd_set(FAN38_COMPRESSOR_NUM,2000);
+	fan_spd_set(FAN25_NUM,3000);
+	fan_spd_set(FAN38_COMPRESSOR_NUM,3000);
 	fan_start(3);
 }
 /************************************************************************//**

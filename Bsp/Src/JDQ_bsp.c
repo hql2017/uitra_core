@@ -48,7 +48,23 @@ static float laser_target_energe_list[40]={
 	0,0,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,
 
 };
+#ifdef JDQ_PWR_GWB_3200W
+ typedef struct {
+	unsigned short int outVoltage;
+	unsigned short int outCurrent;
+	unsigned short int setVoltage;
+	unsigned short int setCurrent;
+	unsigned char pwr_status;//on/off
+	
+	unsigned char emergencyErrorFlag;//严重
+	unsigned char generationErrorFlag;//一般
+
+}jdq_sts_reg_struct;
+
+static jdq_sts_reg_struct jdq_sts_reg;
+#else
 static uint16_t jdq_sts_reg_value[8];
+#endif
 static unsigned char  jdq_rs485_receiv_len,rs485_rec_byte;
 static unsigned char UART1_TX_BUFF[MAX_UART1_BUFF_LENTH+1]={0};
 static unsigned char UART1_RX_BUFF[MAX_UART1_BUFF_LENTH+1]={0};
@@ -212,7 +228,7 @@ void jdq_init(void)
 	jdq_reley_charge_ready(0);//负载断开
 	HAL_Delay(500);		
 	jdq_reley_charge(1);//	
-	HAL_Delay(1000);	
+	HAL_Delay(500);	
 	JDQ_RS485_RX;
 }
 //***************************AD5541ABRMZ********����ʽdac***************************************//
@@ -349,6 +365,97 @@ uint16_t DEC2BCD(uint16_t ui16hexcode)
 	ui16bcd = ui16bcd | ui16temp1; //两个数合并为一个 BCD 码
 	return (ui16bcd);
 }
+
+/***************************************************************************//**
+ * @brief 侦听数据处理
+ * @param listenReg,侦听缓存，datalen，侦听数据长度
+ * @note 
+ * @return 
+*******************************************************************************/
+void app_jdq_gwb3200_receive_handle(unsigned char *buff,unsigned char Len)
+{ 
+	uint16_t crc,datalen,i;
+	uint8_t regS;	
+	regS=buff[3]&0x7F;
+	switch(regS)
+	{
+		case GWB_3200_REG_VOLTAGE_CURRENT_DISPLAY:		
+			jdq_sts_reg.outVoltage=(buff[5]<<8)|buff[6];
+			if(jdq_sts_reg.outVoltage!=0&&jdq_sts_reg.setVoltage!=0)
+			{
+				jdq_sts_reg.pwr_status=1;
+			}
+			else jdq_sts_reg.pwr_status=0;
+			jdq_sts_reg.outCurrent=(buff[7]<<8)|buff[8];
+			jdq_sts_reg.emergencyErrorFlag=buff[14];
+			jdq_sts_reg.generationErrorFlag=buff[15];			
+			break;
+			case GWB_3200_REG_RUN_STOP:
+			if(buff[4]==0x00)
+			{
+				jdq_sts_reg.pwr_status=1;
+			}
+			else jdq_sts_reg.pwr_status=0;		
+		break;
+		case GWB_3200_REG_SET_VOLTAGE_CURRENT  :
+			jdq_sts_reg.setVoltage=(buff[4]<<8)|buff[5];
+			jdq_sts_reg.setCurrent=(buff[6]<<8)|buff[7];
+		break;
+		case GWB_3200_REG_READ_ALL_PARAM:
+
+		break;
+		case GWB_3200_REG_READ_TMPEATURE:
+		break;
+		default:
+		break;
+	}
+		
+}
+/***************************************************************************//**
+ * @brief 数据包检查
+ * @param 
+ * @note  最小包长8字节
+ * @return 
+*******************************************************************************/
+unsigned short int app_rs485_package_check(unsigned char* pBuff,unsigned short int buffLen) 
+{
+	unsigned short int retLen=0,i=0,j=0,pLen,decBcd;  
+	unsigned short int sum;
+	while(i<buffLen)
+	{   
+		if(pBuff[i]==0x7E)
+		{
+			pLen=(pBuff[i+2]>>4)*10+(pBuff[i+2]&0x0F);						      
+			if(i+pLen+5>buffLen) 
+			{
+				retLen = i;//end
+				break;
+			} 
+			else    
+			{ 
+				if(pBuff[i+pLen+4]==0x0D)
+				{
+					sum=0;
+					for(j=1;j<pLen+3;j++)
+					{
+						sum += pBuff[i+j];
+					}
+					decBcd = pBuff[i+pLen+3]; 					  
+					if(decBcd == DEC2BCD((sum&0x00FF)%100))
+					{						
+						app_jdq_gwb3200_receive_handle(&pBuff[i],pLen+5);
+						retLen = pLen+i+5; 
+						i=retLen;       
+					} 
+				}				
+			} 
+    	}
+		i++; 
+	}
+  	if(i==buffLen) retLen=i;
+	return retLen;
+}
+
 /***************************************************************************//**
  * @brief check receiveBuff
  * @param 
@@ -357,41 +464,35 @@ uint16_t DEC2BCD(uint16_t ui16hexcode)
 *******************************************************************************/ 
 unsigned char  app_jdq_rs485_check_gwb3200_rec_package(void)
 {
-	unsigned char i=0,packgeLen=0,retlen;
-      while(i+6<jdq_rs485_sta.frame_len)
-	  {
-		if(UART1_RX_BUFF[i]==0x7E)
+	unsigned char i=0,packgeLen=0;
+	static unsigned char readLen;
+	if(readLen<jdq_rs485_receiv_len) 
+    {
+		packgeLen = jdq_rs485_receiv_len-readLen;      
+      #if 0   
+	  if(packgeLen>5) 
+	  {    
+		DEBUG_PRINTF("rs485_receive_pack:\r\n");
+		for(int i=0;i<packgeLen;i++)
 		{
-			packgeLen=UART1_RX_BUFF[i+2];
-			if(i+packgeLen+5>jdq_rs485_sta.frame_len)
-			{
-				retlen=i;
-				i=jdq_rs485_sta.frame_len;
-			}
-			else 				
-			{
-				retlen=i+packgeLen+5;				
-			}	
+			DEBUG_PRINTF(" %02x",UART1_RX_BUFF[i+readLen]);
 		}
-		i++;
-	  }
-	 return  retlen;
-
+		DEBUG_PRINTF(" Len=%d\r\n",packgeLen);    
+		}  
+      #endif   
+      packgeLen = app_rs485_package_check(&UART1_RX_BUFF[readLen],packgeLen);	 
+      if(packgeLen!=0)
+      {
+        readLen+=packgeLen;		
+      }   
+    }
+    if(readLen>=jdq_rs485_receiv_len&&readLen!=0)//full
+    {
+      readLen=0;
+      jdq_rs485_receiv_len=0;
+    }  
+	return  packgeLen;
 }
-/***************************************************************************//**
- * @brief 侦听数据处理
- * @param listenReg,侦听缓存，datalen，侦听数据长度
- * @note 
- * @return 
-*******************************************************************************/
-void app_jdq_gwb3200_receive_handle(void)
-{
-	uint16_t crc,datalen,i,regS;
-	
-	
-}
- 
-
 #else 
 //******CA-IS1306M25G**5MHz~24MHZ，通过485读取***********//
 /***************************************************************************//**
@@ -589,12 +690,13 @@ HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset)
 *******************************************************************************/
 void app_jdq_lisen(uint16_t listenReg,uint16_t dataLen)
 {
-	jdq_rs485_receiv_len=0;
 	#ifdef JDQ_PWR_GWB_3200W
 	jdq_rs485_sta.frame_regStart=listenReg|0x80;
 	#else
+	jdq_rs485_receiv_len=0;
 	jdq_rs485_sta.frame_regStart=listenReg;
 	#endif
+	JDQ_RS485_RX;
 	jdq_rs485_sta.frame_len=dataLen;	
 	HAL_UART_Receive_IT(&huart1,&rs485_rec_byte, 1);//切换进入侦听状态
 }
@@ -612,8 +714,8 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
 #ifdef JDQ_PWR_GWB_3200W
    unsigned short int u16Checksum=0;
    UART1_TX_BUFF[0]=0x7E;
-   UART1_TX_BUFF[1]=0x01;
-   UART1_TX_BUFF[2]=0x05;
+   UART1_TX_BUFF[1]=DEC2BCD(0x01);
+   UART1_TX_BUFF[2]=DEC2BCD(0x05);
    UART1_TX_BUFF[3]=GWB_3200_REG_SET_VOLTAGE_CURRENT;
    UART1_TX_BUFF[4]=((uint16_t)powerVolotage*100)>>8;	
    UART1_TX_BUFF[5]=((uint16_t)powerVolotage*100)&0xFF;
@@ -673,9 +775,20 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
   * @note   
   * @retval 
   *****************************************************************************/
- unsigned short int  app_jdq_get_vbus_sta(void )
+ unsigned short int  app_jdq_get_vbus_sta(void)
  {		
+	#ifdef JDQ_PWR_GWB_3200W	
+	//if(jdq_sts_reg.emergencyErrorFlag!=0)	
+//{//严重错误
+	//	return JDQ_PWR_GWB_3200W_ERROR_FLAG;//err
+//}
+	//else 
+	//{
+		return jdq_sts_reg.outVoltage;		
+	//}
+	#else 
 	return jdq_sts_reg_value[6];
+	#endif	
  }
    /************************************************************************//**
   * @brief 读总电源电压电流值请求
@@ -689,8 +802,8 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
 	#ifdef JDQ_PWR_GWB_3200W
 	unsigned short int u16Checksum=0;
 	UART1_TX_BUFF[0]=0x7E;
-	UART1_TX_BUFF[1]=0x01;
-	UART1_TX_BUFF[2]=0x01;
+	UART1_TX_BUFF[1]=DEC2BCD(0x01);
+	UART1_TX_BUFF[2]=DEC2BCD(0x01);
 	UART1_TX_BUFF[3]=GWB_3200_REG_VOLTAGE_CURRENT_DISPLAY;	
 	for(uint8_t i=1; i<4; i++)
 	{
@@ -700,9 +813,9 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
 	UART1_TX_BUFF[5] = 0x0D;
 	JDQ_RS485_TX;
 	err = HAL_UART_Transmit(&huart1,UART1_TX_BUFF, 6, 100);
+	
 	if(err==HAL_OK) app_jdq_lisen(GWB_3200_REG_SET_VOLTAGE_CURRENT,17);	
 	else jdq_rs485_sta.frame_regStart=0;
-
 	#else
 		HAL_StatusTypeDef err;	
 		err = app_jdq_read_req_frame(STS_1200_REG_SET_VOLTAGE,4);
@@ -717,10 +830,10 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
   *****************************************************************************/
  void app_jdq_bus_power_onoff_sta_req(void)
  {
-	HAL_StatusTypeDef err;	
-	#ifdef JDQ_PWR_GWB_3200W
-	
-	#else		
+	#ifdef JDQ_PWR_GWB_3200W	
+	app_jdq_bus_get_v_c_req();
+	#else	
+	HAL_StatusTypeDef err;		
 	err= app_jdq_read_req_frame(STS_1200_REG_RUN_STOP,1);
 	#endif
  }
@@ -731,13 +844,17 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
   * @retval 
   *****************************************************************************/
  void app_jdq_bus_get_set_v_c(float *voltage,float *current)
- {
+ {	
+	#ifdef JDQ_PWR_GWB_3200W
+	*voltage=jdq_sts_reg.setVoltage*0.01;
+	*current=jdq_sts_reg.setCurrent*0.01;
+	#else
 	*voltage=jdq_sts_reg_value[0]*0.01;
 	*current=jdq_sts_reg_value[1]*0.01;
+	#endif
  }
-
   /************************************************************************//**
-  * @brief 开启总电源
+  * @brief 开启电源输出
   * @param 0；关闭 1：开启
   * @note   
   * @retval 
@@ -748,8 +865,8 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
 	#ifdef JDQ_PWR_GWB_3200W
 	unsigned short int u16Checksum=0;
 	UART1_TX_BUFF[0]=0x7E;
-	UART1_TX_BUFF[1]=0x01;
-	UART1_TX_BUFF[2]=0x03;
+	UART1_TX_BUFF[1]=DEC2BCD(0x01);
+	UART1_TX_BUFF[2]=DEC2BCD(0x03);
 	UART1_TX_BUFF[3]=GWB_3200_REG_RUN_STOP;	
 	if(flag==0)
 	{
@@ -769,7 +886,7 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
 	UART1_TX_BUFF[7] = 0x0D;
 	JDQ_RS485_TX;
 	err = HAL_UART_Transmit(&huart1,UART1_TX_BUFF, 8, 100);
-	if(err==HAL_OK) app_jdq_lisen(GWB_3200_REG_SET_VOLTAGE_CURRENT,7);	
+	if(err==HAL_OK) app_jdq_lisen(GWB_3200_REG_RUN_STOP,7);	
 	else jdq_rs485_sta.frame_regStart=0;
 #else		
 	if(flag==0)
@@ -786,7 +903,7 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
 //***************************laser pulse (100us~500us) timer3***************************************//
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	if(htim->Instance ==	TIM2)
+	if(htim->Instance ==TIM2)
 	{
 		if(htim->Channel ==	HAL_TIM_ACTIVE_CHANNEL_1)
 		{  
@@ -800,20 +917,19 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
   * @note   laser pulse width(l_pulse) 100us~230us   ；voltage pulse width (v_pulse)  v_pulse ≈ l_pulse+40;（140~270us）
   * @retval None
   */
- void app_laser_pulse_start(unsigned short int time100ns,unsigned short int freq)
+ void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq)
  { 
 	unsigned short int timeload;
 	unsigned  int counter;	
-	if(time100ns!=0)
+	if(timeUs!=0)
 	{
-		if( time100ns > 500 )  timeload = 500;//check pulse timeUs
-		else if( time100ns < 120 )  timeload = 120;//check pulse timeUs		
-		else timeload=time100ns;
+		if( timeUs > 500 )  timeload = 500;//check pulse timeUs
+		else if( timeUs < 120 )  timeload = 120;//check pulse timeUs		
+		else timeload=timeUs;
 		//__HAL_TIM_SetAutoreload(&htim3,4999);//MAx500us
 		//__HAL_TIM_SetCompare(&htim3,TIM_CHANNEL_2,timeload-1);
 		//HAL_TIM_OnePulse_Start(&htim3,TIM_CHANNEL_2);
-		if( freq > 60 ) counter
-		 = 1667;// (100000/100);
+		if( freq > 60 ) counter = 16667;// (1000000/60);
 		else if( freq < 1 )  counter = 1000000; //(1000000/1)
 		else counter=(1000000/freq);
 		__HAL_TIM_SetAutoreload(&htim2,counter-1);//1~100HZ	
@@ -866,7 +982,7 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 *******************************************************************************/ 
 void app_jdq_rs485_receive_data(void)
 {	
-	jdq_rs485_receiv_len%=MAX_UART1_BUFF_LENTH;
+	jdq_rs485_receiv_len%=(MAX_UART1_BUFF_LENTH+1);
 	UART1_RX_BUFF[jdq_rs485_receiv_len]=rs485_rec_byte;
 	jdq_rs485_receiv_len++;		
 	if(HAL_UART_Receive_IT(&huart1, &rs485_rec_byte,1)!=HAL_OK)
@@ -884,28 +1000,12 @@ void app_jdq_rs485_receive_data(void)
 unsigned short int  app_get_jdq_rs485_bus_statu(void)
 {
 	#ifdef JDQ_PWR_GWB_3200W	
-	if(jdq_rs485_receiv_len!=0)
-	{
-		app_jdq_gwb3200_receive_handle();
-	}
-	#else 
-	//if(app_jdq_rs485_check_rec_len()!=0)
-	if(jdq_rs485_receiv_len!=0)
-	{
-		app_jdq_sts_1200_receive_handle();
-	}
+	app_jdq_rs485_check_gwb3200_rec_package();	
+	#else 	
+	app_jdq_sts_1200_receive_handle();
 	#endif
 	return jdq_rs485_sta.frame_regStart;
 }
-/***************************************************************************//**
- * @brief 获取数据长度
- * @param 
- * @note 
- * @return 
-*******************************************************************************/ 
-unsigned char  app_jdq_rs485_check_rec_len(void)
-{		
-	return jdq_rs485_receiv_len;
-}
+
 
 

@@ -27,7 +27,7 @@ typedef struct {
 	unsigned short int  compressorSetSpd;//压缩机设定转速
 	unsigned char 		startUpStaus;// 启动标志0关机；1开机器
 	unsigned char 		wkTimeOut;// 串口周期时间,超时时间
-	unsigned char 		ge_seriel_err;// 串口周期时间,超时时间0 正常；1超时；
+	unsigned char 		ge_seriel_err;// 指令状态0 空闲状态；!=0指令状态
 	unsigned short int  workStaus;// 工作状态1工作；0待机	//	reg0x2000	
 	unsigned short int  compressorRunSpd;//压缩机运行转速
 	unsigned short int  reverse;//保留
@@ -252,7 +252,8 @@ void ge2117_gp_init(void)
 *******************************************************************************/
 void app_ge_lisen(uint16_t listenReg,uint16_t dataLen)
 {	
-	ge_run_sta.listenReg=listenReg;
+	
+	ge_run_sta.listenReg=listenReg;	
 	ge_run_sta.frame_length =dataLen;
 	ge_run_sta.frame_bus_timeOut=0;		
 	HAL_UART_Receive_IT(&huart5,UART_GE_RX_BUFF, dataLen);//切换进入侦听状态	
@@ -341,7 +342,7 @@ void ge2117_start_up_set(unsigned short int startFlag)
 	{
 		//app_ge_write_req_frame(GE2117_REG_START_STOP,3);//启动	
 		if(geWksta.compressorSetSpd<3000)	geWksta.compressorSetSpd=3000;
-		if(geWksta.compressorSetSpd>7000)    geWksta.compressorSetSpd=7000;
+		if(geWksta.compressorSetSpd>6000)    geWksta.compressorSetSpd=6000;
 		app_ge_write_req_frame(GE2117_REG_SPD_STRAT,geWksta.compressorSetSpd);//启动
 	}	
 	else app_ge_write_req_frame(GE2117_REG_START_STOP,4);//停止
@@ -400,92 +401,82 @@ void app_ge2117_gp_ctr_frame(void)
 *******************************************************************************/
 void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 {	
-	static unsigned char bus_idle_flag=0;		
-	static unsigned int geRunTime=0;
-	geWksta.geTimeS=sysTimeS;	
-	if(geWksta.geTimeS>10)
-	{ 	
-		if(circleWaterTmprature<MID_TEMPRATURE_LASER)
-		{
-			if(fan_get_run_spd(FAN38_COMPRESSOR_NUM)>2100)
-			{
-				fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
-			}
-		}
-		else
-		{
-			if(circleWaterTmprature>=MAX_TEMPRATURE_LASER)
-			{
+	float compareTemp;	
+	if(sysTimeS>geWksta.geTimeS)	
+	{
+		geWksta.geTimeS=sysTimeS;				
+		if(geWksta.geTimeS>10)
+		{ 
+			compareTemp=circleWaterTmprature-(u_sys_param.sys_config_param.cool_temprature_target*0.1);			
+			if(compareTemp>MAX_TEMPRATURE_LASER)
+			{	
 				if(fan_get_run_spd(FAN38_COMPRESSOR_NUM)==0)
 				{
 					fan_spd_set(FAN38_COMPRESSOR_NUM,3000);	
-				}					
-			}
-		}		
-		if(geWksta.workStaus==0)
-		{
-			if(circleWaterTmprature>MAX_TEMPRATURE_LASER)
-			{
-				geRunTime++;
-				if(bus_idle_flag==0&&geRunTime>60) 
-				{	
-					DEBUG_PRINTF("festart\r\n");
-					geRunTime=0;
-					geWksta.compressorSetSpd=3000+500*(circleWaterTmprature-MAX_TEMPRATURE_LASER);
-					ge2117_start_up_set(GE2117_START_CMD);
-					bus_idle_flag=3;	
-				}
-			}				
-		}
-		else 
-		{
-			if(circleWaterTmprature>MAX_TEMPRATURE_LASER)
-			{
-				geRunTime++;
-				if(geRunTime>120&&bus_idle_flag==0)	 
-				{					
-					DEBUG_PRINTF("festa++\r\n");
-					geRunTime=0;						
-					geWksta.compressorSetSpd = geWksta.compressorRunSpd+500;
-					if(geWksta.compressorSetSpd >6000) geWksta.compressorSetSpd =6000;
-					fan_spd_set(FAN38_COMPRESSOR_NUM,geWksta.compressorSetSpd);												
-					ge2117_speed_set(geWksta.compressorSetSpd);					
-					bus_idle_flag=3;
 				}	
 			}
 			else
 			{
-				if(circleWaterTmprature<=MID_TEMPRATURE_LASER&&bus_idle_flag==0)
+				if(fan_get_run_spd(FAN38_COMPRESSOR_NUM)>3200)
 				{
-					DEBUG_PRINTF("festop\r\n");
-					fan_spd_set(FAN38_COMPRESSOR_NUM,2000);//slow						
-					geRunTime=0;
-					ge2117_start_up_set(GE2117_STOP_CMD);
-					bus_idle_flag=3;					
-				}						
+					fan_spd_set(FAN38_COMPRESSOR_NUM,3000);	
+				}
+			}		
+			if(geWksta.workStaus==0)
+			{
+				if(compareTemp>0.1+MAX_TEMPRATURE_LASER&&geWksta.ge_seriel_err==0)
+				{
+					DEBUG_PRINTF("gestart\r\n");
+					geWksta.wkTimeOut=0;
+					geWksta.compressorSetSpd=3000;
+					ge2117_start_up_set(GE2117_START_CMD);
+					geWksta.ge_seriel_err=3;
+				}				
+			}
+			else 
+			{
+				if(compareTemp>MAX_TEMPRATURE_LASER+0.1)
+				{
+					geWksta.wkTimeOut++;
+					if(geWksta.wkTimeOut>120&&geWksta.ge_seriel_err==0)	 
+					{					
+						DEBUG_PRINTF("gespd=%d\r\n",geWksta.compressorSetSpd);
+						geWksta.wkTimeOut=0;						
+						geWksta.compressorSetSpd +=500;
+						if(geWksta.compressorSetSpd >6000) geWksta.compressorSetSpd = 6000;
+						fan_spd_set(FAN38_COMPRESSOR_NUM,geWksta.compressorSetSpd);												
+						ge2117_speed_set(geWksta.compressorSetSpd);					
+						geWksta.ge_seriel_err=3;
+					}	
+				}
+				else
+				{
+					if(geWksta.ge_seriel_err==0)
+					{
+						DEBUG_PRINTF("gestop\r\n");
+						fan_spd_set(FAN38_COMPRESSOR_NUM,3000);//slow						
+						geWksta.wkTimeOut=0;
+						ge2117_start_up_set(GE2117_STOP_CMD);
+						geWksta.ge_seriel_err=3;					
+					}						
+				}
+			}
+			if(geWksta.ge_seriel_err>2)
+			{ 
+				geWksta.ge_seriel_err--;
+			}
+			else if(geWksta.ge_seriel_err==0)
+			{
+				app_ge2117_gp_ctr_frame();
+			}
+			else
+			{
+				app_ge2117_gp_ctr_frame();
+				geWksta.ge_seriel_err--;
 			}
 		}
-		if(bus_idle_flag>2)
-		{ 
-			bus_idle_flag--;
-		}
-		else if(bus_idle_flag==2)
-		{
-			app_ge2117_gp_ctr_frame();
-			bus_idle_flag--;
-		}
-		else if(bus_idle_flag==1)
-		{
-			app_ge2117_gp_ctr_frame();
-			bus_idle_flag=0;
-		}
-		else app_ge2117_gp_ctr_frame();		
-		if(geWksta.wkTimeOut>60 )
-		{
-			geWksta.ge_seriel_err=1;			
-		} 			
-		geWksta.wkTimeOut++;
 	}
+	else geWksta.geTimeS=sysTimeS;
 }
 
 

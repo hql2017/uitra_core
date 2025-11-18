@@ -372,10 +372,10 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
   * @retval None
   */
 #define  MAX_AD2_ENERGE_BUFF_LENGTH 36//一个时间约6us=2.96*2(387.5cycle 2.96us)
-static unsigned short int adBuff[MAX_AD_BUFF_LENGTH];
-static unsigned short int advalue[4];
-static unsigned short int ad2Buff[MAX_AD2_ENERGE_BUFF_LENGTH];
-static unsigned short int ad2vale,ad2hle;
+static  unsigned  short int adBuff[MAX_AD_BUFF_LENGTH];
+static  unsigned short int advalue[4];
+static  unsigned short int ad2Buff[MAX_AD2_ENERGE_BUFF_LENGTH];
+static  unsigned short int ad2vale,ad2hle;
 
 extern TIM_HandleTypeDef htim6;//hal tick timer
 void app_start_multi_channel_adc(void)
@@ -559,13 +559,13 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
   {
     temp=((advalue[AD1_24V_VBUS_INDEX]*AD_VREF_VOLTAGE)>>16)*11;
     *vBuff=temp*1.00359621978757;//v_bus
-   //DEBUG_PRINTF("vBus=%dmV\r\n", temp);
+   //DEBUG_PRINTF("vBus=%dmV ad=%04x\r\n", temp,advalue[AD1_24V_VBUS_INDEX]);
   }
   else if(adChannel==AD1_AIR_PRESSER_INDEX)
   {//相对气压kPa    
     temp=((((advalue[AD1_AIR_PRESSER_INDEX]-D_A_MIN)*AD_VREF_VOLTAGE)>>16) +22);
     *vBuff=temp*0.1654131+P_A_MIN;//0.150723+P_A_MIN;//(441/3000);//air pressure  ,dio
-    //DEBUG_PRINTF("air_pressure=%.2f v=%dmV ad=%d\r\n", *vBuff,temp,advalue[AD1_AIR_PRESSER_INDEX]);
+   // DEBUG_PRINTF("air_pressure=%.2f v=%dmV ad=%x\r\n", *vBuff,temp,advalue[AD1_AIR_PRESSER_INDEX]);
   }  
 }
 /* USER CODE END 1 */

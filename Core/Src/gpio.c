@@ -245,48 +245,50 @@ void app_air_pump_switch( FunctionalState flag)
   * @note    冷却水需维持22~26摄氏度，最佳25℃, 1秒调用一次
   * @retval None
   *****************************************************************************/
-void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTimeS)
+void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTimeMs)
 {
   static unsigned  int ptcRunTime;
   static unsigned  char  PTC_flag;
-  if(circleWaterTmprature>-40&&circleWaterTmprature<150)
-  {  
-    if(circleWaterTmprature<MIN_TEMPRATURE_LASER)  
-    {
-      if(PTC_flag==0)
+  float compareTemp;
+  compareTemp=circleWaterTmprature-(u_sys_param.sys_config_param.cool_temprature_target*0.1);   
+  if(PTC_flag==0)
+  {
+      if(compareTemp<MIN_TEMPRATURE_LASER)  
       {
+        ptcRunTime=0;
         fan_spd_set(FAN38_COMPRESSOR_NUM,2000);						
         PTC_flag=1;
         app_PTC_en_switch(ENABLE);
       }
-    }
-    else 
-    {
-      if(circleWaterTmprature>=MID_TEMPRATURE_LASER&&PTC_flag!=0) 
-      {        
-        PTC_flag=0;
-        app_PTC_en_switch(DISABLE);
-      }  
-      else 
-      {
-        ptcRunTime++;
-        if(ptcRunTime>1200) //升温超过20分钟，关闭一次
-        {
-          ptcRunTime=0;
-          PTC_flag=0;          
-          app_PTC_en_switch(DISABLE);
-        }
-      }       
-    }        
   }
   else 
-  {   //err
-    if(PTC_flag!=0)
+  { 
+    ptcRunTime++;
+    if(ptcRunTime>9)
     {
-      PTC_flag=0;
-      app_PTC_en_switch(DISABLE);
-    } 
-  } 
+      ptcRunTime=0;//
+      app_PTC_en_switch(ENABLE);
+    }
+    if(compareTemp+4.0<MIN_TEMPRATURE_LASER)
+    {
+      if(ptcRunTime>7)//duty=%80)
+      {               
+        app_PTC_en_switch(DISABLE);
+      } 
+    }
+    else
+    {
+      if(ptcRunTime>2)//duty=%30)
+      {                       
+        app_PTC_en_switch(DISABLE);
+      }
+      if(compareTemp>=MIN_TEMPRATURE_LASER) 
+      {
+        app_PTC_en_switch(DISABLE);
+        PTC_flag=0;
+      }        
+    }   
+  }   
 }
   /************************************************************************//**
   * @brief l064激光 AD采集开关

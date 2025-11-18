@@ -215,9 +215,9 @@ void Error_Handler(void);
 
 #define MAX_TMC2226_NTC_TEMPRATURE  85.0f//85.0
 //激光工作环境温度，冷却液温度（允许温差3度）
-#define MIN_TEMPRATURE_LASER  22.0f
-#define MID_TEMPRATURE_LASER  23.0f//最佳工作温度
-#define MAX_TEMPRATURE_LASER  23.8f
+#define MIN_TEMPRATURE_LASER  -1.0f //22.0f
+#define MID_TEMPRATURE_LASER  0.0f // 23.0f//最佳工作温度
+#define MAX_TEMPRATURE_LASER  0.8f //23.8f
 
 #define ERR_LOW_TEMPRATURE_LASER    -40.0f //温度低边界
 #define ERR_HIGH_TEMPRATURE_LASER   100.0f//温度高边界
@@ -309,15 +309,11 @@ typedef struct{
   unsigned short int power_cali;           //）功率校准值
 }ENERGE_CALIBRATION;
 typedef struct
-{   
-  //unsigned char  headH;                //
-  //unsigned char  headL;                //
-  //unsigned char  len;                  //215           
-  //unsigned char  code; //0x20
+{  //215 bytes
   unsigned char  synchronousFlag;           // 同步标志0，未同步；1下载；2上传；3已同步；EEROM_DATA_ERR_CHECK_FLAG 未同步，无屏幕通信;0xFF未初始化 
-	unsigned int  equipmentId;                //设备ID
-  unsigned int  jtId;                       //脚踏ID
-  unsigned char jt_status;                  //脚踏绑定状态 （0/1）
+	unsigned int   equipmentId;                //设备ID
+  unsigned int   jtId;                       //脚踏ID
+  unsigned char  jt_status;                  //脚踏绑定状态 （0/1）
   unsigned short int cool_temprature_high;           //）冷却系统温度高阈值*10
   unsigned short int cool_temprature_target;         //）冷却系统目标温度*10
   unsigned short int cool_temprature_low;            //）冷却系统温度低阈值*10
@@ -347,11 +343,6 @@ typedef struct
   unsigned char rgb_light;                  //）rgb状态指示灯亮度
   unsigned char beep;                       //）音量
   ENERGE_CALIBRATION  e_cali[40];
-	
-  //unsigned char  crcL;                //
-  //unsigned char  CRCH;                //
-  //unsigned char  endH;                //0x0D           
-  //unsigned char  endl;                //0x0A
   unsigned int  checkSum;// 校验和 (通信包不会发送)
 }__attribute__ ((packed)) SYS_CONFIG_PARAM ;//系统配置参数
 typedef union 
@@ -394,7 +385,7 @@ typedef struct{
 	unsigned char laser_run_B3_laser_pilot_lamp_status;     //Bit3：指示灯状态
 	unsigned char laser_run_B4_laser_980_out_status;        //Bit4：（980）出光状态
   unsigned char laser_run_B5_timer_status;                //Bit5：定时器状态
-  unsigned char laser_run_B6_close_device_status;         //Bit6：关机状态（1关机指令）
+  unsigned char laser_run_B6_close_device_status;         //Bit6：关机（1关机指令）
 	unsigned char laser_param_B01_energe_status;            //Bit0~Bit1:激光能量计状态：
 	unsigned char laser_param_B23_air_pump_pressure_status;	//Bit2~Bit3:循环气泵压力状态：
 	unsigned char laser_param_B456_jt_status;               //Bit4~Bit6:脚踏状态：
