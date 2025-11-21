@@ -911,29 +911,72 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 		}
 	}
 }
+  /***************************************************************************//**
+ * @brief app_laser_pulse_width_set
+ * @param 
+ * @note  100~200us
+ * @return 
+*******************************************************************************/
+//(1.5V~4.0V)(0.1us)
+//static unsigned short int  jdq_pulse_cali_time01Us[26]={\
+	218,222,226,230,234,238,252,256,250,254,\
+	258,262,266,270,274,278,282,286,290,\
+	294,298,302,306,310,314,320,\
+};
+static unsigned short int  jdq_pulse_cali_time01Us[26]={//(1.5V~4.0V)(0.1us)
+	235,238,241,244,247,250,253,256,259,262,\
+	265,268,271,274,277,280,283,286,289,\
+	292,295,298,301,304,307,310,
+};
+ void app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVoltage)
+{	  
+	unsigned short int num100ns;	
+	//num100ns=(unsigned short int)((((energeVoltage-1.5)*4.28+19.8)*10)/2);
+	if(energeVoltage<DAC_MIN_VOLTAGE_F) num100ns=109;	
+	else if(energeVoltage>DAC_MAX_VOLTAGE_F) num100ns=163;
+	else num100ns=(unsigned short int)(energeVoltage*21.4)+77;//76.9); 
+	//100~200us	 
+	if(pulse100ns<800) __HAL_TIM_SetAutoreload(&htim3,799-num100ns);//100us	
+	else if(pulse100ns>2000) __HAL_TIM_SetAutoreload(&htim3,1999-num100ns);//200us
+	else __HAL_TIM_SetAutoreload(&htim3,pulse100ns-num100ns-1);  
+}
 /**
   * @brief app_laser_pulse_start 
   * @param  time100ns=0.1us;
-  * @note   laser pulse width(l_pulse) 100us~230us   ；voltage pulse width (v_pulse)  v_pulse ≈ l_pulse+40;（140~270us）
+  * @note  timeUs: laser pulse  100us~200us ；frq:pulse frequency; energeVoltage:DAC 1.5V~4.0V
   * @retval None
   */
- void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq)
+static unsigned short int  jdq_pulse_pro_timeUs[26]={//(1.5V~4.0V)  
+	275,200,160,150,130,118,108,99,90,\
+	84,80, 76,72,68,64,62,60,58,\
+	56,54,52,50,48,46,45,44
+};
+ void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq,float energeVoltage)
  { 
-	unsigned short int timeload;
 	unsigned  int counter;	
+	unsigned short int timeLoad;
 	if(timeUs!=0)
 	{
-		if( timeUs > 500 )  timeload = 500;//check pulse timeUs
-		else if( timeUs < 120 )  timeload = 120;//check pulse timeUs		
-		else timeload=timeUs;
-		//__HAL_TIM_SetAutoreload(&htim3,4999);//MAx500us
-		//__HAL_TIM_SetCompare(&htim3,TIM_CHANNEL_2,timeload-1);
-		//HAL_TIM_OnePulse_Start(&htim3,TIM_CHANNEL_2);
+		//check param
+		float ev=energeVoltage;
+		if(ev>DAC_MAX_VOLTAGE_F) ev=DAC_MAX_VOLTAGE_F;
+		if(ev<DAC_MIN_VOLTAGE_F) ev=DAC_MIN_VOLTAGE_F;
+		if(energeVoltage<1.8)
+		{
+			timeLoad=timeUs+jdq_pulse_pro_timeUs[(uint16_t)(ev*10-15.0)]-((unsigned short int)(energeVoltage*2.14+6.69));
+		}
+		else
+		{
+			timeLoad=timeUs+jdq_pulse_pro_timeUs[(uint16_t)(ev*10-15.0)];
+			app_laser_pulse_width_set(timeUs*10,ev);
+		} 
+		if( timeLoad > JDQ_MAX_CONTROL_PULSE_US_WIDTH )  timeLoad = JDQ_MAX_CONTROL_PULSE_US_WIDTH;//check pulse timeUs
+		if( timeLoad <JDQ_MIN_CONTROL_PULSE_US_WIDTH )  timeLoad = JDQ_MIN_CONTROL_PULSE_US_WIDTH;//check pulse timeUs		
 		if( freq > 60 ) counter = 16667;// (1000000/60);
 		else if( freq < 1 )  counter = 1000000; //(1000000/1)
 		else counter=(1000000/freq);
 		__HAL_TIM_SetAutoreload(&htim2,counter-1);//1~100HZ	
-		__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_1,timeload-1);	
+		__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_1,timeLoad-1);	
 		HAL_TIM_OC_Start_IT(&htim2,TIM_CHANNEL_1);	
 		HAL_TIM_Base_Start_IT(&htim2);	
 	}

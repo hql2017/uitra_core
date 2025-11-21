@@ -401,15 +401,18 @@ void pulse_adc_start(void)
   */
  unsigned short int ad_square_value(unsigned short int *enerAdBuff,unsigned char len)
  {
-  unsigned short int ret,i;  
+  unsigned short int ret,i,j=0;  
   long unsigned  int sum; 
   sum=0;
-  for(i=1;i<20;i++)//120us，去除头尾
+  for(i=0;i<len;i++)
   {
-    sum+=(enerAdBuff[i]*enerAdBuff[i]);
+    if(enerAdBuff[i]>0)
+    {
+      sum+=(enerAdBuff[i]*enerAdBuff[i]);
+      j++;
+    }    
   }
-  sum = sqrt(sum/19);   
-  ret=sum;
+  if(j>0)  ret = (unsigned short int)(sum/j);  
   return ret;
  } 
 /**
@@ -469,12 +472,15 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     unsigned short int i, j=0;
     for(i=0;i<MAX_AD2_ENERGE_BUFF_LENGTH;i++)
     {  
-      if(i<20) 
-      {       
-        sum+=ad2Buff[i];      
+      //if(i<20) 
+      if(ad2Buff[i]>200)
+      {  
+        j++;     
+        sum+=(ad2Buff[i]*ad2Buff[i]);      
       }       
     } 
-    ad2vale=(unsigned short int)(sum/20);
+    
+    if(j>0) ad2vale=(unsigned short int)(sqrt(sum/j));    
     ad2hle=ad2vale;
     //kalman_filter_update(&kalmAd2, ad2vale);
     #endif 

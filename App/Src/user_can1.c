@@ -64,17 +64,14 @@ void app_hmi_report_status(sys_genaration_status *sys_status)
 	can_tx_data[7]=sys_status->laser_param_B01_energe_status|sys_status->laser_param_B23_air_pump_pressure_status<<2|send_buff_jt<<4;//sys_status->laser_param_B456_jt_status<<4;
 	can_tx_data[8]=sys_status->genaration_io_status&0xFF;
 	can_tx_data[9]=(sys_status->genaration_io_status>>8)&0xFF;
-	u_sys_param.sys_config_param.laser_pulse_count=10000;
 	can_tx_data[10]=u_sys_param.sys_config_param.laser_pulse_count&0xFF;
 	can_tx_data[11]=(u_sys_param.sys_config_param.laser_pulse_count>>8)&0xFF;
 	can_tx_data[12]=(u_sys_param.sys_config_param.laser_pulse_count>>16)&0xFF;
-	can_tx_data[13]=(u_sys_param.sys_config_param.laser_pulse_count>>24)&0xFF;
-	u_sys_param.sys_config_param.laser_use_timeS=7200;
+	can_tx_data[13]=(u_sys_param.sys_config_param.laser_pulse_count>>24)&0xFF;	
 	can_tx_data[14]=u_sys_param.sys_config_param.laser_use_timeS&0xFF;
 	can_tx_data[15]=(u_sys_param.sys_config_param.laser_use_timeS>>8)&0xFF;
 	can_tx_data[16]=(u_sys_param.sys_config_param.laser_use_timeS>>16)&0xFF;
 	can_tx_data[17]=(u_sys_param.sys_config_param.laser_use_timeS>>24)&0xFF;
-	u_sys_param.sys_config_param.RDB_use_timeS=10800;		
 	can_tx_data[18]=(u_sys_param.sys_config_param.RDB_use_timeS)&0xFF;//s
 	can_tx_data[19]=(u_sys_param.sys_config_param.RDB_use_timeS>>8)&0xFF;	
 	can_tx_data[20]=(u_sys_param.sys_config_param.RDB_use_timeS>>16)&0xFF;
@@ -101,7 +98,7 @@ void app_hmi_report_pulse_count(void)
 	can_tx_data[4]=u_sys_param.sys_config_param.laser_pulse_count&0xFF;
 	can_tx_data[5]=(u_sys_param.sys_config_param.laser_pulse_count>>8)&0xFF;
 	can_tx_data[6]=(u_sys_param.sys_config_param.laser_pulse_count>>16)&0xFF;
-	can_tx_data[7]=(u_sys_param.sys_config_param.laser_pulse_count>>24)&0xFF;
+	can_tx_data[7]=(u_sys_param.sys_config_param.laser_pulse_count>>24)&0xFF;	
 	can_tx_data[8]=u_sys_param.sys_config_param.laser_use_timeS&0xFF;
 	can_tx_data[9]=(u_sys_param.sys_config_param.laser_use_timeS>>8)&0xFF;
 	can_tx_data[10]=(u_sys_param.sys_config_param.laser_use_timeS>>16)&0xFF;
@@ -204,10 +201,22 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			}	
 			break;
 		case HMI_CODE_PULSE_COUNT_AND_TIME:	
+			if(data[4]!=0)	
+			{	
+				u_sys_param.sys_config_param.laser_pulse_count=0;				
+			}
+			if(data[5]!=0)	
+			{
+				u_sys_param.sys_config_param.laser_use_timeS=0;				
+			}
+			if(data[6]!=0)	
+			{	
+				u_sys_param.sys_config_param.RDB_use_timeS=0;				
+			}
 			app_hmi_report_pulse_count();
 			break;
 		case HMI_CODE_PULSE_WIDTH_US:
-			//u_sys_param.sys_config_param.laser_pulse_width_us=data[4]|data[5]<<8;				
+			//u_sys_param.sys_config_param.charge_width_us=data[6]|(data[7]<<8);			
 			u_sys_param.sys_config_param.charge_width_us=data[6];		
 			u_sys_param.sys_config_param.laser_pulse_width_us=data[4]|(data[5]<<8);
 			app_hmi_cmd_ack(hmi_code) ;
@@ -311,7 +320,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 				//check param
 				if(u_sys_param.sys_config_param.cool_temprature_target>280||u_sys_param.sys_config_param.cool_temprature_target<210)
 				{
-				  u_sys_param.sys_config_param.cool_temprature_target=230;
+				  u_sys_param.sys_config_param.cool_temprature_target=240;
 				} 
 				unsigned int idBuff=data[5]|(data[6]<<8)|(data[7]<<16)|(data[8]<<24);				
 				if(idBuff!=0)

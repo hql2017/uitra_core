@@ -13,7 +13,7 @@ extern void AD5541A_SetVoltage_Load_enable(void);
 extern void AD5541A_SetVoltage_Load_disable(void);
 extern void AD5541A_SetVoltage_noLoad(float outVoltage, float vRef);
 
-void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq);
+void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq,float energeVoltage);
 float app_jdq_voltage_monitor(void);
 void app_jdq_current_limit_charge(void);
 void app_jdq_consume_remaining_power_160v(void);
@@ -41,6 +41,12 @@ void app_jdq_sts_1200_receive_handle(void);
 #define JDQ_RS485_FRAME_MAX_DELAY_MS 500
 #define JDQ_RS485_FRAME_MIN_MS 100
 #define MAX_UART1_BUFF_LENTH 128
+
+#define DAC_MAX_VOLTAGE_F 4.0f
+#define DAC_MIN_VOLTAGE_F 1.5f
+
+#define JDQ_MAX_CONTROL_PULSE_US_WIDTH  500
+#define JDQ_MIN_CONTROL_PULSE_US_WIDTH  100
 
 #ifndef JDQ_PWR_GWB_3200W
     #define JDQ_PWR_GWB_3200W   

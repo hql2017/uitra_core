@@ -252,10 +252,8 @@ void Error_Handler(void);
 #ifdef IWDG_USED
 #define IWDG_USED  
 #endif
-#ifndef DEBUG_MSG_UART 
+#ifdef DEBUG_MSG_UART 
 #define DEBUG_MSG_UART  /*use printf*/
-
-
 #define DEBUG_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
 #define DEBUG_PRINTF(fmt, ...) do { } while(0)
@@ -372,6 +370,7 @@ typedef struct
   unsigned char   timerEnableFlag;         	//倒计时启动
   unsigned char   cleanCtr;         			  //清洗消毒
   unsigned char   air_water_prepare_ctr;    //水雾准备
+  unsigned char lowEnergeMode; //DAC<1.8V
 }LASER_CONTROL_PARAM;//ctr param
 extern LASER_CONTROL_PARAM laser_ctr_param;
 typedef struct{ 

@@ -112,11 +112,13 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
   69,63,57,54,50,47,45,43,41,39,38,\
   37,36,34,33,32,31,31,30,30,30,29,28,27};
   //脉冲触发时间：电脉宽=脉冲触发时间+光脉宽+7(延长)
-static unsigned short int  jdq_pulse_pro_timeUs[24]={//0~230mJ//(1.5V~3.8V)
-  363,273,187,150,130,120,107,102,94,87,81,
-  78,75,72,67,66,62,59,57, 56,\
-  54,52,51,50
-};
+  //100us最低脉宽，初始能量值
+  static unsigned short int  jdq_laser_voltage_energe[26]={//(1.5V~4.0V)//0~230mJ//
+    5,15,20,27,32,37,42,47,52,57,66,
+    72,79,86,93,99,106,113,120, 127,\
+    134,141,148,155,162,169
+  };
+  
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -293,7 +295,6 @@ void app_treatment_water_prepare(unsigned char *ctrflag,unsigned int runtimeMs);
 ErrorStatus app_laser_timer_ctr(unsigned char ctrTimeS, unsigned int TimeMs);
 void app_buzz_music(music_type  music_num,unsigned char volume);
 void app_jdq_restart(void);
-void app_laser_pulse_width_set(unsigned short int pulseUs); 
 #ifdef ONE_WIRE_BUS_SLAVE
 unsigned int  app_owb_key_scan(unsigned short int timeMs);
 #endif
@@ -590,7 +591,7 @@ void StartDefaultTask(void *argument)
     float s_jdq_set_voltage,s_jdq_set_current;      
     DEBUG_PRINTF("load laser jdq power system ... \r\n");  
     jdq_init(); 
-  #ifdef JDQ_PWR_GWB_3200W  
+  #ifdef JDQ_PWR_GWB_3200W   
     HAL_Delay(JDQ_RS485_FRAME_MAX_DELAY_MS);     
     app_jdq_bus_power_on_off(1);
     timeout = 0;
@@ -607,6 +608,7 @@ void StartDefaultTask(void *argument)
       HAL_Delay(JDQ_RS485_FRAME_MIN_MS);         
       timeout+=JDQ_RS485_FRAME_MIN_MS;    
     }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
+    
     HAL_Delay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
     app_jdq_bus_power_onoff_sta_req();
     timeout = 0;
@@ -615,7 +617,7 @@ void StartDefaultTask(void *argument)
       HAL_Delay(JDQ_RS485_FRAME_MIN_MS);         
       timeout+=JDQ_RS485_FRAME_MIN_MS;    
     }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
-    if(app_jdq_get_vbus_sta()!=0)
+    if(app_jdq_get_vbus_sta()!=0)    
     {
       DEBUG_PRINTF("lasr jdq  load ok jdq_v=%.1f v \r\n",app_jdq_get_vbus_sta()*0.01);
       HAL_Delay(JDQ_RS485_FRAME_MAX_DELAY_MS);     
@@ -695,7 +697,7 @@ void StartDefaultTask(void *argument)
       load_sta = 1;
     } 
   #endif   
-    app_laser_pulse_start(LASER_PULSE_STOP,20);      
+    app_laser_pulse_start(LASER_PULSE_STOP,20,0);      
     load_sta=0;
     DEBUG_PRINTF("load treatment water system...\r\n");
     tmc2226_init();  
@@ -909,7 +911,7 @@ void laserWorkTask04(void *argument)
       if(laser_close_sem==osOK)
       {        	
         sGenSta.laser_run_B1_laser_out_status=0; 	
-        app_laser_pulse_start(LASER_PULSE_STOP,laser_ctr_param.laserFreq);  
+        app_laser_pulse_start(LASER_PULSE_STOP,laser_ctr_param.laserFreq,0);  
         tmc2226_start(0,laser_ctr_param.treatmentWaterLevel);  
         osDelay(120);
         tmc2226_stop();  
@@ -969,16 +971,7 @@ void laserWorkTask04(void *argument)
         if(recKeyMessage==key_jt_long_press&&sGenSta.laser_run_B5_timer_status==0)
         {
           if(sGenSta.laser_run_B1_laser_out_status==0)
-          {            
-            DEBUG_PRINTF("laser 1064 start e=%d\r\n",laser_ctr_param.laserEnerge);             
-            if(laser_ctr_param.laserEnerge>30)
-            {              
-              local_f=1.80+laser_ctr_param.laserEnerge*0.009;
-            }
-            else 
-            {
-              local_f=1.90+laser_ctr_param.laserEnerge*0.0048;        
-            }
+          {  
             if(pLaserConfig->proCali==0)
             { 
               if(pLaserConfig->treatmentWaterLevel!=0)
@@ -991,23 +984,42 @@ void laserWorkTask04(void *argument)
             else
             {
               //local_f=local_f+u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-4].energe_cali*0.001;
-            }         
-            if(local_f>3.8) local_f=3.8;//250mJ~4.0
-            if(local_f<1.5) local_f=1.5;//250mJ~4.0
+            }   
+            if(laser_ctr_param.airPressureLevel==0)
+            {
+              u_sys_param.sys_config_param.laser_pulse_width_us=80;
+            }
+            else u_sys_param.sys_config_param.laser_pulse_width_us=50+laser_ctr_param.airPressureLevel*50;
+            //E=P*T: E=(Vdac*Vdac)*x*T;Vdac=
+            laser_ctr_param.laserEnerge=5+laser_ctr_param.ledLightLevel*5;          
+            if(laser_ctr_param.laserEnerge>200) laser_ctr_param.laserEnerge=200;
+            DEBUG_PRINTF("laser 1064 start e=%d\r\n",laser_ctr_param.laserEnerge);             
+            if(laser_ctr_param.laserEnerge>30)
+            {              
+              local_f=1.80+laser_ctr_param.laserEnerge*0.009;
+            }
+            else 
+            {
+              local_f=1.90+laser_ctr_param.laserEnerge*0.0048;        
+            }
+            local_f=sqrt(laser_ctr_param.laserEnerge*10.0/(u_sys_param.sys_config_param.laser_pulse_width_us));
+            //local_f=1.5+laser_ctr_param.ledLightLevel*0.1;                  
+            if(local_f>DAC_MAX_VOLTAGE_F) local_f=DAC_MAX_VOLTAGE_F;//250mJ~4.0
+            if(local_f<DAC_MIN_VOLTAGE_F) local_f=DAC_MIN_VOLTAGE_F;//250mJ~4.0
+            if(local_f<1.8) laser_ctr_param.lowEnergeMode=1;
+            else laser_ctr_param.lowEnergeMode=0;
             AD5541A_SetVoltage(local_f,4.096);       
             sGenSta.laser_run_B1_laser_out_status=1; 
             rgbMessage = RGB_LASER_WORK_STATUS;
-            osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0); 
-            u_sys_param.sys_config_param.laser_pulse_width_us=113;
-            float e_pulseTime=u_sys_param.sys_config_param.laser_pulse_width_us+jdq_pulse_pro_timeUs[ (uint16_t)(local_f*10-15.0)];
-            DEBUG_PRINTF("laser 1064 start pulse width=%.1f\r\n",e_pulseTime);
-            app_laser_pulse_width_set(u_sys_param.sys_config_param.laser_pulse_width_us);   
+            osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);
+             
+            DEBUG_PRINTF("laser 1064 start pulse width=%.1f\r\n",u_sys_param.sys_config_param.laser_pulse_width_us);             
             if(pLaserConfig->proCali!=0)
             {
-              app_laser_pulse_start((uint16_t)e_pulseTime,10); 
+              app_laser_pulse_start(u_sys_param.sys_config_param.laser_pulse_width_us,10,local_f); 
             }
-           else  app_laser_pulse_start((uint16_t)e_pulseTime,laser_ctr_param.laserFreq);  
-          }           
+            else  app_laser_pulse_start(u_sys_param.sys_config_param.laser_pulse_width_us,laser_ctr_param.laserFreq,local_f);  
+          }                     
         }
         else 
         {
@@ -1017,7 +1029,7 @@ void laserWorkTask04(void *argument)
           }        
           if(sGenSta.laser_run_B1_laser_out_status!=0)
           {            
-            app_laser_pulse_start(LASER_PULSE_STOP,laser_ctr_param.laserFreq); 
+            app_laser_pulse_start(LASER_PULSE_STOP,laser_ctr_param.laserFreq,0); 
             AD5541A_SetVoltage(0, 4.096);
             sGenSta.laser_run_B1_laser_out_status=0; 
             if(pLaserConfig->proCali==0&&pLaserConfig->treatmentWaterLevel!=0)
@@ -1196,7 +1208,7 @@ void canReceiveTask07(void *argument)
     if(readLen<fd_canRxLen) 
     {
       packLen = fd_canRxLen-readLen;      
-      #if 0        
+      #if 1        
       DEBUG_PRINTF("CAN_receive_pack:\r\n");
       for(int i=0;i<packLen;i++)
       {
@@ -1534,7 +1546,7 @@ void ge2117ManageTask10(void *argument)
     float temp_t_f=Get_pt_tempture();
     sEnvParam.eth_k1_temprature = temp_t_f;
     sEnvParam.eth_k2_temprature = temp_t_f;
-    u_sys_param.sys_config_param.cool_temprature_target=230;
+    u_sys_param.sys_config_param.cool_temprature_target=240;
     if(sEnvParam.eth_k1_temprature>ERR_LOW_TEMPRATURE_LASER&&sEnvParam.eth_k1_temprature<ERR_HIGH_TEMPRATURE_LASER)
     {        
       app_ge2117_gp_ctr(sEnvParam.eth_k1_temprature,local_timeS);             
@@ -1635,8 +1647,8 @@ void musicTask12(void *argument)
   }
   if(GPIO_Pin==LASER_PULSE_COUNT_in_Pin)
   {
-    u_sys_param.sys_config_param.laser_pulse_count++;   	
-		HAL_TIM_Base_Start_IT(&htim3);
+    u_sys_param.sys_config_param.laser_pulse_count++;
+    if(laser_ctr_param.lowEnergeMode==0)   HAL_TIM_Base_Start_IT(&htim3);
     pulse_adc_start();
   }   
   #ifdef ONE_WIRE_BUS_JT_SLAVE 
@@ -1800,7 +1812,7 @@ unsigned  int app_get_cali_devid(void)
 void app_set_default_sys_config_param(void)
 {	
 	u_sys_param. sys_config_param.synchronousFlag = 0;
- // if(u_sys_param. sys_config_param.equipmentId==0||u_sys_param. sys_config_param.equipmentId==0xFFFFFFFF)
+  if(u_sys_param. sys_config_param.equipmentId==0||u_sys_param. sys_config_param.equipmentId==0xFFFFFFFF)
   {
 	  u_sys_param. sys_config_param.equipmentId = app_get_cali_devid();//默认参数
   }
@@ -1867,7 +1879,7 @@ void app_set_default_sys_config_param(void)
       //check param
       if(u_sys_param.sys_config_param.cool_temprature_target>280||u_sys_param.sys_config_param.cool_temprature_target<210)
       {
-        u_sys_param.sys_config_param.cool_temprature_target=230;
+        u_sys_param.sys_config_param.cool_temprature_target=240;
       } 
       memcpy(u_sys_default_param.data,u_sys_param.data,sizeof(SYS_CONFIG_PARAM));      
       DEBUG_PRINTF("sys param read ok= %d\r\n",u_sys_param.sys_config_param.laser_pulse_count);
@@ -2285,17 +2297,6 @@ unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int
  * @note 
  * @return 
 *******************************************************************************/
-void app_laser_pulse_width_set(unsigned short int pulseUs)
-{	  	
-  __HAL_TIM_SetAutoreload(&htim2,pulseUs-1);//1~100HZ	 	
-}
-
-  /***************************************************************************//**
- * @brief app_jdq_restart
- * @param 
- * @note 
- * @return 
-*******************************************************************************/
  void app_jdq_restart(void)
  {	  	
 	 jdq_reley_charge_ready(0);//负载断开
@@ -2317,7 +2318,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   heatTime+=	timeMs;
 	if(heatTime>SYS_1_MINUTES_TICK )	
 	{
-		 app_jdq_restart();
+		app_jdq_restart();
 		heatTime=0;
 	}
 	else
