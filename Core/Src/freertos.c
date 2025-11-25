@@ -112,13 +112,18 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
   69,63,57,54,50,47,45,43,41,39,38,\
   37,36,34,33,32,31,31,30,30,30,29,28,27};
   //脉冲触发时间：电脉宽=脉冲触发时间+光脉宽+7(延长)
-  //100us最低脉宽，初始能量值
-  static unsigned short int  jdq_laser_voltage_energe[26]={//(1.5V~4.0V)//0~230mJ//
-    5,15,20,27,32,37,42,47,52,57,66,
-    72,79,86,93,99,106,113,120, 127,\
-    134,141,148,155,162,169
+  static float jdq_pulse_energe_voltage[41]={//(0,5mJ~200mJ)
+    0,1.46, 1.49, 1.51, 1.54, 1.56, 1.62, 1.65, 1.64 , 1.67, 1.71,  1.75,\
+    1.81,1.82, 1.85, 1.92, 1.94, 1.98, 2.00 , 2.04, 2.06,  2.1,  2.17,\
+    2.18, 2.23, 2.24, 2.28, 2.29, 2.30 , 2.34, 2.36, 2.39, 2.43, 2.47,\
+    2.49, 2.53, 2.55, 2.57, 2.61, 2.63,  2.67
   };
-  
+  static float jdq_pulse_width_param[41]={//(0,5mJ~200mJ)//时间能量系数
+    0,0.004,0.064,0.074,0.097,0.104,0.152,0.175,0.193,0.211,0.249,0.27,\
+    0.304,0.306,0.335,0.356,0.395,0.419,0.439,0.47,0.506,0.518,0.553,\
+    0.575, 0.606,0.625,0.645,0.696,0.721,0.738,0.773,0.793,0.816,0.849,\
+    0.874,0.89, 0.929,0.957,0.978,1.01,1.034
+  };
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -591,24 +596,8 @@ void StartDefaultTask(void *argument)
     float s_jdq_set_voltage,s_jdq_set_current;      
     DEBUG_PRINTF("load laser jdq power system ... \r\n");  
     jdq_init(); 
-  #ifdef JDQ_PWR_GWB_3200W   
-    HAL_Delay(JDQ_RS485_FRAME_MAX_DELAY_MS);     
-    app_jdq_bus_power_on_off(1);
-    timeout = 0;
-    do
-    {
-      HAL_Delay(JDQ_RS485_FRAME_MIN_MS);         
-      timeout+=JDQ_RS485_FRAME_MIN_MS;    
-    }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);    
-    HAL_Delay(JDQ_RS485_FRAME_MIN_MS); 
-    app_jdq_bus_vol_current_set(LASER_JDQ_VOLTAGE_F,LASER_JDQ_CURRENT_LIMIT_F);
-    timeout = 0;
-    do
-    {
-      HAL_Delay(JDQ_RS485_FRAME_MIN_MS);         
-      timeout+=JDQ_RS485_FRAME_MIN_MS;    
-    }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
-    
+  #ifdef JDQ_PWR_GWB_3200W 
+    HAL_Delay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
     HAL_Delay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
     app_jdq_bus_power_onoff_sta_req();
     timeout = 0;
@@ -617,7 +606,7 @@ void StartDefaultTask(void *argument)
       HAL_Delay(JDQ_RS485_FRAME_MIN_MS);         
       timeout+=JDQ_RS485_FRAME_MIN_MS;    
     }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
-    if(app_jdq_get_vbus_sta()!=0)    
+    if(app_jdq_get_vbus_sta()!=0) 
     {
       DEBUG_PRINTF("lasr jdq  load ok jdq_v=%.1f v \r\n",app_jdq_get_vbus_sta()*0.01);
       HAL_Delay(JDQ_RS485_FRAME_MAX_DELAY_MS);     
@@ -968,7 +957,7 @@ void laserWorkTask04(void *argument)
           }         
         }
         else  app_laser_timer_ctr(laser_ctr_param.timerCtr, 0);             
-        if(recKeyMessage==key_jt_long_press&&sGenSta.laser_run_B5_timer_status==0)
+        if(recKeyMessage==key_jt_long_press)//&&sGenSta.laser_run_B5_timer_status==0)
         {
           if(sGenSta.laser_run_B1_laser_out_status==0)
           {  
@@ -985,25 +974,17 @@ void laserWorkTask04(void *argument)
             {
               //local_f=local_f+u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-4].energe_cali*0.001;
             }   
-            if(laser_ctr_param.airPressureLevel==0)
+            if(laser_ctr_param.airPressureLevel==0)//test
             {
               u_sys_param.sys_config_param.laser_pulse_width_us=80;
             }
-            else u_sys_param.sys_config_param.laser_pulse_width_us=50+laser_ctr_param.airPressureLevel*50;
-            //E=P*T: E=(Vdac*Vdac)*x*T;Vdac=
-            laser_ctr_param.laserEnerge=5+laser_ctr_param.ledLightLevel*5;          
-            if(laser_ctr_param.laserEnerge>200) laser_ctr_param.laserEnerge=200;
-            DEBUG_PRINTF("laser 1064 start e=%d\r\n",laser_ctr_param.laserEnerge);             
-            if(laser_ctr_param.laserEnerge>30)
-            {              
-              local_f=1.80+laser_ctr_param.laserEnerge*0.009;
-            }
-            else 
-            {
-              local_f=1.90+laser_ctr_param.laserEnerge*0.0048;        
-            }
-            local_f=sqrt(laser_ctr_param.laserEnerge*10.0/(u_sys_param.sys_config_param.laser_pulse_width_us));
-            //local_f=1.5+laser_ctr_param.ledLightLevel*0.1;                  
+            else u_sys_param.sys_config_param.laser_pulse_width_us=50+laser_ctr_param.airPressureLevel*50;              
+            laser_ctr_param.laserEnerge=laser_ctr_param.ledLightLevel*5;//test          
+            if(laser_ctr_param.laserEnerge>200) laser_ctr_param.laserEnerge=200;         
+            if(laser_ctr_param.laserEnerge> ENERGE_MAX_VALUE) laser_ctr_param.laserEnerge=ENERGE_MAX_VALUE;
+            if(laser_ctr_param.laserEnerge< ENERGE_MIN_VALUE) laser_ctr_param.laserEnerge=ENERGE_MIN_VALUE;
+            local_f=jdq_pulse_energe_voltage[laser_ctr_param.laserEnerge/5]; 
+            DEBUG_PRINTF("e=%dev=%.2f\r\n",laser_ctr_param.laserEnerge,local_f); 
             if(local_f>DAC_MAX_VOLTAGE_F) local_f=DAC_MAX_VOLTAGE_F;//250mJ~4.0
             if(local_f<DAC_MIN_VOLTAGE_F) local_f=DAC_MIN_VOLTAGE_F;//250mJ~4.0
             if(local_f<1.8) laser_ctr_param.lowEnergeMode=1;
@@ -1011,9 +992,7 @@ void laserWorkTask04(void *argument)
             AD5541A_SetVoltage(local_f,4.096);       
             sGenSta.laser_run_B1_laser_out_status=1; 
             rgbMessage = RGB_LASER_WORK_STATUS;
-            osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);
-             
-            DEBUG_PRINTF("laser 1064 start pulse width=%.1f\r\n",u_sys_param.sys_config_param.laser_pulse_width_us);             
+            osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);  
             if(pLaserConfig->proCali!=0)
             {
               app_laser_pulse_start(u_sys_param.sys_config_param.laser_pulse_width_us,10,local_f); 
@@ -1208,7 +1187,7 @@ void canReceiveTask07(void *argument)
     if(readLen<fd_canRxLen) 
     {
       packLen = fd_canRxLen-readLen;      
-      #if 1        
+      #if 0        
       DEBUG_PRINTF("CAN_receive_pack:\r\n");
       for(int i=0;i<packLen;i++)
       {

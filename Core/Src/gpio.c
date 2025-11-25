@@ -264,21 +264,28 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   else 
   { 
     ptcRunTime++;
-    if(ptcRunTime>9)
+    if(ptcRunTime>19)
     {
       ptcRunTime=0;//
       app_PTC_en_switch(ENABLE);
     }
-    if(compareTemp+2.0<MIN_TEMPRATURE_LASER)
+    if(compareTemp+4.0<MIN_TEMPRATURE_LASER)
     {
-      if(ptcRunTime>7)//duty=%80)
+      if(ptcRunTime>15)//duty=%80)
+      {               
+        app_PTC_en_switch(DISABLE);
+      } 
+    }
+    else if(compareTemp+2.0<MIN_TEMPRATURE_LASER)
+    {
+      if(ptcRunTime>7)//duty=%40)
       {               
         app_PTC_en_switch(DISABLE);
       } 
     }
     else
     {
-      if(ptcRunTime>3)//duty=%40)
+      if(ptcRunTime>2)//duty=%15)
       {                       
         app_PTC_en_switch(DISABLE);
       }

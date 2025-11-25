@@ -215,7 +215,7 @@ void Error_Handler(void);
 
 #define MAX_TMC2226_NTC_TEMPRATURE  85.0f//85.0
 //激光工作环境温度，冷却液温度（允许温差3度）
-#define MIN_TEMPRATURE_LASER  -1.0f //22.0f
+#define MIN_TEMPRATURE_LASER  -0.5f //22.0f
 #define MID_TEMPRATURE_LASER  0.0f // 23.0f//最佳工作温度
 #define MAX_TEMPRATURE_LASER  0.8f //23.8f
 
@@ -252,7 +252,7 @@ void Error_Handler(void);
 #ifdef IWDG_USED
 #define IWDG_USED  
 #endif
-#ifdef DEBUG_MSG_UART 
+#ifndef DEBUG_MSG_UART 
 #define DEBUG_MSG_UART  /*use printf*/
 #define DEBUG_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
