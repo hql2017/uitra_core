@@ -112,11 +112,16 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
   69,63,57,54,50,47,45,43,41,39,38,\
   37,36,34,33,32,31,31,30,30,30,29,28,27};
   //脉冲触发时间：电脉宽=脉冲触发时间+光脉宽+7(延长)
-  static float jdq_pulse_energe_voltage[41]={//(0,5mJ~200mJ)
+  static float jdq_pulse_energe_voltage[81]={//(5mJ~400mJ)
     0,1.46, 1.49, 1.51, 1.54, 1.56, 1.62, 1.65, 1.64 , 1.67, 1.71,  1.75,\
     1.81,1.82, 1.85, 1.92, 1.94, 1.98, 2.00 , 2.04, 2.06,  2.1,  2.17,\
     2.18, 2.23, 2.24, 2.28, 2.29, 2.30 , 2.34, 2.36, 2.39, 2.43, 2.47,\
-    2.49, 2.53, 2.55, 2.57, 2.61, 2.63,  2.67
+    2.49, 2.53, 2.55, 2.57, 2.61, 2.63,  2.67,//200mJJ
+    2.6525,2.685,2.7175,2.75,2.7825,2.815,2.8475,2.88,
+    2.9125,2.945,2.9775,3.01,3.0425,3.075,3.1075,3.14,3.1725,\
+    3.205,3.2375,3.27,3.3025,3.335,3.3675,3.4,3.4325,3.465,3.4975,\
+    3.53,3.5625,3.595,3.6275,3.66,3.6925,3.725,3.7575,3.79,3.8225,\
+    3.855,3.8875,3.92
   };
   static float jdq_pulse_width_param[41]={//(0,5mJ~200mJ)//时间能量系数
     0,0.004,0.064,0.074,0.097,0.104,0.152,0.175,0.193,0.211,0.249,0.27,\
@@ -855,7 +860,7 @@ void keyScanTask03(void *argument)
               }	
               else 
               {            
-                DEBUG_PRINTF("JT key press %d\r\n",key_message);
+               // DEBUG_PRINTF("JT key press %d\r\n",key_message);
                 key_message =	NO_KEY_MESSAGE;
                 history_key_message=key_message;									
               }
@@ -980,14 +985,17 @@ void laserWorkTask04(void *argument)
             }
             else u_sys_param.sys_config_param.laser_pulse_width_us=50+laser_ctr_param.airPressureLevel*50;              
             laser_ctr_param.laserEnerge=laser_ctr_param.ledLightLevel*5;//test          
-            if(laser_ctr_param.laserEnerge>200) laser_ctr_param.laserEnerge=200;         
-            if(laser_ctr_param.laserEnerge> ENERGE_MAX_VALUE) laser_ctr_param.laserEnerge=ENERGE_MAX_VALUE;
+            if(laser_ctr_param.laserEnerge>400) laser_ctr_param.laserEnerge=400;         
+          //  if(laser_ctr_param.laserEnerge> ENERGE_MAX_VALUE) laser_ctr_param.laserEnerge=ENERGE_MAX_VALUE;
             if(laser_ctr_param.laserEnerge< ENERGE_MIN_VALUE) laser_ctr_param.laserEnerge=ENERGE_MIN_VALUE;
-            local_f=jdq_pulse_energe_voltage[laser_ctr_param.laserEnerge/5]; 
-            DEBUG_PRINTF("e=%dev=%.2f\r\n",laser_ctr_param.laserEnerge,local_f); 
+            if(laser_ctr_param.timerCtr>90)local_f=jdq_pulse_energe_voltage[laser_ctr_param.laserEnerge/5]+laser_ctr_param.timerCtr*0.001-0.09; 
+            else local_f=jdq_pulse_energe_voltage[laser_ctr_param.laserEnerge/5]-laser_ctr_param.timerCtr*0.001+0.09; 
+            local_f=1.4+laser_ctr_param.ledLightLevel*0.1;
+           // u_sys_param.sys_config_param.laser_pulse_width_us+=(laser_ctr_param.timerCtr);
+            DEBUG_PRINTF("e=%dev=%.3f\r\n",laser_ctr_param.laserEnerge,local_f); 
             if(local_f>DAC_MAX_VOLTAGE_F) local_f=DAC_MAX_VOLTAGE_F;//250mJ~4.0
             if(local_f<DAC_MIN_VOLTAGE_F) local_f=DAC_MIN_VOLTAGE_F;//250mJ~4.0
-            if(local_f<1.8) laser_ctr_param.lowEnergeMode=1;
+            if(local_f<1.85) laser_ctr_param.lowEnergeMode=1;
             else laser_ctr_param.lowEnergeMode=0;
             AD5541A_SetVoltage(local_f,4.096);       
             sGenSta.laser_run_B1_laser_out_status=1; 
@@ -1053,7 +1061,7 @@ void laserWorkTask04(void *argument)
         if(sGenSta.laser_run_B1_laser_out_status!=0) 
         {
           app_get_adc_value( AD2_LASER_1064_INDEX,&sEnvParam.laser_1064_energy);
-          DEBUG_PRINTF("energe=%.1f\r\n",sEnvParam.laser_1064_energy);        
+          //DEBUG_PRINTF("energe=%.1f\r\n",sEnvParam.laser_1064_energy);        
         }
           #ifdef JDQ_PWR_GWB_3200W
           osDelay(JDQ_RS485_FRAME_MIN_MS); 
@@ -1522,7 +1530,7 @@ void ge2117ManageTask10(void *argument)
       local_timeS++;
       local_time100mS=0;
     }    
-    float temp_t_f=Get_pt_tempture();
+    float temp_t_f = Get_pt_tempture();
     sEnvParam.eth_k1_temprature = temp_t_f;
     sEnvParam.eth_k2_temprature = temp_t_f;
     u_sys_param.sys_config_param.cool_temprature_target=240;

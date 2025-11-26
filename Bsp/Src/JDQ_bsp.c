@@ -949,11 +949,17 @@ static unsigned short int  jdq_pulse_cali_time01Us[27]={//(1.4V~4.0V)(0.1us)
   * @note  timeUs: laser pulse  100us~200us ；frq:pulse frequency; energeVoltage:DAC 1.5V~4.0V
   * @retval None
   */
-static unsigned short int  jdq_pulse_pro_timeUs[26]={//(1.5V~4.0V)  
-	275,200,160,150,130,118,108,99,90,\
-	84,80, 76,72,68,64,62,60,58,\
+//static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)  
+//	350,275,200,160,150,130,118,108,99,90,\
+//	84,80, 76,72,68,64,62,60,58,\
+	//56,54,52,50,48,46,45,44
+//};
+static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)  
+	350,269,204,169,150,138,128,106,93,84,\
+	73,71, 69,67,65,64,62,60,58,\
 	56,54,52,50,48,46,45,44
 };
+
  void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq,float energeVoltage)
  { 
 	unsigned  int counter;	
@@ -962,15 +968,20 @@ static unsigned short int  jdq_pulse_pro_timeUs[26]={//(1.5V~4.0V)
 	{
 		//check param
 		float ev=energeVoltage;
+		uint16_t timeus;
 		if(ev>DAC_MAX_VOLTAGE_F) ev=DAC_MAX_VOLTAGE_F;
 		if(ev<DAC_MIN_VOLTAGE_F) ev=DAC_MIN_VOLTAGE_F;
-		if(energeVoltage<1.8)
+		if(energeVoltage<1.85)
 		{
-			timeLoad=timeUs+jdq_pulse_pro_timeUs[(uint16_t)(ev*10-15.0)]-((unsigned short int)(energeVoltage*2.14+6.69));
+		 	if(energeVoltage<1.6) timeus=(unsigned short int)((73.8/ev)+288/(ev*ev)+220*(ev-1.4))+timeUs+87;
+			else timeus=(unsigned short int)((73.8/ev)+288/(ev*ev)+210*(1.80-ev))+timeUs;
+			timeLoad=timeus;
 		}
 		else
 		{
-			timeLoad=timeUs+jdq_pulse_pro_timeUs[(uint16_t)(ev*10-15.0)]+((unsigned short int)(energeVoltage*2.14+6.69));
+			timeus=(unsigned short int)((73.8/ev)+6.5+288/(ev*ev)+6.5)+timeUs;
+			DEBUG_PRINTF("T=%d",timeus);
+			timeLoad=timeus;
 			app_laser_pulse_width_set(timeUs*10,ev);
 		} 
 		if( timeLoad > JDQ_MAX_CONTROL_PULSE_US_WIDTH)  timeLoad = JDQ_MAX_CONTROL_PULSE_US_WIDTH;//check pulse timeUs
