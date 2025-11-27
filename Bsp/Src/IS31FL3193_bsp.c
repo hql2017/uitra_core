@@ -12,6 +12,7 @@
 #define  IS3_I2C_TIMEOUT  100
 void RGB_shutdown(unsigned char status );
 
+
 #ifdef  FL3236_USED
 static uint8_t rgbBreathCountMs=0;//
 #else
@@ -199,7 +200,6 @@ void IS3_init(void)
 	RGB_shutdown(1);
 	#endif
 }
-
 /************************************************************************//**
   * @brief   rgb颜色常亮
   * @param  rgb     
@@ -216,7 +216,7 @@ void rgb_color_all(unsigned short int color)
 		is_12_all_rgb(0x07E0);//长亮不闪烁
 		#else 
 			rgb_buff[1]=0;
-			rgb_buff[0]=255;//++;   
+			rgb_buff[0]=(unsigned char)(u_sys_param.sys_config_param.rgb_light*2.55);//255;//++;   
 			rgb_buff[2]=0;			
 			rgb_buff[3]=0;//updata
 			ISI3_IIC_Write(IS3_REG_CHANNEL1_PWM,rgb_buff,4); 
@@ -229,9 +229,9 @@ void rgb_color_all(unsigned short int color)
 		#ifdef  FL3236_USED//12路
 		is_12_all_rgb(0xF81F);//长亮不闪烁
 		#else 
-		rgb_buff[1]=255;
+		rgb_buff[1]=(unsigned char)(u_sys_param.sys_config_param.rgb_light*2.55);//255;
 		rgb_buff[0]=0;;   
-		rgb_buff[2]=255;		
+		rgb_buff[2]=(unsigned char)(u_sys_param.sys_config_param.rgb_light*2.55);//255;		
 		rgb_buff[3]=0;//updata
 		ISI3_IIC_Write(IS3_REG_CHANNEL1_PWM,rgb_buff,4); 
 		rgb_buff[0]=0x00;
@@ -326,7 +326,7 @@ void rgb_color_all(unsigned short int color)
         rgb_buff[1]++;
         rgb_buff[0]=0;//++;   
         rgb_buff[2]++; 
-				if(rgb_buff[1]==255) flag=1;
+				if(rgb_buff[1]==(unsigned char)(u_sys_param.sys_config_param.rgb_light*2.55)) flag=1;//255) flag=1;
 			}
 			else 
 			{
@@ -508,7 +508,7 @@ void Green_Breath(void )//呼吸一次，约耗时465ms，单色约600/128=4.7ms
       for (i=0; i<12; i++) //R
       { // R  G  B  
         I2C_WriteByte(Addr_GND_GND,1+i*3,0);   //B//PWM       
-        I2C_WriteByte(Addr_GND_GND,2+i*3,PWM_64_table[j]);//*(u_sys_param.sys_config_param.rgb_light*0.01));   //PWM 
+        I2C_WriteByte(Addr_GND_GND,2+i*3,(unsigned char )(PWM_64_table[j]*(u_sys_param.sys_config_param.rgb_light*0.01)));   //PWM 
         I2C_WriteByte(Addr_GND_GND,3+i*3,0);  //R
       }      
       I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
@@ -531,9 +531,9 @@ void High_Breath(void )//呼吸一次，
 			breath_falg=1;
 			for (i=0; i<12; i++) //R
 			{ // R  G  B  
-				I2C_WriteByte(Addr_GND_GND,1+i*3,64);//PWM_64_table[64]);//*(u_sys_param.sys_config_param.rgb_light*0.01));   //B//PWM       
+				I2C_WriteByte(Addr_GND_GND,1+i*3,(unsigned char )(u_sys_param.sys_config_param.rgb_light*2.55));   //B//PWM       
 				I2C_WriteByte(Addr_GND_GND,2+i*3,0);   //PWM 
-				I2C_WriteByte(Addr_GND_GND,3+i*3,64);//PWM_64_table[64]);//*(u_sys_param.sys_config_param.rgb_light*0.01));  //R
+				I2C_WriteByte(Addr_GND_GND,3+i*3,(unsigned char )(u_sys_param.sys_config_param.rgb_light*2.55)); //R
 			}    
 		}
 		else

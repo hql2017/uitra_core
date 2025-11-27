@@ -370,7 +370,7 @@ typedef struct
   unsigned char   timerEnableFlag;         	//倒计时启动
   unsigned char   cleanCtr;         			  //清洗消毒
   unsigned char   air_water_prepare_ctr;    //水雾准备
-  unsigned char lowEnergeMode; //DAC<1.8V
+  unsigned char lowEnergeMode; //DAC<1.85V
 }LASER_CONTROL_PARAM;//ctr param
 extern LASER_CONTROL_PARAM laser_ctr_param;
 typedef struct{ 

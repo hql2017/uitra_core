@@ -60,7 +60,7 @@ void app_hmi_report_status(sys_genaration_status *sys_status)
 		if(sEnvParam.JT_bat<30)	sys_status->laser_param_B456_jt_status=KEY_LOW_POWER;	
 		else send_buff_jt=1;
 	}
-	else send_buff_jt=(sys_status->laser_param_B456_jt_status%5);
+	else send_buff_jt=(sys_status->laser_param_B456_jt_status%5);	
 	can_tx_data[7]=sys_status->laser_param_B01_energe_status|sys_status->laser_param_B23_air_pump_pressure_status<<2|send_buff_jt<<4;//sys_status->laser_param_B456_jt_status<<4;
 	can_tx_data[8]=sys_status->genaration_io_status&0xFF;
 	can_tx_data[9]=(sys_status->genaration_io_status>>8)&0xFF;
@@ -234,7 +234,8 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			}
 			else if(data[8]==2)//search
 			{
-				u_sys_param.sys_config_param.jtId = sEnvParam.JT_ID;											
+				u_sys_param.sys_config_param.jtId = sEnvParam.JT_ID;
+				DEBUG_PRINTF("JT ID%d",sEnvParam.JT_ID);											
 			}			
 			can_tx_data[2]=13;//len					
 			can_tx_data[4]=u_sys_param.sys_config_param.jtId&0xFF;

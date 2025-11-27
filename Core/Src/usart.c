@@ -30,9 +30,9 @@
 
 
 
-#define MAX_LPUART1_RX_LEN  256
-static uint8_t lpuart1_rx_data[MAX_LPUART1_RX_LEN]={0};
-
+#define MAX_LPUART1_RX_LEN  255
+static uint8_t lpuart1_rx_data[MAX_LPUART1_RX_LEN+1]={0};
+static uint8_t lpRecLen,lp_rec_byte;
 /* USER CODE END 0 */
 
 UART_HandleTypeDef hlpuart1;
@@ -371,13 +371,12 @@ extern void app_jdq_rs485_receive_data(void);
  void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
  {			
    if(UartHandle->Instance==hlpuart1.Instance)
-   {	    	
-     //lwrb_len=lwrb_write(&rs232_lwrb, RS232_rx_data, 1);//			
-     if(HAL_UART_Receive_IT(&hlpuart1, lpuart1_rx_data,1)!=HAL_OK)
-     {
-       /*Transfer error in reception process */
-       Error_Handler();			
-     }			
+   {	   
+      if(HAL_UART_Receive_IT(&hlpuart1, &lp_rec_byte,1)!=HAL_OK)
+      {
+        /*Transfer error in reception process */
+        Error_Handler();			
+      }			
    }	
  if(UartHandle->Instance==huart5.Instance)	
   {  

@@ -965,24 +965,57 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 	unsigned  int counter;	
 	unsigned short int timeLoad;
 	if(timeUs!=0)
+	//if(freq!=0)
 	{
 		//check param
 		float ev=energeVoltage;
 		uint16_t timeus;
+		uint16_t timeus2;
 		if(ev>DAC_MAX_VOLTAGE_F) ev=DAC_MAX_VOLTAGE_F;
 		if(ev<DAC_MIN_VOLTAGE_F) ev=DAC_MIN_VOLTAGE_F;
+		if(energeVoltage<1.6)
+		{
+			timeus2=1200*(1.684-energeVoltage);//测量脉宽
+		}
+		else if(energeVoltage<1.7)
+		{
+			timeus2=500*(1.882-energeVoltage);
+		}	
+		else if(energeVoltage<1.8)
+		{
+			timeus2=300*(2.0667-energeVoltage);
+		}
+		else if(energeVoltage<2.0)
+		{
+			timeus2=100*(2.6-energeVoltage);
+		}
+		else if(energeVoltage<2.3)
+		{
+			timeus2=65*(2.923-energeVoltage);
+		}
+		else if(energeVoltage<2.9)
+		{
+			timeus2=30*(3.6-energeVoltage);
+		}
+		else if(energeVoltage<DAC_MAX_VOLTAGE_F+1)
+		{
+			timeus2=10*(5.0-energeVoltage);
+		}
+		else 
+		{
+			timeus2=(unsigned short int)(288/(ev*ev));
+		}		
 		if(energeVoltage<1.85)
 		{
-		 	if(energeVoltage<1.6) timeus=(unsigned short int)((73.8/ev)+288/(ev*ev)+220*(ev-1.4))+timeUs+87;
-			else timeus=(unsigned short int)((73.8/ev)+288/(ev*ev)+210*(1.80-ev))+timeUs;
+		 	timeus=(unsigned short int)(94.0/ev)+timeUs+timeus2;
 			timeLoad=timeus;
 		}
 		else
 		{
-			timeus=(unsigned short int)((73.8/ev)+6.5+288/(ev*ev)+6.5)+timeUs;
-			DEBUG_PRINTF("T=%d",timeus);
+			timeus=(unsigned short int)((94.0/ev)+13)+timeUs+timeus2;			
 			timeLoad=timeus;
-			app_laser_pulse_width_set(timeUs*10,ev);
+			DEBUG_PRINTF("t=%d",timeus);
+			if(timeUs>80) app_laser_pulse_width_set(timeUs*10,ev);
 		} 
 		if( timeLoad > JDQ_MAX_CONTROL_PULSE_US_WIDTH)  timeLoad = JDQ_MAX_CONTROL_PULSE_US_WIDTH;//check pulse timeUs
 		if( timeLoad <JDQ_MIN_CONTROL_PULSE_US_WIDTH )  timeLoad = JDQ_MIN_CONTROL_PULSE_US_WIDTH;//check pulse timeUs		

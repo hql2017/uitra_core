@@ -101,6 +101,7 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+
 //static float voltage[16]={\
 1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,\
 	2.7,2.9,3.1,3.5,3.8}
@@ -112,7 +113,21 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
   69,63,57,54,50,47,45,43,41,39,38,\
   37,36,34,33,32,31,31,30,30,30,29,28,27};
   //脉冲触发时间：电脉宽=脉冲触发时间+光脉宽+7(延长)
-  static float jdq_pulse_energe_voltage[81]={//(5mJ~400mJ)
+  static float jdq_100uspulse_energe_voltage[41]={//(0,5mJ~200mJ)
+    0,1.43, 1.48, 1.6, 1.65, 1.69, 1.77, 1.84, 1.92, 2, 2.08, 2.14,\
+    2.2, 2.29, 2.37, 2.43, 2.49, 2.55,2.63,2.70 , 2.77, 2.84, 2.89,\
+    2.96, 3.03, 3.08, 3.13, 3.19, 3.25,3.32,3.39, 3.46, 3.53, 3.60,\
+    3.66, 3.72, 3.78, 3.84, 3.89 ,  3.95,   4.01,
+    //200mJ    
+  };
+  static float jdq_120uspulse_energe_voltage[41]={//(0,5mJ~200mJ)
+    0,1.42, 1.465, 1.53, 1.6, 1.66,1.7, 1.76, 1.828, 1.87,1.94, 2.01,\
+    2.07, 2.135, 2.195, 2.25, 2.3, 2.365, 2.43, 2.48, 2.53, 2.58, 2.63,\
+    2.68, 2.73, 2.78, 2.83, 2.89, 2.95, 3.00 , 3.06, 3.12, 3.18, 3.22,\
+    3.26, 3.32, 3.375, 3.43, 3.48, 3.53, 3.58   
+    //200mJ    
+  };
+  static float jdq_200uspulse_energe_voltage[81]={//(0,5mJ~400mJ)//暂定
     0,1.46, 1.49, 1.51, 1.54, 1.56, 1.62, 1.65, 1.64 , 1.67, 1.71,  1.75,\
     1.81,1.82, 1.85, 1.92, 1.94, 1.98, 2.00 , 2.04, 2.06,  2.1,  2.17,\
     2.18, 2.23, 2.24, 2.28, 2.29, 2.30 , 2.34, 2.36, 2.39, 2.43, 2.47,\
@@ -691,7 +706,7 @@ void StartDefaultTask(void *argument)
       load_sta = 1;
     } 
   #endif   
-    app_laser_pulse_start(LASER_PULSE_STOP,20,0);      
+    app_laser_pulse_start(LASER_PULSE_STOP, LASER_PULSE_STOP,LASER_PULSE_STOP);
     load_sta=0;
     DEBUG_PRINTF("load treatment water system...\r\n");
     tmc2226_init();  
@@ -905,7 +920,7 @@ void laserWorkTask04(void *argument)
       if(laser_close_sem==osOK)
       {        	
         sGenSta.laser_run_B1_laser_out_status=0; 	
-        app_laser_pulse_start(LASER_PULSE_STOP,laser_ctr_param.laserFreq,0);  
+        app_laser_pulse_start(LASER_PULSE_STOP,LASER_PULSE_STOP,LASER_PULSE_STOP);  
         tmc2226_start(0,laser_ctr_param.treatmentWaterLevel);  
         osDelay(120);
         tmc2226_stop();  
@@ -965,7 +980,10 @@ void laserWorkTask04(void *argument)
         if(recKeyMessage==key_jt_long_press)//&&sGenSta.laser_run_B5_timer_status==0)
         {
           if(sGenSta.laser_run_B1_laser_out_status==0)
-          {  
+          {
+            if(laser_ctr_param.laserEnerge> ENERGE_MAX_VALUE) laser_ctr_param.laserEnerge=ENERGE_MAX_VALUE;
+            if(laser_ctr_param.laserEnerge< ENERGE_MIN_VALUE) laser_ctr_param.laserEnerge=ENERGE_MIN_VALUE;
+            local_f=jdq_120uspulse_energe_voltage[laser_ctr_param.laserEnerge/5];
             if(pLaserConfig->proCali==0)
             { 
               if(pLaserConfig->treatmentWaterLevel!=0)
@@ -977,21 +995,13 @@ void laserWorkTask04(void *argument)
             }
             else
             {
-              //local_f=local_f+u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-4].energe_cali*0.001;
-            }   
-            if(laser_ctr_param.airPressureLevel==0)//test
-            {
-              u_sys_param.sys_config_param.laser_pulse_width_us=80;
-            }
-            else u_sys_param.sys_config_param.laser_pulse_width_us=50+laser_ctr_param.airPressureLevel*50;              
-            laser_ctr_param.laserEnerge=laser_ctr_param.ledLightLevel*5;//test          
-            if(laser_ctr_param.laserEnerge>400) laser_ctr_param.laserEnerge=400;         
-          //  if(laser_ctr_param.laserEnerge> ENERGE_MAX_VALUE) laser_ctr_param.laserEnerge=ENERGE_MAX_VALUE;
-            if(laser_ctr_param.laserEnerge< ENERGE_MIN_VALUE) laser_ctr_param.laserEnerge=ENERGE_MIN_VALUE;
-            if(laser_ctr_param.timerCtr>90)local_f=jdq_pulse_energe_voltage[laser_ctr_param.laserEnerge/5]+laser_ctr_param.timerCtr*0.001-0.09; 
-            else local_f=jdq_pulse_energe_voltage[laser_ctr_param.laserEnerge/5]-laser_ctr_param.timerCtr*0.001+0.09; 
-            local_f=1.4+laser_ctr_param.ledLightLevel*0.1;
-           // u_sys_param.sys_config_param.laser_pulse_width_us+=(laser_ctr_param.timerCtr);
+              //if(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)].energe_cali>2500)
+            //  {
+              //  local_f+=(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)].energe_cali-2500)*0.0001;//
+             // }
+              //else local_f-=(2500-u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)].energe_cali)*0.0001;//
+            }    
+            
             DEBUG_PRINTF("e=%dev=%.3f\r\n",laser_ctr_param.laserEnerge,local_f); 
             if(local_f>DAC_MAX_VOLTAGE_F) local_f=DAC_MAX_VOLTAGE_F;//250mJ~4.0
             if(local_f<DAC_MIN_VOLTAGE_F) local_f=DAC_MIN_VOLTAGE_F;//250mJ~4.0
@@ -1016,7 +1026,7 @@ void laserWorkTask04(void *argument)
           }        
           if(sGenSta.laser_run_B1_laser_out_status!=0)
           {            
-            app_laser_pulse_start(LASER_PULSE_STOP,laser_ctr_param.laserFreq,0); 
+            app_laser_pulse_start(LASER_PULSE_STOP,LASER_PULSE_STOP,LASER_PULSE_STOP); 
             AD5541A_SetVoltage(0, 4.096);
             sGenSta.laser_run_B1_laser_out_status=0; 
             if(pLaserConfig->proCali==0&&pLaserConfig->treatmentWaterLevel!=0)
@@ -1170,6 +1180,7 @@ void hmiAppTask06(void *argument)
       osDelay(50);
     }		
     sGenSta.genaration_io_status = osEventFlagsGet(auxStatusEvent01Handle);		
+    
     app_hmi_report_status(&sGenSta);    
 		osDelay(1);
   }
@@ -1533,7 +1544,7 @@ void ge2117ManageTask10(void *argument)
     float temp_t_f = Get_pt_tempture();
     sEnvParam.eth_k1_temprature = temp_t_f;
     sEnvParam.eth_k2_temprature = temp_t_f;
-    u_sys_param.sys_config_param.cool_temprature_target=240;
+    //u_sys_param.sys_config_param.cool_temprature_target=240;
     if(sEnvParam.eth_k1_temprature>ERR_LOW_TEMPRATURE_LASER&&sEnvParam.eth_k1_temprature<ERR_HIGH_TEMPRATURE_LASER)
     {        
       app_ge2117_gp_ctr(sEnvParam.eth_k1_temprature,local_timeS);             
@@ -2314,5 +2325,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
 	}
 }
 #endif
+
+  
 /* USER CODE END Application */
 

@@ -43,13 +43,13 @@ void app_jdq_sts_1200_receive_handle(void);
 #define MAX_UART1_BUFF_LENTH 128
 
 #define DAC_MAX_VOLTAGE_F 4.0f
-#define DAC_MIN_VOLTAGE_F 1.4f
+#define DAC_MIN_VOLTAGE_F 1.42f//1.4f
 
 #define ENERGE_MAX_VALUE 200
 #define ENERGE_MIN_VALUE 5
 
 #define JDQ_MAX_CONTROL_PULSE_US_WIDTH  500
-#define JDQ_MIN_CONTROL_PULSE_US_WIDTH  100
+#define JDQ_MIN_CONTROL_PULSE_US_WIDTH  10//100
 
 #ifndef JDQ_PWR_GWB_3200W
     #define JDQ_PWR_GWB_3200W   
