@@ -123,7 +123,7 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
   static float jdq_120uspulse_energe_voltage[41]={//(0,5mJ~200mJ)
     0,1.42, 1.465, 1.53, 1.6, 1.66,1.7, 1.76, 1.828, 1.87,1.94, 2.01,\
     2.07, 2.135, 2.195, 2.25, 2.3, 2.365, 2.43, 2.48, 2.53, 2.58, 2.63,\
-    2.68, 2.73, 2.78, 2.83, 2.89, 2.95, 3.00 , 3.06, 3.12, 3.18, 3.22,\
+    2.68, 2.73, 2.78, 2.83, 2.89, 2.95, 3.01 , 3.07, 3.12, 3.18, 3.22,\
     3.26, 3.32, 3.375, 3.43, 3.48, 3.53, 3.58   
     //200mJ    
   };
@@ -229,7 +229,7 @@ const osThreadAttr_t myTask09_attributes = {
 osThreadId_t myTask10Handle;
 const osThreadAttr_t myTask10_attributes = {
   .name = "myTask10",
-  .stack_size = 128 * 4,
+  .stack_size = 192 * 4,
   .priority = (osPriority_t) osPriorityNormal4,
 };
 /* Definitions for myTask11 */
@@ -942,8 +942,7 @@ void laserWorkTask04(void *argument)
         {
           osDelay(JDQ_RS485_FRAME_MIN_MS);         
           timeout+=JDQ_RS485_FRAME_MIN_MS;    
-        }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
-        //jdq_reley_charge(0);//close
+        }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);       
         osDelay(500);
         jdq_reley_charge_ready(1);       
         DEBUG_PRINTF("laser close ok\r\n");
@@ -965,7 +964,7 @@ void laserWorkTask04(void *argument)
         sGenSta.laser_run_B0_pro_hot_status=0;	
         rgbMessage=RGB_G_STANDBY;
         osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);
-        osEventFlagsClear(laserEvent02Handle,EVENTS_LASER_PREPARE_OK_ALL_BITS_MASK);	//clear
+        osEventFlagsClear(laserEvent02Handle,EVENTS_LASER_PREPARE_OK_ALL_BITS_MASK);
       }         
       if(statusJT==osOK)          
       {    
@@ -977,15 +976,26 @@ void laserWorkTask04(void *argument)
           }         
         }
         else  app_laser_timer_ctr(laser_ctr_param.timerCtr, 0);             
-        if(recKeyMessage==key_jt_long_press)//&&sGenSta.laser_run_B5_timer_status==0)
+        if(recKeyMessage==key_jt_long_press&&sGenSta.laser_run_B5_timer_status==0)
         {
           if(sGenSta.laser_run_B1_laser_out_status==0)
-          {
+          {  
+            if(laser_ctr_param.ledLightLevel==0) laser_ctr_param.laserFreq=1;
             if(laser_ctr_param.laserEnerge> ENERGE_MAX_VALUE) laser_ctr_param.laserEnerge=ENERGE_MAX_VALUE;
             if(laser_ctr_param.laserEnerge< ENERGE_MIN_VALUE) laser_ctr_param.laserEnerge=ENERGE_MIN_VALUE;
-            if(u_sys_param.sys_config_param.laser_pulse_width_us<144) u_sys_param.sys_config_param.laser_pulse_width_us=120;
-            else u_sys_param.sys_config_param.laser_pulse_width_us=180;
-            local_f=jdq_120uspulse_energe_voltage[laser_ctr_param.laserEnerge/5];
+            if(u_sys_param.sys_config_param.laser_pulse_width_us<100) u_sys_param.sys_config_param.laser_pulse_width_us=100;
+            if(u_sys_param.sys_config_param.laser_pulse_width_us>200) u_sys_param.sys_config_param.laser_pulse_width_us=200; 
+          
+            //float  tempr_e=(laser_ctr_param.laserFreq-24.5)*laser_ctr_param.laserEnerge*0.000012; //temprature
+            float freq_e;
+            if(laser_ctr_param.laserFreq>10) freq_e=1-laser_ctr_param.laserFreq*0.0016;
+            else freq_e=1.075-0.0075*laser_ctr_param.laserFreq;           
+            #if 1
+            local_f=1.40+(((laser_ctr_param.laserEnerge*freq_e)*1.33)/u_sys_param.sys_config_param.laser_pulse_width_us);
+            #else
+            if(u_sys_param.sys_config_param.laser_pulse_width_us!=120) local_f=1.39+((laser_ctr_param.laserEnerge*1.33)/u_sys_param.sys_config_param.laser_pulse_width_us)-freq_e;
+            else local_f=jdq_120uspulse_energe_voltage[(laser_ctr_param.laserEnerge)/5]-freq_e;
+            #endif
             if(pLaserConfig->proCali==0)
             { 
               if(pLaserConfig->treatmentWaterLevel!=0)
@@ -999,13 +1009,15 @@ void laserWorkTask04(void *argument)
             {
               laser_ctr_param.laserFreq=10;
             }
-            if(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali>2500)
+            if(pLaserConfig->laserType==0)
             {
-              local_f+=(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali-2500)*0.0001;//
-             }
-            else  local_f-=(2500-u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali)*0.0001;//
-            
-            DEBUG_PRINTF("e=%dev=%.3f\r\n",laser_ctr_param.laserEnerge,local_f); 
+              if(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali>2500)
+              {
+              //  local_f+=(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali-2500)*0.0001;//
+              }
+             // else  local_f-=(2500-u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali)*0.0001;//
+            }
+            DEBUG_PRINTF("e=%dev=%.3f freq=%d\r\n",laser_ctr_param.laserEnerge,local_f,laser_ctr_param.laserFreq); 
             if(local_f>DAC_MAX_VOLTAGE_F) local_f=DAC_MAX_VOLTAGE_F;//250mJ~4.0
             if(local_f<DAC_MIN_VOLTAGE_F) local_f=DAC_MIN_VOLTAGE_F;//250mJ~4.0
             if(local_f<1.85) laser_ctr_param.lowEnergeMode=1;
@@ -1116,7 +1128,7 @@ void fastAuxTask05(void *argument)
   {
 		/***********环境气压、温度监测*******************/ 	 
     unsigned char  status=app_gzp6816d_listen(osKernelGetTickCount(),&sEnvParam.air_gzp_enviroment_pressure_kpa,&sEnvParam.enviroment_temprature);    
-    if(status!=0) sEnvParam.air_gzp_enviroment_pressure_kpa =94.0;//error 
+    if(status!=0) sEnvParam.air_gzp_enviroment_pressure_kpa =95.0;//error 
   
     /***********NTC,laser_energe,iBus,Vbus,vBus,air_pump_pressure气泵气压，参数*******************/     
     app_get_adc_value(AD1_NTC_INDEX,&sEnvParam.NTC_temprature);//蠕动泵，状态   
@@ -1136,7 +1148,6 @@ void fastAuxTask05(void *argument)
       //DEBUG_PRINTF("C_water=%.3f\r\n",app_mcp61_c_value());
       //DEBUG_PRINTF("evnentBits=%04x\r\n",osEventFlagsGet(auxStatusEvent01Handle));
      // DEBUG_PRINTF(" e_air_p=%.2f\r\n",sEnvParam.air_gzp_enviroment_pressure_kpa); 
-     // DEBUG_PRINTF("ads1118: T1=%.1f℃ T2= %.1f℃ \r\n", sEnvParam.eth_k1_temprature,sEnvParam.eth_k2_temprature);      
       //DEBUG_PRINTF("gzp_enviroment_air_pressure: kpa=%.2fkPa temprature=%.1f ℃\r\n",sEnvParam.air_gzp_enviroment_pressure_kpa,sEnvParam.enviroment_temprature);
       //eventFlagError= osEventFlagsWait(status_io_updataEvent01Handle,EVENTS_STATUS_IO_ALL_BITS,osFlagsWaitAll,portMAX_DELAY);) 
       //DEBUG_PRINTF("NTC=%.2f℃ laser_energe=%.1f iBus=%.1fmA ,vBus=%.1fmV,air_pump_pressure=%.2fkPa\r\n",sEnvParam.NTC_temprature,\
@@ -1163,14 +1174,14 @@ void hmiAppTask06(void *argument)
   osDelay(13000);
   uint16_t send_music_num = MUSIC_SYS_ON;
   osMessageQueuePut(musicQueue03Handle,&send_music_num,0,100);
-  u_sys_param.sys_config_param.synchronousFlag=0; 
+  //u_sys_param.sys_config_param.synchronousFlag=0; 
   for(;;)
   {    
-    while(u_sys_param.sys_config_param.synchronousFlag!=3)
+   // while(u_sys_param.sys_config_param.synchronousFlag!=3)
     {
-      osDelay(1000);
-      DEBUG_PRINTF("sync data...%d\r\n",u_sys_param.sys_config_param.synchronousFlag);
-      app_hmi_sysnc_req();           
+     // osDelay(1000);
+      //DEBUG_PRINTF("sync data...%d\r\n",u_sys_param.sys_config_param.synchronousFlag);
+     // app_hmi_sysnc_req();           
     }    
     osStatus_t status = osSemaphoreAcquire(hmiCanBusIdleSem06Handle,HMI_CAN_FRAME_DELAY_TIME);
     if(status==pdTRUE)
@@ -1543,11 +1554,12 @@ void ge2117ManageTask10(void *argument)
     sEnvParam.eth_k1_temprature = temp_t_f;
     sEnvParam.eth_k2_temprature = temp_t_f;
     //u_sys_param.sys_config_param.cool_temprature_target=240;
+   
     if(sEnvParam.eth_k1_temprature>ERR_LOW_TEMPRATURE_LASER&&sEnvParam.eth_k1_temprature<ERR_HIGH_TEMPRATURE_LASER)
     {        
       app_ge2117_gp_ctr(sEnvParam.eth_k1_temprature,local_timeS);             
       app_circle_water_PTC_manage(sEnvParam.eth_k1_temprature,local_time100mS);
-      if(sEnvParam.eth_k1_temprature<u_sys_param.sys_config_param.cool_temprature_low||sEnvParam.eth_k1_temprature>u_sys_param.sys_config_param.cool_temprature_high)
+      if(sEnvParam.eth_k1_temprature<u_sys_param.sys_config_param.cool_temprature_low*0.1||sEnvParam.eth_k1_temprature>u_sys_param.sys_config_param.cool_temprature_high*0.1)
       {
         osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_12_K1_TEMPRATURE_BIT);
       }
@@ -1555,8 +1567,8 @@ void ge2117ManageTask10(void *argument)
     }  
     else
     {      
-      app_ge2117_gp_ctr(u_sys_param.sys_config_param.cool_temprature_target,local_timeS);//stop
-      app_circle_water_PTC_manage(u_sys_param.sys_config_param.cool_temprature_target,local_time100mS);//stop
+      app_ge2117_gp_ctr(u_sys_param.sys_config_param.cool_temprature_target*0.1,local_timeS);//stop
+      app_circle_water_PTC_manage(u_sys_param.sys_config_param.cool_temprature_target*0.1,local_time100mS);//stop
       osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_12_K1_TEMPRATURE_BIT);
     } 
     if(sEnvParam.eth_k2_temprature>ERR_LOW_TEMPRATURE_LASER&&sEnvParam.eth_k2_temprature<ERR_HIGH_TEMPRATURE_LASER)
@@ -1828,9 +1840,9 @@ void app_set_default_sys_config_param(void)
   u_sys_param. sys_config_param.treatment_water_depth_low=87;//8.7pF
   u_sys_param. sys_config_param.cool_water_depth_high=167;//16.7pf
   u_sys_param. sys_config_param.cool_water_depth_low=52;//5.2 
-  u_sys_param. sys_config_param.air_low_pressure=160;//160kPa
-  u_sys_param. sys_config_param.air_mid_pressure=180;//180kPa
-  u_sys_param. sys_config_param.air_high_pressure=200;//200kPa
+  u_sys_param. sys_config_param.air_low_pressure=140;
+  u_sys_param. sys_config_param.air_mid_pressure=170;
+  u_sys_param. sys_config_param.air_high_pressure=190;
   u_sys_param. sys_config_param.t_water_low=15;//10ml/min
   u_sys_param. sys_config_param.t_water_mid=25;
   u_sys_param. sys_config_param.t_water_high=35;
@@ -1838,8 +1850,7 @@ void app_set_default_sys_config_param(void)
   u_sys_param. sys_config_param.clean_time_min=5;
   u_sys_param. sys_config_param.tec_switch=1;
   u_sys_param. sys_config_param.low_freq=60;//MAX60Hz 
-  u_sys_param. sys_config_param.charge_width_us=180;//180us
-//
+  u_sys_param. sys_config_param.charge_width_us=180;//180us//
   u_sys_param.sys_config_param.laser_led_light=50;            //）激光指示灯亮度
   u_sys_param.sys_config_param.rgb_light=50;                  //）rgb状态指示灯亮度
   u_sys_param.sys_config_param.beep=50;                       //）音量
@@ -1939,7 +1950,6 @@ void app_set_default_sys_config_param(void)
     {
       u_sys_param.sys_config_param.checkSum=sumCheck(u_sys_param.data,SYS_LASER_CONFIG_PARAM_LENGTH);
       flag = EEPROM_M24C32_Write(EEROM_SYS_PARAM_SAVE_ADDR, u_sys_param.data, sizeof(SYS_CONFIG_PARAM));	
-   
     }		  
     return flag;
  }
@@ -1955,7 +1965,7 @@ void app_set_default_sys_config_param(void)
 		float air_pressure=MID_AIR_PUMP_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa;
 		if(air_level==1)
     {
-     // air_pressure = u_sys_param.sys_config_param.air_low_pressure+sEnvParam.air_gzp_enviroment_pressure_kpa;
+      //air_pressure = u_sys_param.sys_config_param.air_low_pressure+sEnvParam.air_gzp_enviroment_pressure_kpa;
       air_pressure = MIN_AIR_PUMP_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa;
     }
     else if(air_level==3)

@@ -29,6 +29,7 @@
 "uitra_core_v1.0\buzz_bsp.o"
 "uitra_core_v1.0\user_can1.o"
 "uitra_core_v1.0\common_function.o"
+"uitra_core_v1.0\task_menu.o"
 "uitra_core_v1.0\stm32h7xx_hal_tim.o"
 "uitra_core_v1.0\stm32h7xx_hal_tim_ex.o"
 "uitra_core_v1.0\stm32h7xx_hal_adc.o"

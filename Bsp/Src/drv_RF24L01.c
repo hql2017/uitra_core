@@ -704,7 +704,7 @@ void RF24L01_Init( void )
     rf24_rxLen = NRF24L01_RxPacket( g_RF24L01RxBuffer );		
     if( 0 != rf24_rxLen )
     {	
-      #if 1        
+      #if 0        
       for(uint8_t i=0;i<8;i++)
       {
         DEBUG_PRINTF(" %02x", g_RF24L01RxBuffer[i]);

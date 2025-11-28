@@ -114,7 +114,7 @@ void app_hmi_report_pulse_count(void)
 	APP_CAN_SEND_DATA(can_tx_data,20,HMI_BROADCAST_ADDR);//304 bytes(38package) use 75ms  t=75/38;2ms		
 }
 /***************************************************************************//**
- * @brief 报告状态数据
+ * @brief ack
  * @param sys_status 状态结构体指针
  * @note  
  * @return 
@@ -192,13 +192,14 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			break;
 		case HMI_CODE_PRO_HOT:
 			laser_ctr_param.laserType=data[5];	
-			if(laser_ctr_param.laserType==0)//本机不支持切割模式	
+			if(laser_ctr_param.laserType==0&&data[4]!=0)//本机不支持切割模式	
 			{			
 				laser_ctr_param.proHotCtr = data[4];
-				laser_ctr_param.proCali=data[6];			
-				app_laser_preapare_semo();	
-				app_hmi_cmd_ack(hmi_code) ;
-			}	
+			}
+			else laser_ctr_param.proHotCtr = 0;
+			laser_ctr_param.proCali=data[6];			
+			app_laser_preapare_semo();	
+			app_hmi_cmd_ack(hmi_code) ;	
 			break;
 		case HMI_CODE_PULSE_COUNT_AND_TIME:	
 			if(data[4]!=0)	
@@ -274,8 +275,9 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			app_hmi_cmd_ack(hmi_code) ;
 			break;
 		case HMI_CODE_ENERGE_CALIBRATION:			
-			dw=(data[6]|data[7]<<8)/5;
+			dw=((data[6]|data[7]<<8)/5);			
 			dw%=40;
+			if(dw>0) dw-=1;
 			if(data[4]==0)	
 			{
 				u_sys_param.sys_config_param.e_cali[dw].energe_cali=data[8]|(data[9]<<8);
@@ -314,7 +316,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 		
 			if(data[4]==1)//load param			
 			{
-				memcpy(&u_sys_param.data[0],&data[4],SYS_LASER_CONFIG_PARAM_LENGTH);
+				memcpy(u_sys_param.data,&data[4],SYS_LASER_CONFIG_PARAM_LENGTH);
 				can_tx_data[2]=13;
 				u_sys_param.sys_config_param.synchronousFlag=3;
 				can_tx_data[4]=3;//syncFlag
@@ -336,7 +338,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 				can_tx_data[9]=crc16Num(can_tx_data,9)&0xFF;
 				can_tx_data[10]=0x0D;
 				can_tx_data[11]=0x0A;
-				APP_CAN_SEND_DATA(can_tx_data,12,HMI_BROADCAST_ADDR);//ack			
+				APP_CAN_SEND_DATA(can_tx_data,12,HMI_BROADCAST_ADDR);//ack      		
 			}
 			else if(data[4]==2)//up param				 
 			{		

@@ -702,6 +702,11 @@
               <FileType>1</FileType>
               <FilePath>..\App\Src\common_function.c</FilePath>
             </File>
+            <File>
+              <FileName>task_menu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\App\Src\task_menu.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

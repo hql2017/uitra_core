@@ -571,7 +571,7 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
   {//相对气压kPa    
     temp=((((advalue[AD1_AIR_PRESSER_INDEX]-D_A_MIN)*AD_VREF_VOLTAGE)>>16) +22);
     *vBuff=temp*0.1654131+P_A_MIN;//0.150723+P_A_MIN;//(441/3000);//air pressure  ,dio
-   // DEBUG_PRINTF("air_pressure=%.2f v=%dmV ad=%x\r\n", *vBuff,temp,advalue[AD1_AIR_PRESSER_INDEX]);
+    //DEBUG_PRINTF("air_pressure=%.2f v=%dmV ad=%x\r\n", *vBuff,temp,advalue[AD1_AIR_PRESSER_INDEX]);
   }  
 }
 /* USER CODE END 1 */
