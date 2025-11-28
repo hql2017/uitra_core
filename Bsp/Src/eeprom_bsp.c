@@ -356,29 +356,28 @@ unsigned char EEPROM_M24C32_Read(unsigned short int ReadAddr, unsigned char *pBu
 ****************************************************************************/
 unsigned char EEPROM_M24C32_Write(unsigned short int WriteAddr,unsigned char *pBuffer,unsigned short int WriteNum)
 {
-	uint16_t i,pageNum,j;
-	if((WriteNum+WriteAddr)>EEPROM_M24C32_MAX_BYTE_LENGTH)  return 1;//����Χ
-	i=EEPROM_M24C32_PAGE_LENGTH-(WriteAddr%EEPROM_M24C32_PAGE_LENGTH);//��ҳʣ��ռ�
-	EEPROM_WC_ENABLE;
-	if(i<WriteNum)//��Ҫ��ҳ
+	uint16_t pageNum,eLen,fLen=0;	
+	if((WriteNum+WriteAddr)>EEPROM_M24C32_MAX_BYTE_LENGTH)  return 1;	
+	fLen=EEPROM_M24C32_PAGE_LENGTH-(WriteAddr%EEPROM_M24C32_PAGE_LENGTH);		
+	EEPROM_WC_ENABLE;		
+	EEPROM_M24C32_I2C_Write(WriteAddr,pBuffer,fLen);//首页
+	WriteNum-=fLen;	
+	WriteAddr+=fLen;
+	pBuffer+=fLen;
+	pageNum=WriteNum/EEPROM_M24C32_PAGE_LENGTH;
+	HAL_Delay(5);		
+	while(pageNum)
 	{
-		EEPROM_M24C32_I2C_Write(WriteAddr,pBuffer,i);//��ҳ
-		WriteAddr+=i;
-		pBuffer+=i;
-		WriteNum-=i;
-		pageNum=WriteNum/EEPROM_M24C32_PAGE_LENGTH;
-		while(pageNum)
-		{
-			EEPROM_M24C32_I2C_Write(WriteAddr,pBuffer,EEPROM_M24C32_PAGE_LENGTH);			
-			pageNum--;
-			WriteAddr+=EEPROM_M24C32_PAGE_LENGTH;
-			pBuffer+=EEPROM_M24C32_PAGE_LENGTH;	      			
-		}	
+		EEPROM_M24C32_I2C_Write(WriteAddr,pBuffer,EEPROM_M24C32_PAGE_LENGTH);				
+		pageNum--; 
+		WriteAddr+=EEPROM_M24C32_PAGE_LENGTH;
+		WriteNum-= EEPROM_M24C32_PAGE_LENGTH;
+		pBuffer+=EEPROM_M24C32_PAGE_LENGTH;
+		HAL_Delay(5);
 	}
-	j=WriteNum%EEPROM_M24C32_PAGE_LENGTH;
-	if(j)  EEPROM_M24C32_I2C_Write(WriteAddr,pBuffer,j);//��󲿷�	
-	HAL_Delay(10);	//�ȴ�д�� 	
-	if(WriteNum>59) HAL_Delay(5);//�ֽ�̫���ٵȴ�5ms
+	eLen=WriteNum%EEPROM_M24C32_PAGE_LENGTH;
+	if(eLen)  EEPROM_M24C32_I2C_Write(WriteAddr,pBuffer,eLen);//剩余部分	
+	HAL_Delay(5); 
 	EEPROM_WC_DISABLE;
 	return 0;		
 }

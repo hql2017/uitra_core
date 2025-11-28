@@ -983,6 +983,8 @@ void laserWorkTask04(void *argument)
           {
             if(laser_ctr_param.laserEnerge> ENERGE_MAX_VALUE) laser_ctr_param.laserEnerge=ENERGE_MAX_VALUE;
             if(laser_ctr_param.laserEnerge< ENERGE_MIN_VALUE) laser_ctr_param.laserEnerge=ENERGE_MIN_VALUE;
+            if(u_sys_param.sys_config_param.laser_pulse_width_us<144) u_sys_param.sys_config_param.laser_pulse_width_us=120;
+            else u_sys_param.sys_config_param.laser_pulse_width_us=180;
             local_f=jdq_120uspulse_energe_voltage[laser_ctr_param.laserEnerge/5];
             if(pLaserConfig->proCali==0)
             { 
@@ -991,16 +993,17 @@ void laserWorkTask04(void *argument)
                 app_deflate_air_solenoid(ENABLE);
                 tmc2226_start(1,laser_ctr_param.treatmentWaterLevel); 
               }
-              app_laser_timer_ctr(laser_ctr_param.timerCtr, 0);//restart
+              app_laser_timer_ctr(laser_ctr_param.timerCtr, 0);
             }
             else
             {
-              //if(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)].energe_cali>2500)
-            //  {
-              //  local_f+=(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)].energe_cali-2500)*0.0001;//
-             // }
-              //else local_f-=(2500-u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)].energe_cali)*0.0001;//
-            }    
+              laser_ctr_param.laserFreq=10;
+            }
+            if(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali>2500)
+            {
+              local_f+=(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali-2500)*0.0001;//
+             }
+            else  local_f-=(2500-u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali)*0.0001;//
             
             DEBUG_PRINTF("e=%dev=%.3f\r\n",laser_ctr_param.laserEnerge,local_f); 
             if(local_f>DAC_MAX_VOLTAGE_F) local_f=DAC_MAX_VOLTAGE_F;//250mJ~4.0
@@ -1010,12 +1013,8 @@ void laserWorkTask04(void *argument)
             AD5541A_SetVoltage(local_f,4.096);       
             sGenSta.laser_run_B1_laser_out_status=1; 
             rgbMessage = RGB_LASER_WORK_STATUS;
-            osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);  
-            if(pLaserConfig->proCali!=0)
-            {
-              app_laser_pulse_start(u_sys_param.sys_config_param.laser_pulse_width_us,10,local_f); 
-            }
-            else  app_laser_pulse_start(u_sys_param.sys_config_param.laser_pulse_width_us,laser_ctr_param.laserFreq,local_f);  
+            osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);             
+            app_laser_pulse_start(u_sys_param.sys_config_param.laser_pulse_width_us,laser_ctr_param.laserFreq,local_f);  
           }                     
         }
         else 
@@ -1168,11 +1167,10 @@ void hmiAppTask06(void *argument)
   for(;;)
   {    
     while(u_sys_param.sys_config_param.synchronousFlag!=3)
-    {//test
+    {
       osDelay(1000);
       DEBUG_PRINTF("sync data...%d\r\n",u_sys_param.sys_config_param.synchronousFlag);
-      app_hmi_sysnc_req(); 
-          
+      app_hmi_sysnc_req();           
     }    
     osStatus_t status = osSemaphoreAcquire(hmiCanBusIdleSem06Handle,HMI_CAN_FRAME_DELAY_TIME);
     if(status==pdTRUE)
@@ -1848,10 +1846,12 @@ void app_set_default_sys_config_param(void)
   for(uint8_t i=0;i<40;i++)
   {  
     u_sys_param. sys_config_param.e_cali[i].energe_cali=2500;
-    u_sys_param. sys_config_param.e_cali[i].power_cali=6;//
+    u_sys_param. sys_config_param.e_cali[i].power_cali=2500;//
   }
   u_sys_param.sys_config_param.checkSum=sumCheck(u_sys_param.data,SYS_LASER_CONFIG_PARAM_LENGTH);//sizeof(SYS_CONFIG_PARAM)-4);	 
 	DEBUG_PRINTF("sys param load failed! load defalut param\r\n");
+  memcpy(u_sys_default_param.data,u_sys_param.data,sizeof(SYS_CONFIG_PARAM));
+ 
   laser_ctr_param.airPressureLevel=1;
   laser_ctr_param.treatmentWaterLevel=0; 
   laser_ctr_param.ledLightLevel=20;
@@ -1875,18 +1875,20 @@ void app_set_default_sys_config_param(void)
     else 
     {
       //check param
+      u_sys_param.sys_config_param.synchronousFlag=0;//请求配置      
       if(u_sys_param.sys_config_param.cool_temprature_target>280||u_sys_param.sys_config_param.cool_temprature_target<210)
       {
         u_sys_param.sys_config_param.cool_temprature_target=240;
       } 
       memcpy(u_sys_default_param.data,u_sys_param.data,sizeof(SYS_CONFIG_PARAM));      
-      DEBUG_PRINTF("sys param read ok= %d\r\n",u_sys_param.sys_config_param.laser_pulse_count);
+      
       laser_ctr_param.airPressureLevel=1;
       laser_ctr_param.treatmentWaterLevel=0; 
       laser_ctr_param.ledLightLevel=20;
       #if 1
+      DEBUG_PRINTF("***************sys param read ok*************************\r\n");
       DEBUG_PRINTF("synchronousFlag=%d\r\n", u_sys_param. sys_config_param.synchronousFlag);
-      DEBUG_PRINTF("equipmentId=%d\r\n",u_sys_param. sys_config_param.equipmentId);
+      DEBUG_PRINTF("equipmentId=%x\r\n",u_sys_param. sys_config_param.equipmentId);
       DEBUG_PRINTF("jtId=%d\r\n",u_sys_param. sys_config_param.jtId);
       DEBUG_PRINTF("jt_status=%d\r\n",u_sys_param. sys_config_param.jt_status);
       DEBUG_PRINTF("cool_temprature_low=%.1f℃\r\n",u_sys_param. sys_config_param.cool_temprature_low*0.1);
@@ -1918,6 +1920,9 @@ void app_set_default_sys_config_param(void)
       DEBUG_PRINTF("laser_led_light=%d\r\n",u_sys_param. sys_config_param.laser_led_light);
       DEBUG_PRINTF("rgb_light=%d\r\n",u_sys_param. sys_config_param.rgb_light);
       DEBUG_PRINTF("beep=%d\r\n",u_sys_param. sys_config_param.beep);
+      DEBUG_PRINTF("eCali=%d\r\n",u_sys_param. sys_config_param.e_cali->energe_cali);
+      DEBUG_PRINTF("pCali=%d\r\n",u_sys_param. sys_config_param.e_cali->power_cali);
+      DEBUG_PRINTF("*******************sys param end*************************\r\n");
       #endif
     }	  
   }
@@ -1929,11 +1934,12 @@ void app_set_default_sys_config_param(void)
   *****************************************************************************/
  unsigned char app_sys_param_save_data(void)
  {
-    unsigned char flag=1;	 
-    if(compare_buff_no_change(u_sys_param.data,u_sys_default_param.data,sizeof(SYS_CONFIG_PARAM)))
+    unsigned char flag=0;	 
+    if(compare_buff_no_change(u_sys_param.data,u_sys_default_param.data,sizeof(SYS_CONFIG_PARAM))!=HAL_OK)
     {
       u_sys_param.sys_config_param.checkSum=sumCheck(u_sys_param.data,SYS_LASER_CONFIG_PARAM_LENGTH);
-      flag = EEPROM_M24C32_Write(EEROM_SYS_PARAM_SAVE_ADDR, u_sys_param.data, sizeof(SYS_CONFIG_PARAM));		
+      flag = EEPROM_M24C32_Write(EEROM_SYS_PARAM_SAVE_ADDR, u_sys_param.data, sizeof(SYS_CONFIG_PARAM));	
+   
     }		  
     return flag;
  }
