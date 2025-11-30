@@ -42,8 +42,8 @@ void app_jdq_sts_1200_receive_handle(void);
 #define JDQ_RS485_FRAME_MIN_MS 100
 #define MAX_UART1_BUFF_LENTH 128
 
-#define DAC_MAX_VOLTAGE_F 4.0f
-#define DAC_MIN_VOLTAGE_F 1.42f//1.4f
+#define DAC_MAX_VOLTAGE_F 4.09f
+#define DAC_MIN_VOLTAGE_F 1.40f//1.4f
 
 #define ENERGE_MAX_VALUE 200
 #define ENERGE_MIN_VALUE 5

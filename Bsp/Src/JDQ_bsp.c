@@ -975,15 +975,15 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 		if(ev<DAC_MIN_VOLTAGE_F) ev=DAC_MIN_VOLTAGE_F;
 		if(energeVoltage<1.6)
 		{
-			timeus2=1200*(1.684-energeVoltage);//测量脉宽
+			timeus2=1200*(1.684-energeVoltage)-13;//测量脉宽
 		}
 		else if(energeVoltage<1.7)
 		{
-			timeus2=500*(1.882-energeVoltage);
+			timeus2=500*(1.882-energeVoltage)-6.5;
 		}	
 		else if(energeVoltage<1.8)
 		{
-			timeus2=300*(2.0667-energeVoltage);
+			timeus2=300*(2.0667-energeVoltage)-6.5;
 		}
 		else if(energeVoltage<2.0)
 		{
@@ -1007,7 +1007,7 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 		}		
 		if(energeVoltage<1.85)
 		{
-		 	timeus=(unsigned short int)(94.0/ev)+timeUs+timeus2;
+		 	timeus=(unsigned short int)(94.0/ev)+timeUs+timeus2;			
 			timeLoad=timeus;
 		}
 		else
