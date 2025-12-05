@@ -147,10 +147,8 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
   */
  void tmc2226_dir(unsigned  char dir)
  {
-//  if(dir==0)  HAL_GPIO_WritePin(TMC2226_DIR_out_GPIO_Port, TMC2226_DIR_out_Pin, GPIO_PIN_RESET);
-//  else HAL_GPIO_WritePin(TMC2226_DIR_out_GPIO_Port, TMC2226_DIR_out_Pin, GPIO_PIN_SET); 
-	//固定	 
-	 HAL_GPIO_WritePin(TMC2226_DIR_out_GPIO_Port, TMC2226_DIR_out_Pin, GPIO_PIN_RESET);
+    if(dir==TMC_WATER_OUT_DIR_VALUE)  HAL_GPIO_WritePin(TMC2226_DIR_out_GPIO_Port, TMC2226_DIR_out_Pin, GPIO_PIN_RESET);
+    else HAL_GPIO_WritePin(TMC2226_DIR_out_GPIO_Port, TMC2226_DIR_out_Pin, GPIO_PIN_SET);
  } 
 /**
   * @brief temc2226_init
@@ -161,7 +159,7 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
  void tmc2226_init(void)
  {
     tmc2226_param_default(); 
-    tmc2226_stop();//art(0,100);     
+    tmc2226_stop();     
  }
  /**
   * @brief tem2226_step_pwm
@@ -175,7 +173,7 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
   {    
 		unsigned int timeUs;
 		unsigned short int period;
-		//check freq,timer1 10M clock freq
+		//check freq,timer1 1M clock freq
 		if(rdbSpd<5) rdbSpd=5;     //1k
 		if(rdbSpd>35)   rdbSpd=35;//8k
 		//period=(1000000/freq);
@@ -197,35 +195,27 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
   * @note   蠕动泵步数
   * @retval None
   */
-void app_steps_pulse(int steps)
+void app_steps_pulse(unsigned int steps)
  { 
-  static unsigned int timeout;
-  if(tmc2226_rdb_info.run!=0)
-  {    
-    if(steps==CONTINUOUS_STEPS_COUNT)
-    {
-      //HAL_GPIO_TogglePin(TMC_STEP_TIM16CH1_PWM_out_GPIO_Port, TMC_STEP_TIM16CH1_PWM_out_Pin);       
-      tmc2226_rdb_info.pulse_count++;
-    }
-    else if(steps==0)
-    {
-      tmc2226_stop(); 
-    }
-    else 
-    {      
-      if(tmc2226_rdb_info.run==0) 
-      {
-        tmc2226_start(0,100);         
-        tmc2226_rdb_info.run=1;
-      }
-      //if(tmc2226_rdb_info.A_phase_count*200<steps)
-      if(tmc2226_rdb_info.pulse_count*200<steps)
-      {
-        //HAL_GPIO_TogglePin(TMC_STEP_TIM16CH1_PWM_out_GPIO_Port, TMC_STEP_TIM16CH1_PWM_out_Pin); 
-      }
-      else tmc2226_stop();          
-    }   
+  static unsigned int timeout;    
+  if(steps==0)
+  {
+    if(tmc2226_rdb_info.run!=0) tmc2226_stop(); 
   }
+  else 
+  {      
+    if(tmc2226_rdb_info.run!=0) 
+    {
+      tmc2226_rdb_info.pulse_count++;      
+      if(steps<CONTINUOUS_STEPS_COUNT)
+      {
+        if(tmc2226_rdb_info.pulse_count*200>steps)
+        {          
+         // tmc2226_stop(); 
+        }
+      }        
+    }  
+  }     
  }
 
  /**
@@ -244,9 +234,10 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
 		tmc2226_stop();
 	}
 	else 
-	{
+	{ 
+    tmc2226_rdb_info.pulse_count=0;   
 		tmc2226_dir(dir);
-    app_tmc2226_sped_set(spdLevel);
+    app_tmc2226_speed_set(spdLevel);    
     tmc2226_rdb_info.run=spdLevel;
     tem2226_step_pwm(tmc2226_rdb_info.rdb_speed);
 		tmc2226_en(1);
@@ -263,12 +254,10 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
     unsigned int retS;
     HAL_TIM_PWM_Stop(&htim16,TIM_CHANNEL_1);
     tmc2226_rdb_info.run=0;	
-    tmc2226_en(0);
-    //timeus=2275/tmc2226_rdb_info.rdb_speed;    
-    retS=(tmc2226_rdb_info.pulse_count*0.002275)/tmc2226_rdb_info.rdb_speed;//S 
-    tmc2226_rdb_info.pulse_count=tmc2226_rdb_info.pulse_count-retS*1000000;
+    tmc2226_en(0);     
+    retS=(tmc2226_rdb_info.pulse_count*0.00455)/tmc2226_rdb_info.rdb_speed;//S    
     u_sys_param.sys_config_param.RDB_use_timeS+=retS;
-    HAL_Delay(1);
+    tmc2226_rdb_info.pulse_count=0;
     return retS; 
   } 
  /************************************************************************//**
@@ -277,14 +266,14 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
   * @note   0关闭  3最快   
   * @retval 无
   *****************************************************************************/
- void app_tmc2226_sped_set(unsigned char spdLevel)
+ void app_tmc2226_speed_set(unsigned char spdLevel)
  {
     if(spdLevel==0)
     {
       tmc2226_stop();
     }
     else 
-    {
+    {      
       if(spdLevel==1)//5~20ml/min (1K~4.5k)(111~500)
       {	
         //timeUs=500;//1K,5ml/min   

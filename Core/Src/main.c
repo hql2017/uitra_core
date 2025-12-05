@@ -36,6 +36,7 @@
 #include <stdbool.h>
 #include <string.h> 
 #include "one_wire_bus.h"
+#include "tmc2226_step_bsp.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -67,7 +68,7 @@ void PeriphCommonClock_Config(void);
 static void MPU_Config(void);
 void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
-extern  void app_steps_pulse(int steps);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -133,7 +134,7 @@ int main(void)
   MX_TIM3_Init();
   MX_ADC1_Init();
   MX_TIM16_Init();
-  MX_IWDG1_Init();
+ // MX_IWDG1_Init();
   MX_ADC2_Init();
   MX_TIM8_Init();
   MX_SPI1_Init();
@@ -314,6 +315,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
 	 if (htim->Instance == TIM2) 
   {  
+    u_sys_param.sys_config_param.laser_pulse_count++;
     HAL_GPIO_WritePin(GPIOC, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET); 
   }
   if (htim->Instance == TIM3) 
@@ -321,7 +323,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_TIM_Base_Stop_IT(&htim3);
     HAL_GPIO_WritePin(GPIOC, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET);
   }  
-
+  if(htim->Instance == TIM16)
+  {
+    app_steps_pulse(CONTINUOUS_STEPS_COUNT);
+  }
   /* USER CODE END Callback 1 */
 }
 

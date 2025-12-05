@@ -13,9 +13,7 @@ uint16_t crc_table_list[256]=
 {0x40BF,0x807E,
 
 }
-
-
-/**
+/ ****
   * @brief MAAX->MIN，冒泡排序
   * @param dataBuff
   * @note   

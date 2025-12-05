@@ -782,13 +782,17 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
  {		
 	#ifdef JDQ_PWR_GWB_3200W	
 	//if(jdq_sts_reg.emergencyErrorFlag!=0)	
-//{//严重错误
-	//	return JDQ_PWR_GWB_3200W_ERROR_FLAG;//err
-//}
-	//else 
-	//{
-		return jdq_sts_reg.outVoltage;		
+	//{//严重错误
+		//	return JDQ_PWR_GWB_3200W_ERROR_FLAG;//err
 	//}
+	if(jdq_sts_reg.outVoltage+10>jdq_sts_reg.setVoltage&&jdq_sts_reg.outVoltage+10<jdq_sts_reg.setVoltage)
+	{
+		return jdq_sts_reg.setVoltage;
+	}
+	else 
+	{
+		return jdq_sts_reg.outVoltage;  //err
+	}
 	#else 
 	return jdq_sts_reg_value[6];
 	#endif	
@@ -927,17 +931,17 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 	294,298,302,306,310,314,320,\
 };
 static unsigned short int  jdq_pulse_cali_time01Us[27]={//(1.4V~4.0V)(0.1us)
-	240,242,244,246,248,250,252,254,256,258,260,\
-	262,264,266,268,270,272,274,276,278,\
-	280,282,284,286,288,290,292,
+	116,120,124,128,132,136,140,144,148,152,\
+	156,160,164,168,172,176,180,184,188,\
+	192,196,200,204,208,212,216,220
 };
- void app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVoltage)
+void app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVoltage)
 {	  
-	unsigned short int num100ns;	
-	//num100ns=(unsigned short int)((((energeVoltage-1.4)*2+24)*10)/2);
-	if(energeVoltage<DAC_MIN_VOLTAGE_F) num100ns=120;	
-	else if(energeVoltage>DAC_MAX_VOLTAGE_F) num100ns=146;
-	else num100ns=(unsigned short int)(energeVoltage*10)+106; 
+	unsigned short int num100ns;		
+	//num100ns=(unsigned short int)(((energeVoltage-1.4)*4+11.6)/2)*10+65;
+	if(energeVoltage<DAC_MIN_VOLTAGE_F) num100ns=123;	
+	else if(energeVoltage>DAC_MAX_VOLTAGE_F) num100ns = 175;
+	else num100ns=(unsigned short int)(energeVoltage*20)+95;
 	//100~200us	 
 	if(pulse100ns<800) __HAL_TIM_SetAutoreload(&htim3,799-num100ns);//100us	
 	else if(pulse100ns>2000) __HAL_TIM_SetAutoreload(&htim3,1999-num100ns);//200us
@@ -959,31 +963,29 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 	73,71, 69,67,65,64,62,60,58,\
 	56,54,52,50,48,46,45,44
 };
-
  void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq,float energeVoltage)
  { 
 	unsigned  int counter;	
 	unsigned short int timeLoad;
-	if(timeUs!=0)
-	//if(freq!=0)
+	if(timeUs!=0&&freq!=0)	
 	{
 		//check param
 		float ev=energeVoltage;
 		uint16_t timeus;
-		uint16_t timeus2;
+		uint16_t timeus2;		
 		if(ev>DAC_MAX_VOLTAGE_F) ev=DAC_MAX_VOLTAGE_F;
 		if(ev<DAC_MIN_VOLTAGE_F) ev=DAC_MIN_VOLTAGE_F;
 		if(energeVoltage<1.6)
 		{
-			timeus2=1200*(1.684-energeVoltage)-13;//测量脉宽
+			timeus2=1200*(1.684-energeVoltage);//测量脉宽
 		}
 		else if(energeVoltage<1.7)
 		{
-			timeus2=500*(1.882-energeVoltage)-6.5;
+			timeus2=500*(1.882-energeVoltage);
 		}	
 		else if(energeVoltage<1.8)
 		{
-			timeus2=300*(2.0667-energeVoltage)-6.5;
+			timeus2=300*(2.0667-energeVoltage);
 		}
 		else if(energeVoltage<2.0)
 		{
@@ -1007,7 +1009,8 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 		}		
 		if(energeVoltage<1.85)
 		{
-		 	timeus=(unsigned short int)(94.0/ev)+timeUs+timeus2;			
+		 	//timeus=(unsigned short int)(94.0/ev)+timeUs+timeus2+(unsigned short int)((energeVoltage*4+6.0)-6.5);			
+			timeus=(unsigned short int)(94.0/ev)+timeUs+timeus2+(unsigned short int)(energeVoltage*4-0.5);
 			timeLoad=timeus;
 		}
 		else
@@ -1015,11 +1018,11 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 			timeus=(unsigned short int)((94.0/ev)+13)+timeUs+timeus2;			
 			timeLoad=timeus;
 			DEBUG_PRINTF("t=%d",timeus);
-			if(timeUs>80) app_laser_pulse_width_set(timeUs*10,ev);
+			app_laser_pulse_width_set(timeUs*10,ev);
 		} 
 		if( timeLoad > JDQ_MAX_CONTROL_PULSE_US_WIDTH)  timeLoad = JDQ_MAX_CONTROL_PULSE_US_WIDTH;//check pulse timeUs
 		if( timeLoad <JDQ_MIN_CONTROL_PULSE_US_WIDTH )  timeLoad = JDQ_MIN_CONTROL_PULSE_US_WIDTH;//check pulse timeUs		
-		if( freq > 60 ) counter = 16667;// (1000000/60);
+		if( freq > 60 ) counter = 16667;//(1000000/60);
 		else if( freq < 1 )  counter = 1000000; //(1000000/1)
 		else counter=(1000000/freq);
 		__HAL_TIM_SetAutoreload(&htim2,counter-1);//1~100HZ	

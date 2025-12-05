@@ -375,7 +375,7 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
 static  unsigned  short int adBuff[MAX_AD_BUFF_LENGTH];
 static  unsigned short int advalue[4];
 static  unsigned short int ad2Buff[MAX_AD2_ENERGE_BUFF_LENGTH];
-static  unsigned short int ad2vale,ad2hle;
+static  unsigned short int ad2vale,ad2hle[16];
 
 extern TIM_HandleTypeDef htim6;//hal tick timer
 void app_start_multi_channel_adc(void)
@@ -469,19 +469,21 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     ad2vale = ad_square_value(ad2Buff,MAX_AD2_ENERGE_BUFF_LENGTH);
     #else
     long unsigned int sum=0;
-    unsigned short int i, j=0;
-    for(i=0;i<MAX_AD2_ENERGE_BUFF_LENGTH;i++)
-    {  
-      //if(i<20) 
-      if(ad2Buff[i]>200)
-      {  
-        j++;     
-        sum+=(ad2Buff[i]*ad2Buff[i]);      
-      }       
+    unsigned short int i=0;
+    static unsigned char levelLen;
+    for(i=10;i<20;i++)//MAX_AD2_ENERGE_BUFF_LENGTH;i++)//只取中间40us(8个)
+    {   
+      sum+=(ad2Buff[i]*ad2Buff[i]);  
     } 
-    
-    if(j>0) ad2vale=(unsigned short int)(sqrt(sum/j));    
-    ad2hle=ad2vale;
+    levelLen%=16;
+    ad2hle[levelLen]=(unsigned short int)(sqrt(sum>>3));
+    levelLen++;
+    sum=0;
+    for(i=0;i<16;i++)
+    {
+      sum+=ad2hle[levelLen];       
+    }
+    ad2vale=(sum>>4);     
     //kalman_filter_update(&kalmAd2, ad2vale);
     #endif 
     #if 0
@@ -543,7 +545,7 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
   }
   else  if(adChannel==AD2_LASER_1064_INDEX)
   {
-    temp=(ad2vale*AD_VREF_VOLTAGE)>>16;  //(((advalue[AD2_LASER_1064_INDEX]*AD_VREF_VOLTAGE)>>16));///10;
+    temp=(ad2vale*AD_VREF_VOLTAGE)>>16;  
     *vBuff= temp*1.0 ;//LASER064ADAD,   
    #if 0
    DEBUG_PRINTF("laserAD=");
