@@ -930,18 +930,20 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 	258,262,266,270,274,278,282,286,290,\
 	294,298,302,306,310,314,320,\
 };
-static unsigned short int  jdq_pulse_cali_time01Us[27]={//(1.4V~4.0V)(0.1us)
-	116,120,124,128,132,136,140,144,148,152,\
-	156,160,164,168,172,176,180,184,188,\
-	192,196,200,204,208,212,216,220
+static unsigned short int  jdq_pulse_cali_time01Us[27]={//(1.4V~4.0V)(0.1us)//T+9
+	196,200,204,208,212, 216,\
+	220,224,228,232,236,240,\
+	244,248,252,256,260,264,268,\
+	272,276,280,284,288,292,296,300//+8
 };
 void app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVoltage)
 {	  
 	unsigned short int num100ns;		
-	//num100ns=(unsigned short int)(((energeVoltage-1.4)*4+11.6)/2)*10+65;
-	if(energeVoltage<DAC_MIN_VOLTAGE_F) num100ns=123;	
-	else if(energeVoltage>DAC_MAX_VOLTAGE_F) num100ns = 175;
-	else num100ns=(unsigned short int)(energeVoltage*20)+95;
+	//num100ns=(unsigned short int)(((energeVoltage-1.4)*4+19.6-9)/2)*10+65;
+	//num100ns=(unsigned short int)((energeVoltage*4+14-9)*5+65);
+	if(energeVoltage<DAC_MIN_VOLTAGE_F) num100ns=158;
+	else if(energeVoltage>DAC_MAX_VOLTAGE_F) num100ns = 210;
+	else num100ns=(unsigned short int)(energeVoltage*20)+130;
 	//100~200us	 
 	if(pulse100ns<800) __HAL_TIM_SetAutoreload(&htim3,799-num100ns);//100us	
 	else if(pulse100ns>2000) __HAL_TIM_SetAutoreload(&htim3,1999-num100ns);//200us
@@ -977,15 +979,19 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 		if(ev<DAC_MIN_VOLTAGE_F) ev=DAC_MIN_VOLTAGE_F;
 		if(energeVoltage<1.6)
 		{
-			timeus2=1200*(1.684-energeVoltage);//测量脉宽
+			timeus2=1200*(1.684-energeVoltage)-32;//测量脉宽
 		}
 		else if(energeVoltage<1.7)
 		{
-			timeus2=500*(1.882-energeVoltage);
+			timeus2=500*(1.882-energeVoltage)-12;
 		}	
 		else if(energeVoltage<1.8)
 		{
-			timeus2=300*(2.0667-energeVoltage);
+			timeus2=300*(2.0667-energeVoltage)-10;
+		}
+		else if(energeVoltage<1.85)
+		{
+			timeus2=300*(2.0667-energeVoltage)+8;
 		}
 		else if(energeVoltage<2.0)
 		{
@@ -1009,8 +1015,8 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 		}		
 		if(energeVoltage<1.85)
 		{
-		 	//timeus=(unsigned short int)(94.0/ev)+timeUs+timeus2+(unsigned short int)((energeVoltage*4+6.0)-6.5);			
-			timeus=(unsigned short int)(94.0/ev)+timeUs+timeus2+(unsigned short int)(energeVoltage*4-0.5);
+		 	//timeus=(unsigned short int)(94.0/ev)+timeUs+timeus2+(unsigned short int)((energeVoltage*4+14)+6.5);			
+			timeus=(unsigned short int)(94.0/ev)+timeUs+timeus2-(unsigned short int)(energeVoltage*4+20.5);
 			timeLoad=timeus;
 		}
 		else

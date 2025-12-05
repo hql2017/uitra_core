@@ -794,8 +794,8 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
     period=5000;//
 		__HAL_TIM_SetAutoreload(&htim1,period-1);//low 10K  50kHz  MAX 400kHz
 		//duty 1%  100%; 0% close
-    if(lightLevel>100) duty=60;//max
-    else  duty=40+lightLevel/5;
+    if(lightLevel>100) duty=80;//max
+    else  duty=40+lightLevel*2/5;
 		timeUs= period * duty/100;
 		__HAL_TIM_SetCompare(&htim1,TIM_CHANNEL_1,timeUs-1);
 		HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);

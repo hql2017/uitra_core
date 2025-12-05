@@ -491,7 +491,7 @@ void StartDefaultTask(void *argument)
   uint8_t load_sta;
   float treatmentWaterC; 
   app_mcu_power_switch(ENABLE);    
-  app_lcd_power_12V_switch(ENABLE);
+  app_lcd_power_12V_switch(ENABLE);   
   for(;;)
   {  
     //Fan
@@ -503,7 +503,7 @@ void StartDefaultTask(void *argument)
     app_beep_pwm(0,0);  
     do
 		{
-			HAL_Delay(500);//beep
+			HAL_Delay(200);//beep
 			DEBUG_PRINTF("please release power key%d\r\n",HAL_GPIO_ReadPin(KEY_PWR_SWITCH_GPIO_Port,KEY_PWR_SWITCH_Pin));				 
 		}while(HAL_GPIO_ReadPin(KEY_PWR_SWITCH_GPIO_Port,KEY_PWR_SWITCH_Pin)==GPIO_PIN_RESET); 
     
@@ -782,20 +782,22 @@ void auxTask02(void *argument)
 			HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
 		}	
 		/**********************RGB****************************/		
-		osMessageQueueGet(rgbQueue02Handle,&rgbRun,0,10);		
+		osMessageQueueGet(rgbQueue02Handle,&rgbRun,0,5);		
     switch(rgbRun)
     {
       case 0:
         rgb_color_all(0);
       break;
-      case 1:
+      case RGB_G_STANDBY:
         Green_Breath();
+        //osDelay(2);//8-6);//1K
+        osDelay(12);//16-6);//2K	
       break;
-      case 2:
+      case RGB_LASER_PREPARE_OK:
         rgb_color_all(2);
       break;
-      case 3:
-        app_rgb_breath_ctl(laser_ctr_param.laserFreq,9);
+      case RGB_LASER_WORK_STATUS:
+        app_rgb_breath_ctl(laser_ctr_param.laserFreq,9);        
       break;
       default:
         rgb_color_all(0);
@@ -959,7 +961,7 @@ void laserWorkTask04(void *argument)
           osDelay(JDQ_RS485_FRAME_MIN_MS);         
           timeout+=JDQ_RS485_FRAME_MIN_MS;    
         }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);       
-        osDelay(500);
+        osDelay(50);
         jdq_reley_charge_ready(1);       
         DEBUG_PRINTF("laser close ok\r\n");
         #else
@@ -979,26 +981,25 @@ void laserWorkTask04(void *argument)
         #endif            
         sGenSta.laser_run_B0_pro_hot_status=0;	
         osTimerDelete(laserWorkTimer01Handle);
-        rgbMessage=RGB_G_STANDBY;
+        rgbMessage = RGB_G_STANDBY;
         osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);
         osEventFlagsClear(laserEvent02Handle,EVENTS_LASER_PREPARE_OK_ALL_BITS_MASK);
       }         
       if(statusJT==osOK)          
-      {
-                            
+      {                 
         if(recKeyMessage==key_jt_long_press&&sGenSta.laser_run_B5_timer_status==0)
         {  
           if(osTimerIsRunning(laserWorkTimer01Handle)==pdFALSE)
           {
             if(pLaserConfig->proCali==0)  
             {
-              if(laser_ctr_param.timerCtr==0)
+              if(laser_ctr_param.timerEnableFlag==0)
               {
                 sGenSta.laser_run_B5_timer_status=0;
               }
               else
               {             
-                if(sGenSta.laser_run_B5_timer_status==0)
+                if(sGenSta.laser_run_B5_timer_status==0&&laser_ctr_param.timerCtr!=0)
                 {
                   if(laser_ctr_param.timerCtr>180)laser_ctr_param.timerCtr=180; 
                   osTimerStart(laserWorkTimer01Handle,laser_ctr_param.timerCtr*SYS_1_SECOND_TICKS);
@@ -1007,7 +1008,7 @@ void laserWorkTask04(void *argument)
             }
             else 
             {
-              if(sGenSta.laser_run_B5_timer_status==0)
+              if(sGenSta.laser_run_B5_timer_status==0&&laser_ctr_param.timerEnableFlag!=0)
               {
                 osTimerStart(laserWorkTimer01Handle,180*SYS_1_SECOND_TICKS);
               }
@@ -1030,12 +1031,13 @@ void laserWorkTask04(void *argument)
             float  e_t;
             e_t=(200-u_sys_param.sys_config_param.laser_pulse_width_us)*(0.00035);      
             #if 1
-            local_f=1.40+((laser_ctr_param.laserEnerge)*freq_e*(1.31+e_t)/u_sys_param.sys_config_param.laser_pulse_width_us);
+            local_f=1.40+((laser_ctr_param.laserEnerge)*freq_e*(1.28+e_t)/u_sys_param.sys_config_param.laser_pulse_width_us);
             #else
             if(u_sys_param.sys_config_param.laser_pulse_width_us!=120) local_f=1.39+((laser_ctr_param.laserEnerge*1.33)/u_sys_param.sys_config_param.laser_pulse_width_us)-freq_e;
             else local_f=jdq_120uspulse_energe_voltage[(laser_ctr_param.laserEnerge)/5]-freq_e;
             #endif  
             //local_f=1.40+((laser_ctr_param.laserEnerge*1.25)/u_sys_param.sys_config_param.laser_pulse_width_us;        
+           // local_f=1.40+laser_ctr_param.ledLightLevel*0.1; 
             if(pLaserConfig->proCali==0)
             { 
               if(pLaserConfig->treatmentWaterLevel!=0)
@@ -1060,8 +1062,7 @@ void laserWorkTask04(void *argument)
             if(local_f>DAC_MAX_VOLTAGE_F) local_f=DAC_MAX_VOLTAGE_F;//4.0
             if(local_f<DAC_MIN_VOLTAGE_F) local_f=DAC_MIN_VOLTAGE_F;//4.0
             if(local_f<1.85) laser_ctr_param.lowEnergeMode=1;
-            else laser_ctr_param.lowEnergeMode=0;
-            //local_f*0.5;//test
+            else laser_ctr_param.lowEnergeMode=0;          
             AD5541A_SetVoltage(local_f,4.096);       
             sGenSta.laser_run_B1_laser_out_status=1; 
             rgbMessage = RGB_LASER_WORK_STATUS;
@@ -1071,10 +1072,14 @@ void laserWorkTask04(void *argument)
         }
         else //if(recKeyMessage!=key_jt_long_press)
         {
-          if(sGenSta.laser_run_B5_timer_status!=0&& recKeyMessage!=key_jt_long_press)
+          if(sGenSta.laser_run_B5_timer_status!=0&&recKeyMessage!=key_jt_long_press&&osTimerIsRunning(laserWorkTimer01Handle)==pdFALSE)
           {  
             sGenSta.laser_run_B5_timer_status=0; 
           }        
+          if(sGenSta.laser_run_B5_timer_status==0&&osTimerIsRunning(laserWorkTimer01Handle)==pdTRUE)
+          {
+            osTimerStop(laserWorkTimer01Handle);           
+          }
           if(sGenSta.laser_run_B1_laser_out_status!=0)
           {            
             app_laser_pulse_start(LASER_PULSE_STOP,LASER_PULSE_STOP,LASER_PULSE_STOP); 
@@ -1205,25 +1210,29 @@ void hmiAppTask06(void *argument)
 {
   /* USER CODE BEGIN hmiAppTask06 */
   /* Infinite loop */ 
-  osDelay(10000);
+  //osDelay(13000);
   uint16_t send_music_num = MUSIC_SYS_ON;
   osMessageQueuePut(musicQueue03Handle,&send_music_num,0,100);
   u_sys_param.sys_config_param.synchronousFlag=0; 
   uint32_t syncTimeOutS=0;
+  
   for(;;)
   {   
-    do
+    while(u_sys_param.sys_config_param.synchronousFlag!=3)   
     {
-      app_hmi_sysnc_req(); 
-      osDelay(1000);
-      DEBUG_PRINTF(" system paramete req..  wait=%ds\r\n",syncTimeOutS);
-      syncTimeOutS+=1;
+      if(HAL_GetTick()>18000)
+      {
+        syncTimeOutS++;
+        DEBUG_PRINTF(" synchronous req=%d\r\n",syncTimeOutS);
+        app_hmi_sysnc_req(); 
+      } 
       if(syncTimeOutS>10)
       {
         DEBUG_PRINTF("sync fail use local paramete\r\n");
         u_sys_param.sys_config_param.synchronousFlag=3;
-      }      
-    }while(u_sys_param.sys_config_param.synchronousFlag!=3);    
+      }  
+      osDelay(1000);       
+    }    
     osStatus_t status = osSemaphoreAcquire(hmiCanBusIdleSem06Handle,HMI_CAN_FRAME_DELAY_TIME);
     if(status==pdTRUE)
     {
@@ -1278,9 +1287,7 @@ void canReceiveTask07(void *argument)
     {
       readLen=0;
       fd_canRxLen=0;
-    }     
-    osDelay(2);     
-     
+    } 
     /*****************激光指示灯***********************/	
     if(laser_ctr_param.ledLightLevel!=0) 
     {
@@ -1519,6 +1526,7 @@ void laserProhotTask09(void *argument)
         do
         {  
           osDelay(JDQ_RS485_FRAME_MIN_MS);
+
           timeout+=JDQ_RS485_FRAME_MIN_MS;            
           outVoltage = app_jdq_voltage_monitor();                        
           if(laser_ctr_param.proHotCtr==0) 
@@ -1681,7 +1689,7 @@ void tmcMaxRunTimesCallback03(void *argument)
   /* USER CODE BEGIN tmcMaxRunTimesCallback03 */
   osTimerStop(tmcMaxRunTimer03Handle);
   tmc2226_stop();
-  if(laser_ctr_param.air_water_prepare_ctr != 0)
+  if(laser_ctr_param.air_water_prepare_ctr != 0)  
   {
     laser_ctr_param.air_water_prepare_ctr=0;
   }  
@@ -2138,12 +2146,14 @@ void app_set_default_sys_config_param(void)
   {
     if(local_tmc_flag!=0)
     { 
-      tmc2226_stop(); 
       if(osTimerIsRunning(tmcMaxRunTimer03Handle)==pdTRUE)
       {
-        osTimerStop(tmcMaxRunTimer03Handle);             
-        osTimerDelete(tmcMaxRunTimer03Handle);
+        osTimerStop(tmcMaxRunTimer03Handle);
       }
+      tmc2226_start(!TMC_WATER_OUT_DIR_VALUE,3); 
+      osDelay(120);
+      tmc2226_stop(); 
+      osTimerDelete(tmcMaxRunTimer03Handle);      
       local_tmc_flag = 0;      
     }    
   }

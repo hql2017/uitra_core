@@ -309,11 +309,10 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			break;
 		case HMI_CODE_START_TIMER_LASER:
 			laser_ctr_param.timerCtr = data[4];	
-			laser_ctr_param.timerEnableFlag = data[5];		
+			laser_ctr_param.timerEnableFlag = data[5];						
 			app_hmi_cmd_ack(hmi_code);
 			break;
-		case HMI_CODE_CONFIG_PARAM_SYNCHRONOUS:
-		
+		case HMI_CODE_CONFIG_PARAM_SYNCHRONOUS:		
 			if(data[4]==1)//load param			
 			{
 				memcpy(u_sys_param.data,&data[4],SYS_LASER_CONFIG_PARAM_LENGTH);

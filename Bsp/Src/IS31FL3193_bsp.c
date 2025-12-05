@@ -129,7 +129,16 @@ static void is3_rgb_default_param(void)
     ISI3_IIC_Write(IS3_RGB_ENABLE,buff,1);//enable
     RGB_shutdown(1);
  }
- 
+ /**
+  * @brief ISI3_IIC_errhandle
+  * @param   
+  * @note   ISI3_IIC_errhandle
+  * @retval None
+  */
+ static void ISI3_IIC_err_handle(void)
+{
+  IS3_init();//restart
+}
 /**
   * @brief ISI3_IIC_Write
   * @param   uint16_t unsigned short int reg
@@ -141,7 +150,12 @@ static void is3_rgb_default_param(void)
 static void ISI3_IIC_Write(unsigned char reg,unsigned char *data,unsigned short int len)
 {
   HAL_StatusTypeDef err; 	
-	err=HAL_I2C_Mem_Write(&hi2c5,IS3_REAL_ADDR,reg,I2C_MEMADD_SIZE_8BIT,data,len,IS3_I2C_TIMEOUT);	 
+	err=HAL_I2C_Mem_Write(&hi2c5,IS3_REAL_ADDR,reg,I2C_MEMADD_SIZE_8BIT,data,len,IS3_I2C_TIMEOUT);
+  if(err!=HAL_OK)
+  {
+    ISI3_IIC_err_handle();
+    //error
+  }	 
 }
 
 /**
@@ -507,15 +521,20 @@ void Green_Breath(void )//呼吸一次，约耗时465ms，单色约600/128=4.7ms
   {
       for (i=0; i<12; i++) //R
       { // R  G  B  
-        I2C_WriteByte(Addr_GND_GND,1+i*3,0);   //B//PWM       
-        I2C_WriteByte(Addr_GND_GND,2+i*3,(unsigned char )(PWM_64_table[j]*(u_sys_param.sys_config_param.rgb_light*0.01)));   //PWM 
+        I2C_WriteByte(Addr_GND_GND,1+i*3,0);   //B//PWM  
+        if(u_sys_param.sys_config_param.rgb_light!=0) 
+        {
+          if(j<5||j>123) I2C_WriteByte(Addr_GND_GND,2+i*3,(unsigned char )(PWM_64_table[5]*(u_sys_param.sys_config_param.rgb_light*0.01))); //low 5%
+          else I2C_WriteByte(Addr_GND_GND,2+i*3,(unsigned char )(PWM_64_table[j]*(u_sys_param.sys_config_param.rgb_light*0.01)));   //PWM
+        }          
+        else I2C_WriteByte(Addr_GND_GND,2+i*3,(unsigned char )(PWM_64_table[j]*(u_sys_param.sys_config_param.rgb_light*0.01)));   //PWM 
         I2C_WriteByte(Addr_GND_GND,3+i*3,0);  //R
       }      
       I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
       I2C_WriteByte(Addr_GND_GND,0x4B,0x01);//all channel out  freq
       I2C_WriteByte(Addr_GND_GND,0x00,0x01);// 
 		//osDelay(8);//1K//看起来比较累
-    osDelay(16);//2K	
+    //osDelay(16);//2K	
   }
 }
 void High_Breath(void )//呼吸一次，
@@ -582,8 +601,10 @@ void is_12_all_rgb(unsigned short int rgbValue)//混合色
 			I2C_WriteByte(Addr_GND_GND,0x01+i*3,B);
 			I2C_WriteByte(Addr_GND_GND,0x02+i*3,G);
 			I2C_WriteByte(Addr_GND_GND,0x03+i*3,R);		
-    }
-		I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
+    }		
+    I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
+    I2C_WriteByte(Addr_GND_GND,0x4B,0x01);
+    I2C_WriteByte(Addr_GND_GND,0x00,0x01);//
 }
 //all g 
 void is_12_all_gLED(void)
