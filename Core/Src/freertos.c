@@ -1020,33 +1020,63 @@ void laserWorkTask04(void *argument)
             if(u_sys_param.sys_config_param.laser_pulse_width_us>200) u_sys_param.sys_config_param.laser_pulse_width_us=200; 
            //temprature
             float freq_e=0;
+            float  e_t=0;//温度补偿  
             #if 1
             if(laser_ctr_param.laserFreq>30) freq_e=0.951-laser_ctr_param.laserFreq*0.0005;
             else  if(laser_ctr_param.laserFreq>10) freq_e=1-laser_ctr_param.laserFreq*0.0017;
             else  if(laser_ctr_param.laserFreq>=5) freq_e=1.050-0.005*laser_ctr_param.laserFreq;
-            else freq_e=1.090-0.009*laser_ctr_param.laserFreq;             
+            else freq_e=1.090-0.009*laser_ctr_param.laserFreq;    
+               
+
             #endif
-            float  e_t;
-            e_t=(200-u_sys_param.sys_config_param.laser_pulse_width_us)*(0.00035);      
-            #if 1
-            local_f=1.40+((laser_ctr_param.laserEnerge)*freq_e*(1.28+e_t)/u_sys_param.sys_config_param.laser_pulse_width_us);
-            #else
-            if(u_sys_param.sys_config_param.laser_pulse_width_us!=120) local_f=1.39+((laser_ctr_param.laserEnerge*1.33)/u_sys_param.sys_config_param.laser_pulse_width_us)-freq_e;
-            else local_f=jdq_120uspulse_energe_voltage[(laser_ctr_param.laserEnerge)/5]-freq_e;
-            #endif  
-            if(pLaserConfig->proCali==0)
-            { 
-              if(pLaserConfig->treatmentWaterLevel!=0)
+            float  e_T;
+            if(sEnvParam.eth_k1_temprature<24.0) 
+            {
+              if(laser_ctr_param.laserEnerge<25)   
               {
-                app_deflate_air_solenoid(ENABLE);
+                e_T=+0.10*(24.0-sEnvParam.eth_k1_temprature);//0.90
+              }
+             else  e_T=+0.06*(24.0-sEnvParam.eth_k1_temprature);//0.90
+            }          
+            else  if( sEnvParam.eth_k1_temprature>=24.0)
+            {             
+              e_T=-0.01*(sEnvParam.eth_k1_temprature-24.0);
+            } 
+            else  if( sEnvParam.eth_k1_temprature>28.0)
+            {
+              e_T=-0.04;//1.08
+            }  
+            if(laser_ctr_param.laserEnerge<15)
+            {
+              e_t=(200-u_sys_param.sys_config_param.laser_pulse_width_us)*(0.00035); 
+              local_f=1.36+((laser_ctr_param.laserEnerge)*freq_e*(1.30+e_t+e_T)/u_sys_param.sys_config_param.laser_pulse_width_us);
+            }
+            else 
+            {   
+                     
+              e_t=(200-u_sys_param.sys_config_param.laser_pulse_width_us)*(0.00035); 
+              local_f=1.40+((laser_ctr_param.laserEnerge)*freq_e*(1.30+e_t+e_T)/u_sys_param.sys_config_param.laser_pulse_width_us);
+            } 
+            if(pLaserConfig->proCali==0)
+            {               
+              if(pLaserConfig->treatmentWaterLevel!=0)
+              {   
+                app_deflate_air_solenoid(ENABLE);             
                 tmc2226_start(TMC_WATER_OUT_DIR_VALUE,laser_ctr_param.treatmentWaterLevel); 
-              }              
+              }   
+              else   
+              {
+                if(pLaserConfig->airPressureLevel!=0)
+                {
+                  app_deflate_air_solenoid(ENABLE);
+                }
+              }         
             }
             else
             {
               laser_ctr_param.laserFreq=10;
             }
-            if(pLaserConfig->laserType==0&&laser_ctr_param.laserEnerge>0)
+            if(pLaserConfig->laserType==0&&laser_ctr_param.laserEnerge>4)
             {
               if(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali>2500)
               {
@@ -1054,8 +1084,9 @@ void laserWorkTask04(void *argument)
               }
               else  local_f-=(2500-u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali)*0.0001;//
             }           
-            DEBUG_PRINTF("e=%dev=%.3f freq=%d\r\n",laser_ctr_param.laserEnerge,local_f,laser_ctr_param.laserFreq); 
+            DEBUG_PRINTF("e=%dev=%.3f freq=%d timeU=%d\r\n",laser_ctr_param.laserEnerge,local_f,laser_ctr_param.laserFreq,u_sys_param.sys_config_param.laser_pulse_width_us); 
             if(local_f>DAC_MAX_VOLTAGE_F) local_f=DAC_MAX_VOLTAGE_F;//4.0
+           
             if(local_f<DAC_MIN_VOLTAGE_F) local_f=DAC_MIN_VOLTAGE_F;//4.0
             if(local_f<1.85) laser_ctr_param.lowEnergeMode=1;
             else laser_ctr_param.lowEnergeMode=0;          
@@ -1364,7 +1395,7 @@ void laserProhotTask09(void *argument)
       osEventFlagsSet(laserEvent02Handle,EVENTS_LASER_GX_TEST_PREPARE_OK_BIT|EVENTS_LASER_JT_ENABLE_BIT);
       sGenSta.laser_run_B0_pro_hot_status = 1;      
     }
-    else
+    else 
     {
       if(local_proHotCtr!=0)	
       {	 

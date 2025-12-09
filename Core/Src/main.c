@@ -147,8 +147,6 @@ int main(void)
   char verBuff[19]={0};
   memcpy(verBuff,__TIME__,8);
   memcpy(&verBuff[8],__DATE__,11);
-
-  
   #ifdef DEBUG_MSG_UART 
   DEBUG_PRINTF("uitra_V1.0.%c%c%c%c%c%c%c%c%c%c%c%c --DATE=%s\r\n",verBuff[0],verBuff[1],verBuff[3],verBuff[4],verBuff[6],verBuff[7],verBuff[12]+16,verBuff[13],verBuff[15],verBuff[16],verBuff[17],verBuff[18],__DATE__);
   #else

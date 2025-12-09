@@ -195,8 +195,8 @@ static void get_fan_spd_calcu(unsigned int run_tick)
 	if(fanParam.runflag!=0)
 	{ 
 		fan_spd_pid(fanParam.runflag,30);		
-		DEBUG_PRINTF("fan_spd1=%d duty=%d\r\n",fanParam.fan_speed[1],fanParam.fan_duty_count[1]);
-		DEBUG_PRINTF("fan_spd2=%d duty=%d\r\n",fanParam.fan_speed[0],fanParam.fan_duty_count[0]);
+		//DEBUG_PRINTF("fan_spd1=%d duty=%d\r\n",fanParam.fan_speed[1],fanParam.fan_duty_count[1]);
+		//DEBUG_PRINTF("fan_spd2=%d duty=%d\r\n",fanParam.fan_speed[0],fanParam.fan_duty_count[0]);
 	}
 }
 /************************************************************************//**
