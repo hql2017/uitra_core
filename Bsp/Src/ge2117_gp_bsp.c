@@ -342,7 +342,7 @@ void ge2117_start_up_set(unsigned short int startFlag)
 	{
 		//app_ge_write_req_frame(GE2117_REG_START_STOP,3);//启动	
 		if(geWksta.compressorSetSpd<3000)	geWksta.compressorSetSpd=3000;
-		if(geWksta.compressorSetSpd>6000)    geWksta.compressorSetSpd=6000;
+		if(geWksta.compressorSetSpd>5000)    geWksta.compressorSetSpd=5000;
 		app_ge_write_req_frame(GE2117_REG_SPD_STRAT,geWksta.compressorSetSpd);//启动
 	}	
 	else app_ge_write_req_frame(GE2117_REG_START_STOP,4);//停止
@@ -447,7 +447,7 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 						//DEBUG_PRINTF("gespd=%d\r\n",geWksta.compressorSetSpd);
 						geWksta.wkTimeOut=0;						
 						geWksta.compressorSetSpd +=500;
-						if(geWksta.compressorSetSpd >6000) geWksta.compressorSetSpd = 6000;
+						if(geWksta.compressorSetSpd >5500) geWksta.compressorSetSpd = 5500;
 						fan_spd_set(FAN38_COMPRESSOR_NUM,geWksta.compressorSetSpd);												
 						ge2117_speed_set(geWksta.compressorSetSpd);					
 						geWksta.ge_seriel_err=3;

@@ -12,7 +12,7 @@ extern void fan_init(void);
 extern void app_fan_feed_count(unsigned char fan_number);
 extern void fan_stop(unsigned char stopFlag);
 extern void fan_start(unsigned char runflag);
-extern void app_fan_manage(unsigned int systick);
+extern void app_fan_manage( unsigned int handleTimeMs);
 extern void fan_spd_set(unsigned char fanNumber,unsigned int spd);
 extern unsigned short int fan_get_run_spd(unsigned char fanNumber);
 #define FAN38_COMPRESSOR_NUM  2//压缩机风扇

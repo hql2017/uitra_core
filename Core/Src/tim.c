@@ -822,7 +822,7 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 		period=400;//(10000000/25000);
 		__HAL_TIM_SetAutoreload(&htim8,period-1);//low 0.5k  20kHz  MAX 20kHz
 		//duty 1%  100%; 0% close 	
-		timeUs = duty*4;//period*duty/100;	//duty = 12.5%;
+		timeUs = (duty)*4;//period*duty/100;	//duty = 12.5%;
 		if(fanNum==1) 
     {
       __HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,timeUs-1);  
@@ -831,6 +831,7 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
     }
     else //(fanNum==2) 
     {
+      if(duty<20)  timeUs =80;// (duty)*4;
       __HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_3,timeUs-1);          
       HAL_TIMEx_PWMN_Start(&htim8,TIM_CHANNEL_3); 
     }

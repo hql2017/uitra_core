@@ -45,7 +45,7 @@ void app_hmi_sysnc_req(void)
 *******************************************************************************/
 void app_hmi_report_status(sys_genaration_status *sys_status) 
 {
-	uint8_t  can_tx_data[26];
+	uint8_t  can_tx_data[32];
 	uint8_t send_buff_jt;
 	can_tx_data[0]=0x7E;
 	can_tx_data[1]=0x7E;	
@@ -80,6 +80,12 @@ void app_hmi_report_status(sys_genaration_status *sys_status)
 	can_tx_data[22]=crc16Num(can_tx_data,22)&0xFF;
 	can_tx_data[24]=0x0D;
 	can_tx_data[25]=0x0A;
+	can_tx_data[26]	=0;
+	can_tx_data[27]	=0;
+	can_tx_data[28]	=0;
+	can_tx_data[29]	=0;
+	can_tx_data[30]	=0;
+	can_tx_data[31]	=0;
 	APP_CAN_SEND_DATA(can_tx_data,26,HMI_BROADCAST_ADDR);//304 bytes(38package) use 75ms  t=75/38;2ms
 }
 /***************************************************************************//**
@@ -111,6 +117,10 @@ void app_hmi_report_pulse_count(void)
 	can_tx_data[16]=crc16Num(can_tx_data,16)&0xFF;
 	can_tx_data[18]	=0x0D;	
 	can_tx_data[19]	=0x0A;	
+	can_tx_data[20]	=0;
+	can_tx_data[21]	=0;
+	can_tx_data[22]	=0;
+	can_tx_data[23]	=0;
 	APP_CAN_SEND_DATA(can_tx_data,20,HMI_BROADCAST_ADDR);//304 bytes(38package) use 75ms  t=75/38;2ms		
 }
 /***************************************************************************//**
@@ -217,8 +227,8 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			app_hmi_report_pulse_count();
 			break;
 		case HMI_CODE_PULSE_WIDTH_US:
-			//u_sys_param.sys_config_param.charge_width_us=data[6]|(data[7]<<8);			
-			u_sys_param.sys_config_param.charge_width_us=data[6];		
+			u_sys_param.sys_config_param.charge_width_us=data[6]|(data[7]<<8);			
+			//u_sys_param.sys_config_param.charge_width_us=data[6];		
 			u_sys_param.sys_config_param.laser_pulse_width_us=data[4]|(data[5]<<8);
 			app_hmi_cmd_ack(hmi_code) ;
 			break;
@@ -266,6 +276,8 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			can_tx_data[10]=crc16Num(can_tx_data,10)&0xFF;
 			can_tx_data[12]=0x0D;
 			can_tx_data[13]=0x0A;
+			can_tx_data[14]=0;
+			can_tx_data[15]=0;
 			APP_CAN_SEND_DATA(can_tx_data,14,HMI_BROADCAST_ADDR);
 			break;
 		case HMI_CODE_PHOTODIOD:
@@ -337,6 +349,10 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 				can_tx_data[9]=crc16Num(can_tx_data,9)&0xFF;
 				can_tx_data[10]=0x0D;
 				can_tx_data[11]=0x0A;
+				can_tx_data[12]=0;
+				can_tx_data[13]=0;
+				can_tx_data[14]=0;
+				can_tx_data[15]=0;
 				APP_CAN_SEND_DATA(can_tx_data,12,HMI_BROADCAST_ADDR);//ack      		
 			}
 			else if(data[4]==2)//up param				 
@@ -349,6 +365,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 				can_tx_data[SYS_LASER_CONFIG_PARAM_LENGTH+4]=crc16Num(can_tx_data,SYS_LASER_CONFIG_PARAM_LENGTH+4)&0xFF;
 				can_tx_data[SYS_LASER_CONFIG_PARAM_LENGTH+6]=0x0D;
 				can_tx_data[SYS_LASER_CONFIG_PARAM_LENGTH+7]=0x0A;
+				can_tx_data[223]=0;
 				APP_CAN_SEND_DATA(can_tx_data,SYS_LASER_CONFIG_PARAM_LENGTH+8,HMI_BROADCAST_ADDR);	//ack
 			}
 			else if(data[4]==3)//up param			

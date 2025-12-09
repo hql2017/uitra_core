@@ -82,7 +82,7 @@ void app_jdq_sts_1200_receive_handle(void);
 #define LASER_JDQ_VOLTAGE   150
 #define LASER_JDQ_CURRENT_LIMIT_F  1.9f
 #define LASER_JDQ_CURRENT_LIMIT     2
-#define LASER_JDQ_CHARGE_TIMEOUT_MS  10000//30000//60S
+#define LASER_JDQ_CHARGE_TIMEOUT_MS  12000//30000//60S
 
 #ifndef  ADS1110_JDQ_USED
 #define  ADS1110_JDQ_USED 

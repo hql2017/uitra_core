@@ -37,7 +37,7 @@ typedef enum{
  //static unsigned short int fan_duty_buff[13]={0,20,112,148,192,254,324,390,479,559,640,710,890};//0,0,2000~11000RPM,890 ，10k
  
  //static const unsigned short int fan_duty_buff[13]={0,40,80,120,160,200,240,280,320,360,360,360,360};//0,1,500~6400RPM,25K
-   static unsigned short int fan_duty_buff[13]={0,10, 17, 40, 65, 90, 98, 98, 98, 98, 98, 99, 100 };//%fan25
+   static unsigned short int fan_duty_buff[13]={0,17, 20, 40, 65, 90, 98, 98, 98, 98, 98, 99, 100 };//%fan25
    static unsigned short int fan2_38_duty_buff[13]={0, 20, 32, 57, 78, 97, 98, 98, 98, 98, 99, 100,100 };//%fan38
  /************************************************************************//**
   * @brief 
@@ -191,12 +191,12 @@ void fan_spd_pid(unsigned char runFlag,unsigned int P)
 static void get_fan_spd_calcu(unsigned int run_tick)
 {
 	fanParam.fan_speed[1]= get_fan_count( FAN25_NUM )*30;	//spd=count_freq*30;
-	fanParam.fan_speed[0]= get_fan_count(FAN38_COMPRESSOR_NUM )*30; //spd=count_freq*30
+	fanParam.fan_speed[0]= get_fan_count(FAN38_COMPRESSOR_NUM )*30; //spd=count_freq*30	
 	if(fanParam.runflag!=0)
 	{ 
 		fan_spd_pid(fanParam.runflag,30);		
-		//DEBUG_PRINTF("fan_spd1=%d duty=%d\r\n",fanParam.fan_speed[1],fanParam.fan_duty_count[1]);
-		//DEBUG_PRINTF("fan_spd2=%d duty=%d\r\n",fanParam.fan_speed[0],fanParam.fan_duty_count[0]);
+		DEBUG_PRINTF("fan_spd1=%d duty=%d\r\n",fanParam.fan_speed[1],fanParam.fan_duty_count[1]);
+		DEBUG_PRINTF("fan_spd2=%d duty=%d\r\n",fanParam.fan_speed[0],fanParam.fan_duty_count[0]);
 	}
 }
 /************************************************************************//**
@@ -220,7 +220,7 @@ void fan_spd_set(unsigned char fanNumber,unsigned int spd)
 		spd_num=spd/1000;
 		if(fan_num1!=0)
 		{
-			if(spd<2000)			fanParam.fan_set_speed[1]=2000;
+			if(spd<3000)			fanParam.fan_set_speed[1]=3000;
 			else if(spd>6000)		fanParam.fan_set_speed[1]=6000;
 			else fanParam.fan_set_speed[1]=spd;					
 		}
@@ -230,7 +230,7 @@ void fan_spd_set(unsigned char fanNumber,unsigned int spd)
 		}		
 		if(fan_num2!=0)
 		{
-			if(spd<2000)			fanParam.fan_set_speed[0]=2000;
+			if(spd<3000)			fanParam.fan_set_speed[0]=3000;
 			else if(spd>6000)		fanParam.fan_set_speed[0]=6000;
 			else fanParam.fan_set_speed[0]=spd;						
 		}
@@ -350,7 +350,7 @@ void fan_init(void)
 * @note   
 * @retval 
 *****************************************************************************/
-void app_fan_manage(unsigned int systick)
+void app_fan_manage(unsigned int handleTimeMs)
 {		
-	get_fan_spd_calcu(systick);			
+	get_fan_spd_calcu(handleTimeMs);			
 }

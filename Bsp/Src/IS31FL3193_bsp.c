@@ -524,16 +524,16 @@ void Green_Breath(void )//呼吸一次，约耗时465ms，单色约600/128=4.7ms
         I2C_WriteByte(Addr_GND_GND,1+i*3,0);   //B//PWM  
         if(u_sys_param.sys_config_param.rgb_light!=0) 
         {
-          if(j<5||j>123) I2C_WriteByte(Addr_GND_GND,2+i*3,(unsigned char )(PWM_64_table[5]*(u_sys_param.sys_config_param.rgb_light*0.01))); //low 5%
+          if(j<4||j>124) I2C_WriteByte(Addr_GND_GND,2+i*3,(unsigned char )(PWM_64_table[4]*(u_sys_param.sys_config_param.rgb_light*0.01))); //low 5%
           else I2C_WriteByte(Addr_GND_GND,2+i*3,(unsigned char )(PWM_64_table[j]*(u_sys_param.sys_config_param.rgb_light*0.01)));   //PWM
         }          
-        else I2C_WriteByte(Addr_GND_GND,2+i*3,(unsigned char )(PWM_64_table[j]*(u_sys_param.sys_config_param.rgb_light*0.01)));   //PWM 
+        else I2C_WriteByte(Addr_GND_GND,2+i*3,0);   //PWM 
         I2C_WriteByte(Addr_GND_GND,3+i*3,0);  //R
       }      
       I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
       I2C_WriteByte(Addr_GND_GND,0x4B,0x01);//all channel out  freq
       I2C_WriteByte(Addr_GND_GND,0x00,0x01);// 
-		//osDelay(8);//1K//看起来比较累
+		//osDelay(8);//1K
     //osDelay(16);//2K	
   }
 }
