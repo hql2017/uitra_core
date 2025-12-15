@@ -494,7 +494,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   if(HAL_GPIO_ReadPin(FOOT_SWITCH_IN_GPIO_Port,FOOT_SWITCH_IN_Pin)==GPIO_PIN_RESET)
   {
     keyTimeout[0]+=timeMs;
-    if(keyTimeout[0]>=1000)  
+    if(keyTimeout[0]>850)  
     {
       keyTimeout[0]=0;
       keyValue[0]=KEY_LONG_PRESS;

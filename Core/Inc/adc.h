@@ -45,7 +45,8 @@ extern ADC_HandleTypeDef hadc2;
 
 #define AD2_LASER_1064_INDEX   4// 1// 2//15//PA3
 
-
+#define  MAX_AD2_ENERGE_BUFF_LENGTH 128//36//一个时间约6us=2.96*2(387.5cycle 2.96us)
+#define  HALF_AD2_ENERGE_BUFF_LENGTH 36
 /* USER CODE END Private defines */
 
 void MX_ADC1_Init(void);
@@ -54,7 +55,7 @@ void MX_ADC2_Init(void);
 /* USER CODE BEGIN Prototypes */
 void app_get_adc_value(unsigned char adChannel,float *vBuff);
 void app_start_multi_channel_adc(void);
-extern void pulse_adc_start(void);
+extern void pulse_adc_start(unsigned char Len);
 
 /* USER CODE END Prototypes */
 

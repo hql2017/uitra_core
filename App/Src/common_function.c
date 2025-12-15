@@ -19,31 +19,30 @@ uint16_t crc_table_list[256]=
   * @note   
   * @retval None
   */
- void sord_data(unsigned  short int *dataBuff,unsigned  short int length,unsigned char falg )
+ void sord_data(unsigned  short int *dataBuff,unsigned  short int length,unsigned char flag )
  {
-	unsigned  short int minValue=0,i,j;
-	unsigned  short int maxValue=0xFFFF;	
+	unsigned  short int tempValue=0,i,j;	
 	for(j=0;j+1<length;j++)
 	{
-		for(i=j;i+1<length;i++)
+		for(i=0;i+j+1<length;i++)
 		{
-			if(falg==0)//min->MAX
+			if(flag==0)//min->MAX
 			{
 				if(dataBuff[i]>dataBuff[i+1])
 				{
-					maxValue=dataBuff[i];
-					dataBuff[i]=dataBuff[i+1];			
-					dataBuff[i+1]=maxValue;
-				}
+					tempValue = dataBuff[i];				
+					dataBuff[i]= dataBuff[i+1];
+					dataBuff[i+1]=tempValue;
+				}				
 			}
 			else
 			{
 				if(dataBuff[i]<dataBuff[i+1])
 				{
-					minValue=dataBuff[i];
-					dataBuff[i]=dataBuff[i+1];			
-					dataBuff[i+1]=minValue;
-				}
+					tempValue = dataBuff[i];				
+					dataBuff[i]= dataBuff[i+1];
+					dataBuff[i+1]=tempValue;
+				}				
 			}
 		}
 	}

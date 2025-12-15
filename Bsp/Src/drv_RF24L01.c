@@ -719,7 +719,7 @@ void RF24L01_Init( void )
         if(g_RF24L01RxBuffer[5]==KEY_LONG_PRESS)
         {
           timeout[0]+=100;
-          if(timeout[0]>=1000)//1s 
+          if(timeout[0]>850)//1s 
           {
             timeout[0]=0;						
             retKey=g_RF24L01RxBuffer[5]; 

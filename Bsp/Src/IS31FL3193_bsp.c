@@ -578,16 +578,16 @@ void IS31FL3236A_Init(void)
      // I2C_WriteByte(Addr_GND_GND,i,0xFF);   //PWM      
     //}
     is_12_all_gLED();
-    HAL_Delay(10);
+    HAL_Delay(1);
     for(i=0x26; i<0x4A; i++)
     {
       I2C_WriteByte(Addr_GND_GND,i,0x01);//on LED      
     }
-    HAL_Delay(10);
+    HAL_Delay(1);
     I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
     I2C_WriteByte(Addr_GND_GND,0x4B,0x01);
     I2C_WriteByte(Addr_GND_GND,0x00,0x01);//
-    HAL_Delay(10);
+    HAL_Delay(1);
 }
 //all rgb 
 void is_12_all_rgb(unsigned short int rgbValue)//混合色

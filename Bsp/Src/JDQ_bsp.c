@@ -11,6 +11,8 @@
 #include "usart.h"
 #include "stdio.h"
 #include "gpio.h"
+#include "adc.h"
+
 
 #define JDQ_DAC_CS_ENABLE  HAL_GPIO_WritePin(DAC_CS_GPIO_Port, DAC_CS_Pin, GPIO_PIN_RESET)
 #define JDQ_DAC_CS_DISABLE  HAL_GPIO_WritePin(DAC_CS_GPIO_Port, DAC_CS_Pin, GPIO_PIN_SET)
@@ -31,6 +33,7 @@ typedef struct{
 	unsigned  int frame_timeout;//超时
 }JDQ_rs485_status;
 static JDQ_rs485_status jdq_rs485_sta;
+
 /*
 typedef struct{	
 	unsigned short int set_sts_voltage;//设置电压
@@ -914,7 +917,8 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		if(htim->Channel ==	HAL_TIM_ACTIVE_CHANNEL_1)
 		{  
-			HAL_GPIO_WritePin(GPIOC, HV_ONE_PULSE_out_Pin, GPIO_PIN_SET); 
+			HAL_GPIO_WritePin(GPIOC, HV_ONE_PULSE_out_Pin, GPIO_PIN_SET); 		
+		 	pulse_adc_start(MAX_AD2_ENERGE_BUFF_LENGTH);
 		}
 	}
 }
@@ -931,8 +935,8 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 	294,298,302,306,310,314,320,\
 };
 static unsigned short int  jdq_pulse_cali_time01Us[27]={//(1.4V~4.0V)(0.1us)//T+9
-	196,200,204,208,212, 216,\
-	220,224,228,232,236,240,\
+	196,200,204,208,212, 216,220,224,228,\
+	232,236,240,\
 	244,248,252,256,260,264,268,\
 	272,276,280,284,288,292,296,300//+8
 };
@@ -983,17 +987,21 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 		uint16_t timeus2;		
 		if(ev>DAC_MAX_VOLTAGE_F) ev=DAC_MAX_VOLTAGE_F;
 		if(ev<DAC_MIN_VOLTAGE_F) ev=DAC_MIN_VOLTAGE_F;
-		if(energeVoltage<1.55)
+		if(energeVoltage<1.5)
 		{
-			timeus2=1200*(1.684-energeVoltage)-40;//测量脉宽
+			timeus2=1200*(1.617-energeVoltage);
+		}
+		else if(energeVoltage<1.55)
+		{
+			timeus2=500*(1.876-energeVoltage)+13;
 		}
 		else if(energeVoltage<1.6)
 		{
-			timeus2=500*(1.882-energeVoltage)-3;
+			timeus2=500*(1.876-energeVoltage);
 		}
 		else if(energeVoltage<1.65)
 		{
-			timeus2=500*(1.882-energeVoltage)-13;
+			timeus2=500*(1.856-energeVoltage);
 		}
 		else if(energeVoltage<1.7)
 		{
@@ -1001,7 +1009,7 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 		}
 		else if(energeVoltage<1.75)
 		{
-			timeus2=300*(2.0667-energeVoltage)-5;
+			timeus2=300*(2.0500-energeVoltage);
 		}	
 		else if(energeVoltage<1.8)
 		{
@@ -1009,7 +1017,7 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 		}
 		else if(energeVoltage<1.85)
 		{
-			timeus2=300*(2.0667-energeVoltage)+8;
+			timeus2=300*(2.09337-energeVoltage);
 		}
 		else if(energeVoltage<2.0)
 		{
@@ -1039,7 +1047,7 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 		}
 		else
 		{
-			timeus=(unsigned short int)((94.0/ev)+13)+timeUs+timeus2;			
+			timeus=(unsigned short int)((94.0/ev)+13)+timeUs+timeus2;	
 			timeLoad=timeus;		
 			app_laser_pulse_width_set(timeUs*10,ev);
 		} 

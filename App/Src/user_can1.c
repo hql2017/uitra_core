@@ -53,6 +53,10 @@ void app_hmi_report_status(sys_genaration_status *sys_status)
 	can_tx_data[3]=HMI_CODE_STATUS_QUERY|HMI_CMD_ACK_MASK;
 	can_tx_data[4]=(uint8_t) sys_status->circle_water_box_temprature;
 	can_tx_data[5]=(sys_status->treatment_water_level_status&0x0F)|(sys_status->air_level_status<<4);
+	if(laser_ctr_param.laserType!=0)
+	{
+		sys_status->laser_run_B4_laser_980_out_status= sys_status->laser_run_B1_laser_out_status;
+	}
 	can_tx_data[6]=sys_status->laser_run_B0_pro_hot_status|sys_status->laser_run_B1_laser_out_status<<1|sys_status->laser_run_B2_gx_test_status<<2|sys_status->laser_run_B3_laser_pilot_lamp_status<<3\
 	|sys_status->laser_run_B4_laser_980_out_status<<4|sys_status->laser_run_B5_timer_status<<5|sys_status->laser_run_B6_close_device_status<<6;	
 	if(sys_status->laser_param_B456_jt_status==IO_KEY_IDLE)
@@ -194,19 +198,15 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			u_sys_param.sys_config_param.beep=data[6];
 			app_hmi_cmd_ack(hmi_code);				 		
 			break;			
-		case HMI_CODE_CTR_TEST_MODE://本机不支持
-			laser_ctr_param.ctrTestMode=0;//data[4];
+		case HMI_CODE_CTR_TEST_MODE:
+			laser_ctr_param.ctrTestMode=data[4];
 			sGenSta.laser_run_B2_gx_test_status=0;//1;		
-			//app_laser_preapare_semo();	
-			//app_hmi_cmd_ack(hmi_code) ;	
+			app_laser_preapare_semo();	
+			app_hmi_cmd_ack(hmi_code) ;	
 			break;
 		case HMI_CODE_PRO_HOT:
-			laser_ctr_param.laserType=data[5];	
-			if(laser_ctr_param.laserType==0&&data[4]!=0)//本机不支持切割模式	
-			{			
-				laser_ctr_param.proHotCtr = data[4];
-			}
-			else laser_ctr_param.proHotCtr = 0;
+		laser_ctr_param.proHotCtr = data[4];
+			laser_ctr_param.laserType=data[5];
 			laser_ctr_param.proCali=data[6];			
 			app_laser_preapare_semo();	
 			app_hmi_cmd_ack(hmi_code) ;	

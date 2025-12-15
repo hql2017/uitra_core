@@ -8,7 +8,8 @@ typedef enum{
     MUSIC_TWO_TIGER,
     MUSIC_STAR,
     MUSIC_HAPPY,  
-    MUSIC_SYS_ON
+    MUSIC_SYS_ON,
+    MUSIC_LASER_WORK
 }music_type;
 extern unsigned short int music_tab_c[];
 extern  unsigned char music_star[85];
