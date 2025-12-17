@@ -153,20 +153,19 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 640 * 4,
+  .stack_size = 296 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for myTask02 */
 osThreadId_t myTask02Handle;
-
 const osThreadAttr_t myTask02_attributes = {
   .name = "myTask02",
-  .stack_size = 256 * 4,
+  .stack_size = 312 * 4,
   .priority = (osPriority_t) osPriorityNormal4,
 };
 /* Definitions for myTask03 */
 osThreadId_t myTask03Handle;
-uint32_t myTask03Buffer[ 288 ];
+uint32_t myTask03Buffer[ 128 ];
 osStaticThreadDef_t myTask03ControlBlock;
 const osThreadAttr_t myTask03_attributes = {
   .name = "myTask03",
@@ -180,14 +179,14 @@ const osThreadAttr_t myTask03_attributes = {
 osThreadId_t myTask04Handle;
 const osThreadAttr_t myTask04_attributes = {
   .name = "myTask04",
-  .stack_size = 256 * 4,
+  .stack_size = 192 * 4,
   .priority = (osPriority_t) osPriorityNormal6,
 };
 /* Definitions for myTask05 */
 osThreadId_t myTask05Handle;
 const osThreadAttr_t myTask05_attributes = {
   .name = "myTask05",
-  .stack_size = 320 * 4,
+  .stack_size = 176 * 4,
   .priority = (osPriority_t) osPriorityNormal5,
 };
 /* Definitions for myTask06 */
@@ -201,7 +200,7 @@ const osThreadAttr_t myTask06_attributes = {
 osThreadId_t myTask07Handle;
 const osThreadAttr_t myTask07_attributes = {
   .name = "myTask07",
-  .stack_size = 448 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal5,
 };
 /* Definitions for myTask08 */
@@ -215,14 +214,14 @@ const osThreadAttr_t myTask08_attributes = {
 osThreadId_t myTask09Handle;
 const osThreadAttr_t myTask09_attributes = {
   .name = "myTask09",
-  .stack_size = 512 * 4,
+  .stack_size = 192 * 4,
   .priority = (osPriority_t) osPriorityNormal5,
 };
 /* Definitions for myTask10 */
 osThreadId_t myTask10Handle;
 const osThreadAttr_t myTask10_attributes = {
   .name = "myTask10",
-  .stack_size = 128 * 4,
+  .stack_size = 176 * 4,
   .priority = (osPriority_t) osPriorityNormal4,
 };
 /* Definitions for myTask11 */
@@ -320,6 +319,7 @@ void app_t_clean_run_timer(unsigned char *runflag);
 void app_treatment_water_prepare(unsigned char *ctrflag,unsigned int runtimeMs);
 void app_buzz_music(music_type  music_num,unsigned char volume);
 void app_jdq_restart(void);
+void app_sram_status_monitor( void );
 #ifdef ONE_WIRE_BUS_SLAVE
 unsigned int  app_owb_key_scan(unsigned short int timeMs);
 #endif
@@ -773,6 +773,7 @@ void auxTask02(void *argument)
 			led_tick=osKernelGetTickCount();	
       app_fan_manage(led_tick);		      
 			HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
+      app_sram_status_monitor();
 		}	    
 		/**********************RGB****************************/		
 		osMessageQueueGet(rgbQueue02Handle,&rgbRun,0,5);		
@@ -1011,13 +1012,19 @@ void laserWorkTask04(void *argument)
             if(laser_ctr_param.laserEnerge> ENERGE_MAX_VALUE) laser_ctr_param.laserEnerge=ENERGE_MAX_VALUE;
             if(laser_ctr_param.laserEnerge< ENERGE_MIN_VALUE) laser_ctr_param.laserEnerge=ENERGE_MIN_VALUE;
             if(u_sys_param.sys_config_param.laser_pulse_width_us<100) u_sys_param.sys_config_param.laser_pulse_width_us=100;
-            if(u_sys_param.sys_config_param.laser_pulse_width_us>200) u_sys_param.sys_config_param.laser_pulse_width_us=200; 
+            if(u_sys_param.sys_config_param.laser_pulse_width_us>230) u_sys_param.sys_config_param.laser_pulse_width_us=230; 
+
+            if(laser_ctr_param.laserType==1&&laser_ctr_param.ctrTestMode==0)
+            {
+              laser_ctr_param.laserFreq=100;
+            }     
            //temprature
-            float freq_e=0;
+            float freq_e=1.0;
             float  e_pulse=0;//脉宽补偿
             float  e_T=0;  //温度补偿
             #if 1
-            if(laser_ctr_param.laserFreq>30) freq_e=0.949-laser_ctr_param.laserFreq*0.0005;
+            if(laser_ctr_param.laserFreq>50) freq_e=0.924-laser_ctr_param.laserFreq*0.0003;
+            else if(laser_ctr_param.laserFreq>30) freq_e=0.949-laser_ctr_param.laserFreq*0.0005;
             else  if(laser_ctr_param.laserFreq>10) freq_e=1-laser_ctr_param.laserFreq*0.0017;
             else  if(laser_ctr_param.laserFreq>=5) freq_e=1.050-0.005*laser_ctr_param.laserFreq;
             else freq_e=1.090-0.009*laser_ctr_param.laserFreq;    
@@ -1063,15 +1070,16 @@ void laserWorkTask04(void *argument)
                 {
                   app_deflate_air_solenoid(ENABLE);
                 }
-              }  
+              }      
             }
             else
             {
-              if(laser_ctr_param.ctrTestMode==0)  laser_ctr_param.laserFreq=10;
+              laser_ctr_param.laserFreq=10;
             }
             if(laser_ctr_param.laserEnerge>4)
             {
               if(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali>2500)
+
               {
                local_f+=(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali-2500)*0.0001;//
               }
@@ -1085,7 +1093,7 @@ void laserWorkTask04(void *argument)
             AD5541A_SetVoltage(local_f,4.096);       
             sGenSta.laser_run_B1_laser_out_status=1; 
             rgbMessage = RGB_LASER_WORK_STATUS;
-            osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);             
+            osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);                    
             app_laser_pulse_start(u_sys_param.sys_config_param.laser_pulse_width_us,laser_ctr_param.laserFreq,local_f);  
           }  
           else 
@@ -1102,7 +1110,7 @@ void laserWorkTask04(void *argument)
             if (sGenSta.laser_run_B1_laser_out_status!=0) // cali
             {               
               app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback);   
-              float ene_moni_cali= u_sys_param.sys_config_param.laser_pulse_width_us*0.00087+laser_ctr_param.laserEnerge*0.0001-0.005;
+              float ene_moni_cali= u_sys_param.sys_config_param.laser_pulse_width_us*0.00088+laser_ctr_param.laserEnerge*0.00009-0.0065;
               sEnvParam.laser_1064_energy=(e_feedback*ene_moni_cali);
               DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback);              
               if(sEnvParam.laser_1064_energy>0&&laser_ctr_param.laserEnerge>0)
@@ -1115,9 +1123,8 @@ void laserWorkTask04(void *argument)
               }
               else 
               {
-                sGenSta.laser_param_B01_energe_status=0;//err
+                sGenSta.laser_param_B01_energe_status = 0;//err
               }
-
               /*
               sEnvParam.laser_1064_energy=e_feedback*u_sys_param.sys_config_param.laser_pulse_width_us;//?????
               DEBUG_PRINTF("energe=%.1f\r\n",sEnvParam.laser_1064_energy); 
@@ -1143,7 +1150,6 @@ void laserWorkTask04(void *argument)
               //DEBUG_PRINTF("energe=%.1f\r\n",sEnvParam.laser_1064_energy);        
             }
             #endif
-            
           }                   
         }
         else //if(recKeyMessage!=key_jt_long_press)
@@ -1261,7 +1267,7 @@ void hmiAppTask06(void *argument)
         DEBUG_PRINTF(" synchronous req=%d\r\n",syncTimeOutS);
         app_hmi_sysnc_req(); 
       } 
-      if(syncTimeOutS>10)
+      if(syncTimeOutS>5)
       {
         DEBUG_PRINTF("sync fail use local paramete\r\n");
         u_sys_param.sys_config_param.synchronousFlag=3;
@@ -1299,7 +1305,7 @@ void canReceiveTask07(void *argument)
     if(readLen<fd_canRxLen) 
     {
       packLen = fd_canRxLen-readLen;      
-      #if 0        
+      #if 0       
       DEBUG_PRINTF("CAN_receive_pack:\r\n");
       for(int i=0;i<packLen;i++)
       {
@@ -1468,7 +1474,11 @@ void laserProhotTask09(void *argument)
         } while (outVoltage+5.0<local_f&&timeout<LASER_JDQ_CHARGE_TIMEOUT_MS); //(90%)          
       }        
       osDelay(JDQ_RS485_FRAME_MIN_MS); 
-      app_jdq_bus_vol_current_set(local_f,LASER_JDQ_CURRENT_LIMIT_F);
+      if(laser_ctr_param.laserType==0&&laser_ctr_param.ctrTestMode==0)
+      {        
+        app_jdq_bus_vol_current_set(local_f,LASER_JDQ_CURRENT_LIMIT_F);
+      }
+      else  app_jdq_bus_vol_current_set(local_f,LASER_JDQ_CURRENT_LIMIT_F+0.6);//high freq
       timeout = 0;
       do
       {
@@ -1498,7 +1508,7 @@ void laserProhotTask09(void *argument)
           osDelay(JDQ_RS485_FRAME_MIN_MS);
           timeout+=JDQ_RS485_FRAME_MIN_MS;            
           outVoltage = app_jdq_voltage_monitor();  
-        } while (outVoltage>local_f+5.0&&timeout<LASER_JDQ_CHARGE_TIMEOUT_MS);
+        }while (outVoltage>local_f+5.0&&timeout<LASER_JDQ_CHARGE_TIMEOUT_MS);
       }
       osDelay(JDQ_RS485_FRAME_MIN_MS);
       app_jdq_bus_get_v_c_req();
@@ -1558,7 +1568,7 @@ void laserProhotTask09(void *argument)
           DEBUG_PRINTF("charge fail jdq—v%f %d \r\n",outVoltage,laser_Voltage); 
           sGenSta.laser_run_B0_pro_hot_status = 0; 
           app_jdq_bus_power_on_off(0);
-          timeout=0;
+          timeout = 0;          
           do
           {
             osDelay(JDQ_RS485_FRAME_MIN_MS); 
@@ -1582,7 +1592,7 @@ void laserProhotTask09(void *argument)
     }		
     else 
     {
-      if(sGenSta.laser_run_B0_pro_hot_status != 0)  osSemaphoreRelease(laserCloseSem05Handle);
+      if(sGenSta.laser_run_B0_pro_hot_status != 0) osSemaphoreRelease(laserCloseSem05Handle);
     }	    	
 		osDelay(1);	
   }
@@ -2323,12 +2333,15 @@ unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int
    }
    else if(music_num==MUSIC_LASER_WORK)
    {
-      HAL_TIMEx_PWMN_Start(&htim15,TIM_CHANNEL_1);   
-      app_beep_pwm(music_tab_c[16],50);
-      osDelay(200);     
-      app_beep_pwm(0,0);
+      if( laser_ctr_param.beep!=0)
+      {
+        HAL_TIMEx_PWMN_Start(&htim15,TIM_CHANNEL_1);   
+        app_beep_pwm(music_tab_c[16],50);
+        osDelay(200);     
+        app_beep_pwm(0,0);        
+      }      
    }
-   else app_beep_pwm(0,0);  
+   else app_beep_pwm(0,0);
  }
   /************************************************************************//**
   * @brief 激光能量反馈计算
@@ -2378,7 +2391,189 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
 	}
 }
 #endif
+ /************************************************************************//**
+  * @brief 任务状态异常
+  * @param 
+  * @note 
+  * @retval  
+  *****************************************************************************/
+  void app_task_status_error_handle( osThreadId_t *thread_id )
+  {
+    
+    if(*thread_id==myTask02Handle)
+    {
+      IS3_init();
+      //myTask02Handle = osThreadNew(auxTask02, NULL, &myTask02_attributes);
+    }
+    else 
+    { 
+      //reestart   
+      osThreadTerminate(*thread_id);
+      if(*thread_id==myTask03Handle)
+      {
+        myTask03Handle = osThreadNew(keyScanTask03, NULL, &myTask03_attributes);
+      }
+      else if(*thread_id==myTask04Handle)
+      {
+        myTask04Handle = osThreadNew(laserWorkTask04, NULL, &myTask04_attributes);
+      }
+      else if(*thread_id==myTask05Handle)
+      {
+        myTask05Handle = osThreadNew(fastAuxTask05, NULL, &myTask05_attributes);
+      }
+      else if(*thread_id==myTask06Handle)
+      {
+        myTask06Handle = osThreadNew(hmiAppTask06, NULL, &myTask06_attributes);
+      }
+      else if(*thread_id==myTask07Handle)
+      {
+        myTask07Handle = osThreadNew(canReceiveTask07, NULL, &myTask07_attributes);
+      }
+      else if(*thread_id==myTask08Handle)
+      {
+        myTask08Handle = osThreadNew(powerOffTask08, NULL, &myTask08_attributes);
+      }
+      else if(*thread_id==myTask09Handle)
+      {
+        myTask09Handle = osThreadNew(laserProhotTask09, NULL, &myTask09_attributes);
+      }
+      else if(*thread_id==myTask10Handle)
+      {
+        myTask10Handle = osThreadNew(ge2117ManageTask10, NULL, &myTask10_attributes);
+      }
+      else if(*thread_id==myTask11Handle)
+      {
+        myTask11Handle = osThreadNew(musicTask11, NULL, &myTask11_attributes);
+      }
+    }
 
-  
+  }
+    /************************************************************************//**
+  * @brief 内存使用状态
+  * @param 
+  * @note 
+  * @retval  
+  *****************************************************************************/
+ void app_sram_status_monitor( void )
+ {
+  osThreadState_t taskState; 
+  uint32_t taskSize,taskSpace,sumtaskSize=0,sumtaskSpace=0; 
+  taskState=osThreadGetState(defaultTaskHandle);
+  taskSize= defaultTask_attributes.stack_size ;
+  taskSpace=osThreadGetStackSpace(defaultTaskHandle); 
+  DEBUG_PRINTF("defaultTask s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  if(taskState==osThreadError)
+  {
+    if(taskSpace==0)//内存溢出
+    {
+
+    }
+    app_task_status_error_handle( &defaultTaskHandle );
+  }
+  sumtaskSize+=taskSize;
+  sumtaskSpace+=taskSpace;
+  taskState=osThreadGetState(myTask02Handle);
+  taskSize= myTask02_attributes.stack_size ;
+  taskSpace=osThreadGetStackSpace(myTask02Handle); 
+  DEBUG_PRINTF("myTask02 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  if(taskState==osThreadError)
+  {
+    app_task_status_error_handle( &myTask02Handle);
+  }
+  sumtaskSize+=taskSize;
+  sumtaskSpace+=taskSpace;
+  taskState=osThreadGetState(myTask03Handle);
+  taskSize= myTask03_attributes.stack_size ;
+  taskSpace=osThreadGetStackSpace(myTask03Handle); 
+  DEBUG_PRINTF("myTask03 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  if(taskState==osThreadError)
+  {
+    app_task_status_error_handle( &myTask02Handle);
+  }
+  sumtaskSize+=taskSize;
+  sumtaskSpace+=taskSpace;
+  taskState=osThreadGetState(myTask04Handle);
+  taskSize= myTask04_attributes.stack_size ;
+  taskSpace=osThreadGetStackSpace(myTask04Handle); 
+  DEBUG_PRINTF("myTask04 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  if(taskState==osThreadError)
+  {
+    app_task_status_error_handle( &myTask03Handle);
+  }
+  sumtaskSize+=taskSize;
+  sumtaskSpace+=taskSpace;
+  taskState=osThreadGetState(myTask05Handle);
+  taskSize= myTask05_attributes.stack_size ;
+  taskSpace=osThreadGetStackSpace(myTask04Handle); 
+  DEBUG_PRINTF("myTask05 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  if(taskState==osThreadError)
+  {
+    app_task_status_error_handle( &myTask05Handle);
+  }
+  sumtaskSize+=taskSize;
+  sumtaskSpace+=taskSpace;
+  taskState=osThreadGetState(myTask06Handle);
+  taskSize= myTask06_attributes.stack_size ;
+  taskSpace=osThreadGetStackSpace(myTask06Handle); 
+  DEBUG_PRINTF("myTask06 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  if(taskState==osThreadError)
+  {
+    app_task_status_error_handle( &myTask06Handle);
+  }
+  sumtaskSize+=taskSize;
+  sumtaskSpace+=taskSpace;
+  taskState=osThreadGetState(myTask07Handle);
+  taskSize= myTask07_attributes.stack_size ;
+  taskSpace=osThreadGetStackSpace(myTask07Handle); 
+  DEBUG_PRINTF("myTask07 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  if(taskState==osThreadError)
+  {
+    app_task_status_error_handle( &myTask07Handle);
+  }
+  sumtaskSize+=taskSize;
+  sumtaskSpace+=taskSpace;
+  taskState=osThreadGetState(myTask08Handle);
+  taskSize= myTask08_attributes.stack_size ;
+  taskSpace=osThreadGetStackSpace(myTask08Handle); 
+  DEBUG_PRINTF("myTask08 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  if(taskState==osThreadError)
+  {
+    app_task_status_error_handle( &myTask08Handle);
+  }
+  sumtaskSize+=taskSize;
+  sumtaskSpace+=taskSpace;
+  taskState=osThreadGetState(myTask09Handle);
+  taskSize= myTask09_attributes.stack_size ;
+  taskSpace=osThreadGetStackSpace(myTask09Handle); 
+  DEBUG_PRINTF("myTask09 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  if(taskState==osThreadError)
+  {
+    app_task_status_error_handle( &myTask09Handle);
+  }
+  sumtaskSize+=taskSize;
+  sumtaskSpace+=taskSpace;
+  taskState=osThreadGetState(myTask10Handle);
+  taskSize= myTask10_attributes.stack_size ;
+  taskSpace=osThreadGetStackSpace(myTask10Handle); 
+  DEBUG_PRINTF("myTask10 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  if(taskState==osThreadError)
+  {
+    app_task_status_error_handle( &myTask10Handle);
+  }
+  sumtaskSize+=taskSize;
+  sumtaskSpace+=taskSpace;
+  taskState=osThreadGetState(myTask11Handle);
+  taskSize= myTask11_attributes.stack_size ;
+  taskSpace=osThreadGetStackSpace(myTask11Handle); 
+  DEBUG_PRINTF("myTask11 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  if(taskState==osThreadError)
+  {
+    app_task_status_error_handle( &myTask11Handle);
+  }
+  sumtaskSize+=taskSize;
+  sumtaskSpace+=taskSpace;
+  DEBUG_PRINTF("all cpuALL=%d cpususe=%d =%d\r\n",sumtaskSize,sumtaskSize-sumtaskSpace,(sumtaskSize-sumtaskSpace)*100/sumtaskSize);
+
+ }
 /* USER CODE END Application */
 

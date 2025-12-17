@@ -360,7 +360,7 @@ typedef struct
 {   
   unsigned short int  laserEnerge;          //能量值
   unsigned char   laserFreq;         			  //激光频率 1~100（100表示980激光，）
-  unsigned char   laserType;         	  //0:1064（Nd：YAG）;1:980（连续激光）；2：（半导体）
+  unsigned char   laserType;         	      //0:1064（Nd：YAG）;1:980（连续激光）；2：（半导体）
 	unsigned char   treatmentWaterLevel;      //治疗水流等级0~3（0,表示关闭）
 	unsigned char   airPressureLevel;         //气流等级0~3（0,表示关闭）
 	unsigned char   ledLightLevel;         	  //激光指示灯led光亮等级0~100（0,表示关闭）//duty
@@ -372,6 +372,7 @@ typedef struct
   unsigned char   cleanCtr;         			  //清洗消毒
   unsigned char   air_water_prepare_ctr;    //水雾准备
   unsigned char   lowEnergeMode; //DAC<1.85V
+  unsigned char   beep;
 }LASER_CONTROL_PARAM;//ctr param
 extern LASER_CONTROL_PARAM laser_ctr_param;
 typedef struct{ 

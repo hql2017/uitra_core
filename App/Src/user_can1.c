@@ -195,7 +195,8 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 		case HMI_CODE_LED_AUDIO_LEVEL:
 			laser_ctr_param.ledLightLevel=data[4];
 			u_sys_param.sys_config_param.rgb_light=data[5];	
-			u_sys_param.sys_config_param.beep=data[6];
+			u_sys_param.sys_config_param.beep=50;//data[6];//固定音量
+			laser_ctr_param.beep=data[6];
 			app_hmi_cmd_ack(hmi_code);				 		
 			break;			
 		case HMI_CODE_CTR_TEST_MODE:

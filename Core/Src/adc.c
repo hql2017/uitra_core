@@ -473,24 +473,36 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     ad2vale = ad_square_value(ad2Buff,MAX_AD2_ENERGE_BUFF_LENGTH);
     #else
     long unsigned int sum=0;
-    unsigned short int i=0,j=0;
+    unsigned short int i=0,j=0,k=0;
     static unsigned char levelLen;  
     for(i=0;i<MAX_AD2_ENERGE_BUFF_LENGTH;i++)
     {
       if(ad2Buff[i]>546) //>25mV:546
-      {     
-        if(j>3&&j<20) sum+=ad2Buff[i];
+      {
+        if(k==0) k=i;
         j++;        
       }          
     } 
     levelLen%=8;
-    if(j>18)
-    {   
-      ad2hle[levelLen]=(unsigned short int)(sum>>4);
-    } 
-    else if(j>3)
+   
+    if(j>4)
     {
-      ad2hle[levelLen]=(unsigned short int)(sum/(j-4));
+      if(j>16)
+      {  
+        for(i=0;i<j;i++) 
+        {
+          if(i>3&&i+12<j) sum+=ad2Buff[i+k];
+        }
+        ad2hle[levelLen]=(unsigned short int)(sum/(j-16));
+      } 
+      else
+      {
+        for(i=0;i<j;i++) 
+        {
+          if(i>1&&i+2<j)  sum+=ad2Buff[i+k];
+        }
+        ad2hle[levelLen]=(unsigned short int)(sum/(j-4));
+      }
     }
     else ad2hle[levelLen]=0;    
     levelLen++;

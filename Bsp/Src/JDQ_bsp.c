@@ -1053,7 +1053,8 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 		} 
 		if( timeLoad > JDQ_MAX_CONTROL_PULSE_US_WIDTH)  timeLoad = JDQ_MAX_CONTROL_PULSE_US_WIDTH;//check pulse timeUs
 		if( timeLoad <JDQ_MIN_CONTROL_PULSE_US_WIDTH )  timeLoad = JDQ_MIN_CONTROL_PULSE_US_WIDTH;//check pulse timeUs		
-		if( freq > 60 ) counter = 16667;//(1000000/60);
+		//if( freq > 60 ) counter = 16667;//(1000000/60);
+		if( freq > 100 ) counter = 10000;//(1000000/100);
 		else if( freq < 1 )  counter = 1000000; //(1000000/1)
 		else counter=(1000000/freq);
 		__HAL_TIM_SetAutoreload(&htim2,counter-1);//1~100HZ	
