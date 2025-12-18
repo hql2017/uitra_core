@@ -179,7 +179,7 @@ const osThreadAttr_t myTask03_attributes = {
 osThreadId_t myTask04Handle;
 const osThreadAttr_t myTask04_attributes = {
   .name = "myTask04",
-  .stack_size = 192 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal6,
 };
 /* Definitions for myTask05 */
@@ -200,7 +200,7 @@ const osThreadAttr_t myTask06_attributes = {
 osThreadId_t myTask07Handle;
 const osThreadAttr_t myTask07_attributes = {
   .name = "myTask07",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal5,
 };
 /* Definitions for myTask08 */
@@ -214,7 +214,7 @@ const osThreadAttr_t myTask08_attributes = {
 osThreadId_t myTask09Handle;
 const osThreadAttr_t myTask09_attributes = {
   .name = "myTask09",
-  .stack_size = 192 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal5,
 };
 /* Definitions for myTask10 */
@@ -341,6 +341,28 @@ void cleanWaterCallback02(void *argument);
 void tmcMaxRunTimesCallback03(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
+
+/* Hook prototypes */
+void vApplicationIdleHook(void);
+
+/* USER CODE BEGIN 2 */
+void vApplicationIdleHook( void )
+{
+   /* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
+   to 1 in FreeRTOSConfig.h. It will be called on each iteration of the idle
+   task. It is essential that code added to this hook function never attempts
+   to block in any way (for example, call xQueueReceive() with a block time
+   specified, or call vTaskDelay()). If the application makes use of the
+   vTaskDelete() API function (as this demo application does) then it is also
+   important that vApplicationIdleHook() is permitted to return to its calling
+   function, because it is the responsibility of the idle task to clean up
+   memory allocated by the kernel to any task that has since been deleted. */
+  // osThreadGetState(defaultTaskHandle);
+   #ifdef IWDG_USED
+   HAL_IWDG_Refresh(&hiwdg1); 
+   #endif 
+}
+/* USER CODE END 2 */
 
 /**
   * @brief  FreeRTOS initialization
@@ -773,7 +795,7 @@ void auxTask02(void *argument)
 			led_tick=osKernelGetTickCount();	
       app_fan_manage(led_tick);		      
 			HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
-      app_sram_status_monitor();
+      app_sram_status_monitor();      
 		}	    
 		/**********************RGB****************************/		
 		osMessageQueueGet(rgbQueue02Handle,&rgbRun,0,5);		
@@ -822,10 +844,7 @@ void keyScanTask03(void *argument)
   #endif  
 	/* Infinite loop */    
 	for(;;)
-	{  
-    #ifdef IWDG_USED
-    HAL_IWDG_Refresh(&hiwdg1); 
-    #endif 
+	{ 
 		osDelay(50);
     recKeyValue = app_IO_key_scan(50); 
     rf24KeyValue  = app_RF24_key_scan(50);
@@ -1109,10 +1128,13 @@ void laserWorkTask04(void *argument)
             #if 1// energe moniter        
             if (sGenSta.laser_run_B1_laser_out_status!=0) // cali
             {               
-              app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback);   
-              float ene_moni_cali= u_sys_param.sys_config_param.laser_pulse_width_us*0.00088+laser_ctr_param.laserEnerge*0.00009-0.0065;
-              sEnvParam.laser_1064_energy=(e_feedback*ene_moni_cali);
-              DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback);              
+              app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback);  
+             // float ene_moni_cali= u_sys_param.sys_config_param.laser_pulse_width_us*0.00088+laser_ctr_param.laserEnerge*0.00009-0.0065; 
+              float ene_peak_p= e_feedback*0.00125;//peak  power
+               //float ene_peak_p= laser_ctr_param.laserEnerge/u_sys_param.sys_config_param.laser_pulse_width_us;//peak power
+              //float ene_average_p= laser_ctr_param.laserEnerge*laser_ctr_param.laserFreq;//average power
+              sEnvParam.laser_1064_energy=e_feedback*0.00125*(u_sys_param.sys_config_param.laser_pulse_width_us);
+              //printf("loac_f=%.1f energe=%.1f feedBck=%.1fmV\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback);              
               if(sEnvParam.laser_1064_energy>0&&laser_ctr_param.laserEnerge>0)
               {   
                 if(sEnvParam.laser_1064_energy>laser_ctr_param.laserEnerge*1.30)   
@@ -2398,8 +2420,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   * @retval  
   *****************************************************************************/
   void app_task_status_error_handle( osThreadId_t *thread_id )
-  {
-    
+  {    
     if(*thread_id==myTask02Handle)
     {
       IS3_init();
@@ -2457,28 +2478,26 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
  void app_sram_status_monitor( void )
  {
   osThreadState_t taskState; 
-  uint32_t taskSize,taskSpace,sumtaskSize=0,sumtaskSpace=0; 
+  uint32_t taskSize,taskSpace,sumtaskSize=0,sumtaskSpace=0;  
   taskState=osThreadGetState(defaultTaskHandle);
   taskSize= defaultTask_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(defaultTaskHandle); 
-  DEBUG_PRINTF("defaultTask s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
-  if(taskState==osThreadError)
-  {
-    if(taskSpace==0)//内存溢出
-    {
-
-    }
-    app_task_status_error_handle( &defaultTaskHandle );
+  //DEBUG_PRINTF("defaultTask s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  if(taskState==osThreadError||taskSpace<50)
+  {  
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
+    app_task_status_error_handle(&defaultTaskHandle );
   }
   sumtaskSize+=taskSize;
   sumtaskSpace+=taskSpace;
   taskState=osThreadGetState(myTask02Handle);
   taskSize= myTask02_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask02Handle); 
-  DEBUG_PRINTF("myTask02 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
-  if(taskState==osThreadError)
-  {
-    app_task_status_error_handle( &myTask02Handle);
+ // DEBUG_PRINTF("myTask02 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  if(taskState==osThreadError||taskSpace<50)
+  {      
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
+    app_task_status_error_handle(&myTask02Handle);
   }
   sumtaskSize+=taskSize;
   sumtaskSpace+=taskSpace;
@@ -2486,8 +2505,9 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskSize= myTask03_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask03Handle); 
   DEBUG_PRINTF("myTask03 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
-  if(taskState==osThreadError)
-  {
+  if(taskState==osThreadError||taskSpace<50)
+  {  
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
     app_task_status_error_handle( &myTask02Handle);
   }
   sumtaskSize+=taskSize;
@@ -2496,8 +2516,9 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskSize= myTask04_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask04Handle); 
   DEBUG_PRINTF("myTask04 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
-  if(taskState==osThreadError)
-  {
+  if(taskState==osThreadError||taskSpace<50)
+  {  
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
     app_task_status_error_handle( &myTask03Handle);
   }
   sumtaskSize+=taskSize;
@@ -2506,8 +2527,9 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskSize= myTask05_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask04Handle); 
   DEBUG_PRINTF("myTask05 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
-  if(taskState==osThreadError)
-  {
+  if(taskState==osThreadError||taskSpace<50)
+  {  
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
     app_task_status_error_handle( &myTask05Handle);
   }
   sumtaskSize+=taskSize;
@@ -2516,8 +2538,9 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskSize= myTask06_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask06Handle); 
   DEBUG_PRINTF("myTask06 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
-  if(taskState==osThreadError)
-  {
+  if(taskState==osThreadError||taskSpace<50)
+  {  
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
     app_task_status_error_handle( &myTask06Handle);
   }
   sumtaskSize+=taskSize;
@@ -2526,8 +2549,9 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskSize= myTask07_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask07Handle); 
   DEBUG_PRINTF("myTask07 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
-  if(taskState==osThreadError)
-  {
+  if(taskState==osThreadError||taskSpace<50)
+  {  
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
     app_task_status_error_handle( &myTask07Handle);
   }
   sumtaskSize+=taskSize;
@@ -2536,8 +2560,9 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskSize= myTask08_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask08Handle); 
   DEBUG_PRINTF("myTask08 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
-  if(taskState==osThreadError)
-  {
+  if(taskState==osThreadError||taskSpace<50)
+  {  
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
     app_task_status_error_handle( &myTask08Handle);
   }
   sumtaskSize+=taskSize;
@@ -2546,8 +2571,9 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskSize= myTask09_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask09Handle); 
   DEBUG_PRINTF("myTask09 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
-  if(taskState==osThreadError)
-  {
+  if(taskState==osThreadError||taskSpace<50)
+  {  
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
     app_task_status_error_handle( &myTask09Handle);
   }
   sumtaskSize+=taskSize;
@@ -2556,8 +2582,9 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskSize= myTask10_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask10Handle); 
   DEBUG_PRINTF("myTask10 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
-  if(taskState==osThreadError)
-  {
+  if(taskState==osThreadError||taskSpace<50)
+  {  
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
     app_task_status_error_handle( &myTask10Handle);
   }
   sumtaskSize+=taskSize;
@@ -2566,13 +2593,14 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskSize= myTask11_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask11Handle); 
   DEBUG_PRINTF("myTask11 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
-  if(taskState==osThreadError)
-  {
+  if(taskState==osThreadError||taskSpace<50)
+  {  
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
     app_task_status_error_handle( &myTask11Handle);
   }
   sumtaskSize+=taskSize;
   sumtaskSpace+=taskSpace;
-  DEBUG_PRINTF("all cpuALL=%d cpususe=%d =%d\r\n",sumtaskSize,sumtaskSize-sumtaskSpace,(sumtaskSize-sumtaskSpace)*100/sumtaskSize);
+  DEBUG_PRINTF("all cpuAll=%d cpuUse=%d =%d\r\n",sumtaskSize,sumtaskSize-sumtaskSpace,(sumtaskSize-sumtaskSpace)*100/sumtaskSize);
 
  }
 /* USER CODE END Application */

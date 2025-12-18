@@ -3642,9 +3642,9 @@
       </Doc>
       <Doc>
         <Name>..\App\Src\user_can1.c</Name>
-        <ColumnNumber>33</ColumnNumber>
-        <TopLine>270</TopLine>
-        <CurrentLine>319</CurrentLine>
+        <ColumnNumber>0</ColumnNumber>
+        <TopLine>271</TopLine>
+        <CurrentLine>320</CurrentLine>
         <Folding>1</Folding>
         <ContractedFolders></ContractedFolders>
         <PaneID>0</PaneID>
@@ -3705,9 +3705,9 @@
       </Doc>
       <Doc>
         <Name>../Core/Src/main.c</Name>
-        <ColumnNumber>4</ColumnNumber>
+        <ColumnNumber>18</ColumnNumber>
         <TopLine>109</TopLine>
-        <CurrentLine>137</CurrentLine>
+        <CurrentLine>136</CurrentLine>
         <Folding>1</Folding>
         <ContractedFolders></ContractedFolders>
         <PaneID>0</PaneID>
