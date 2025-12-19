@@ -483,27 +483,15 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
         j++;        
       }          
     } 
-    levelLen%=8;
-   
-    if(j>4)
-    {
-      if(j>16)
-      {  
-        for(i=0;i<j;i++) 
-        {
-          if(i>3&&i+12<j) sum+=ad2Buff[i+k];
-        }
-        ad2hle[levelLen]=(unsigned short int)(sum/(j-16));
-      } 
-      else
+    levelLen%=8; 
+    if(j>10)
+    {  
+      for(i=0;i<j;i++) 
       {
-        for(i=0;i<j;i++) 
-        {
-          if(i>1&&i+2<j)  sum+=ad2Buff[i+k];
-        }
-        ad2hle[levelLen]=(unsigned short int)(sum/(j-4));
+        if(i>2&&i+7<j) sum+=ad2Buff[i+k];
       }
-    }
+      ad2hle[levelLen]=(unsigned short int)(sum/(j-10));
+    }    
     else ad2hle[levelLen]=0;    
     levelLen++;
     sum=0;

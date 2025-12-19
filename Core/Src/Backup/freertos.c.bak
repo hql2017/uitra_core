@@ -935,7 +935,7 @@ void laserWorkTask04(void *argument)
 	uint16_t rgbMessage;	//0关闭//1待机绿色2：准备OK紫色常亮；3脉冲输出紫色呼吸
 	uint32_t timeout=0;
   osStatus_t statusJT;
-  float local_f,e_feedback,v_feedback;
+  float local_f,e_feedback,fisrt_pulse_cali;//首脉冲校准
 	LASER_CONTROL_PARAM *pLaserConfig;
 	pLaserConfig = &laser_ctr_param;
   uint32_t event;
@@ -1108,8 +1108,10 @@ void laserWorkTask04(void *argument)
             if(local_f>DAC_MAX_VOLTAGE_F) local_f=DAC_MAX_VOLTAGE_F;//4.0           
             if(local_f<DAC_MIN_VOLTAGE_F) local_f=DAC_MIN_VOLTAGE_F;//4.0
             if(local_f<1.85) laser_ctr_param.lowEnergeMode=1;
-            else laser_ctr_param.lowEnergeMode=0;          
-            AD5541A_SetVoltage(local_f,4.096);       
+            else laser_ctr_param.lowEnergeMode=0;  
+            fisrt_pulse_cali= local_f*0.6+DAC_MIN_VOLTAGE_F*0.4;       
+            AD5541A_SetVoltage(fisrt_pulse_cali,4.096);   //首脉冲减半
+            fisrt_pulse_cali= local_f;     
             sGenSta.laser_run_B1_laser_out_status=1; 
             rgbMessage = RGB_LASER_WORK_STATUS;
             osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);                    
@@ -1117,6 +1119,14 @@ void laserWorkTask04(void *argument)
           }  
           else 
           {
+            if (sGenSta.laser_run_B1_laser_out_status!=0&&fisrt_pulse_cali!=0) // genera
+            {
+              if(fisrt_pulse_cali>DAC_MAX_VOLTAGE_F) fisrt_pulse_cali=DAC_MAX_VOLTAGE_F;
+              if(fisrt_pulse_cali<DAC_MIN_VOLTAGE_F) fisrt_pulse_cali=DAC_MIN_VOLTAGE_F;       
+              AD5541A_SetVoltage(fisrt_pulse_cali, 4.096); 
+              fisrt_pulse_cali=0; 
+            }
+            
             if(u_sys_param.sys_config_param.beep!=0)
             {
               if(sGenSta.laser_run_B0_pro_hot_status!=0) 
@@ -1128,10 +1138,15 @@ void laserWorkTask04(void *argument)
             #if 1// energe moniter        
             if (sGenSta.laser_run_B1_laser_out_status!=0) // cali
             {               
-              app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback);   
-              float ene_moni_cali= u_sys_param.sys_config_param.laser_pulse_width_us*0.00088+laser_ctr_param.laserEnerge*0.00009-0.0065;
-              sEnvParam.laser_1064_energy=(e_feedback*ene_moni_cali);
-              DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback);              
+              app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback);  
+             // float ene_moni_cali= u_sys_param.sys_config_param.laser_pulse_width_us*0.00088+laser_ctr_param.laserEnerge*0.00009-0.0065; 
+              float ene_peak_p= e_feedback*0.00125;//peak  power
+               //float ene_peak_p= laser_ctr_param.laserEnerge/(u_sys_param.sys_config_param.laser_pulse_width_us/1000);//peak power unit mW
+              //float ene_average_p= ene_peak_p*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//average power  unit mJ
+               //float ene_average_p= laser_ctr_param.laserEnerge*laser_ctr_param.laserFreq;//average power  unit mW
+               //float ene_average_p= e_feedback*(u_sys_param.sys_config_param.laser_pulse_width_us/1000*0.001*laser_ctr_param.laserFreq;//average power  unit mJ
+              sEnvParam.laser_1064_energy=e_feedback*0.00125*(u_sys_param.sys_config_param.laser_pulse_width_us);
+              DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV pulseCount=%d rdb=%d 980=%d\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback,u_sys_param.sys_config_param.laser_pulse_count,u_sys_param.sys_config_param.RDB_use_timeS,u_sys_param.sys_config_param.laser_use_timeS);              
               if(sEnvParam.laser_1064_energy>0&&laser_ctr_param.laserEnerge>0)
               {   
                 if(sEnvParam.laser_1064_energy>laser_ctr_param.laserEnerge*1.30)   
@@ -1143,23 +1158,7 @@ void laserWorkTask04(void *argument)
               else 
               {
                 sGenSta.laser_param_B01_energe_status = 0;//err
-              }
-              /*
-              sEnvParam.laser_1064_energy=e_feedback*u_sys_param.sys_config_param.laser_pulse_width_us;//?????
-              DEBUG_PRINTF("energe=%.1f\r\n",sEnvParam.laser_1064_energy); 
-              if(sEnvParam.laser_1064_energy>laser_ctr_param.laserEnerge+10||sEnvParam.laser_1064_energy+10<laser_ctr_param.laserEnerge) 
-              {
-                v_feedback=sEnvParam.laser_1064_energy-laser_ctr_param.laserEnerge; //???? 
-                if(v_feedback>DAC_MAX_VOLTAGE_F) v_feedback=DAC_MAX_VOLTAGE_F;
-                if(v_feedback<DAC_MIN_VOLTAGE_F) v_feedback=DAC_MIN_VOLTAGE_F;       
-                AD5541A_SetVoltage_noLoad(v_feedback, 4.096); 
-                AD5541A_SetVoltage_Load_enable();                
-              }           
-              else 
-              {
-                AD5541A_SetVoltage_Load_disable();
-              }
-                */
+              }              
             }
             #else 
             if(sGenSta.laser_run_B1_laser_out_status!=0) 
@@ -1759,6 +1758,10 @@ void tmcMaxRunTimesCallback03(void *argument)
   if(GPIO_Pin==FAN2_COUNT_in_Pin)
   {
     app_fan_feed_count(2);
+  }
+  if(GPIO_Pin==  TMC2226_index_in_Pin )
+  {
+    u_sys_param.sys_config_param.RDB_use_timeS++;
   }
   if(GPIO_Pin==LASER_PULSE_COUNT_in_Pin)
   {   
@@ -2501,7 +2504,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask03Handle);
   taskSize= myTask03_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask03Handle); 
-  DEBUG_PRINTF("myTask03 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask03 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
     if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
@@ -2512,7 +2515,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask04Handle);
   taskSize= myTask04_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask04Handle); 
-  DEBUG_PRINTF("myTask04 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask04 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
     if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
@@ -2523,7 +2526,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask05Handle);
   taskSize= myTask05_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask04Handle); 
-  DEBUG_PRINTF("myTask05 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask05 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
     if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
@@ -2534,7 +2537,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask06Handle);
   taskSize= myTask06_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask06Handle); 
-  DEBUG_PRINTF("myTask06 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+ // DEBUG_PRINTF("myTask06 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
     if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
@@ -2545,7 +2548,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask07Handle);
   taskSize= myTask07_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask07Handle); 
-  DEBUG_PRINTF("myTask07 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask07 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
     if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
@@ -2556,7 +2559,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask08Handle);
   taskSize= myTask08_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask08Handle); 
-  DEBUG_PRINTF("myTask08 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask08 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
     if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
@@ -2567,7 +2570,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask09Handle);
   taskSize= myTask09_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask09Handle); 
-  DEBUG_PRINTF("myTask09 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+ // DEBUG_PRINTF("myTask09 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
     if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
@@ -2578,7 +2581,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask10Handle);
   taskSize= myTask10_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask10Handle); 
-  DEBUG_PRINTF("myTask10 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask10 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
     if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
@@ -2589,7 +2592,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask11Handle);
   taskSize= myTask11_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask11Handle); 
-  DEBUG_PRINTF("myTask11 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask11 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
     if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
@@ -2597,7 +2600,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   }
   sumtaskSize+=taskSize;
   sumtaskSpace+=taskSpace;
-  DEBUG_PRINTF("all cpuAll=%d cpuUse=%d =%d\r\n",sumtaskSize,sumtaskSize-sumtaskSpace,(sumtaskSize-sumtaskSpace)*100/sumtaskSize);
+  //DEBUG_PRINTF("all cpuAll=%d cpuUse=%d =%d\r\n",sumtaskSize,sumtaskSize-sumtaskSpace,(sumtaskSize-sumtaskSpace)*100/sumtaskSize);
 
  }
 /* USER CODE END Application */

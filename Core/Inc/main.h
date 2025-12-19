@@ -253,6 +253,7 @@ void Error_Handler(void);
 #ifndef IWDG_USED
 #define IWDG_USED  
 #endif
+
 #ifdef DEBUG_MSG_UART 
 #define DEBUG_MSG_UART  /*use printf*/
 #define DEBUG_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)

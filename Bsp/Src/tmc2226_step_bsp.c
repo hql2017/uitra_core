@@ -114,8 +114,9 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
   */
   void tmc2226_en ( unsigned  char en )
   {
+    tmc2226_rdb_info.run=en;
     if(en!=0)  
-    {
+    {     
       HAL_GPIO_WritePin ( TMC2226_EN_out_GPIO_Port , TMC2226_EN_out_Pin , GPIO_PIN_RESET );    
     } 
     else 
@@ -192,7 +193,7 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
 /**
   * @brief app_steps_pulse
   * @param  void
-  * @note   蠕动泵步数
+  * @note   1 circle: 1 index  pulse -> 4 steps
   * @retval None
   */
 void app_steps_pulse(unsigned int steps)
@@ -209,7 +210,7 @@ void app_steps_pulse(unsigned int steps)
       tmc2226_rdb_info.pulse_count++;      
       if(steps<CONTINUOUS_STEPS_COUNT)
       {
-        if(tmc2226_rdb_info.pulse_count*200>steps)
+        if(tmc2226_rdb_info.pulse_count*4>steps)
         {          
          // tmc2226_stop(); 
         }
@@ -222,7 +223,7 @@ void app_steps_pulse(unsigned int steps)
   * @brief tmc2226_start
   * @param  unsigned char dir,unsigned short int speed
   * @note   启动蠕动泵电机 ,MAX（ (timeUs=62.5)8K) 35ml/min;）
-  *   timeUs=500;5ml/min;timeUs=100;20ml/min; timeUs=62;35ml/min;
+  *   timeUs=500;5ml/min;timeUs=100;20ml/min; timeUs=62;35ml/min;  
   * @retval None
   */
 void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
@@ -234,13 +235,13 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
 		tmc2226_stop();
 	}
 	else 
-	{ 
-    tmc2226_rdb_info.pulse_count=0;   
+	{   
+    if(tmc2226_rdb_info.run==0) tmc2226_rdb_info.pulse_count=HAL_GetTick();   
 		tmc2226_dir(dir);
-    app_tmc2226_speed_set(spdLevel);    
-    tmc2226_rdb_info.run=spdLevel;
+    app_tmc2226_speed_set(spdLevel);        
     tem2226_step_pwm(tmc2226_rdb_info.rdb_speed);
 		tmc2226_en(1);
+    
 	}
 }
   /**
@@ -252,12 +253,11 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
   unsigned int  tmc2226_stop(void)
   {
     unsigned int retS;
-    HAL_TIM_PWM_Stop(&htim16,TIM_CHANNEL_1);
-    tmc2226_rdb_info.run=0;	
-    tmc2226_en(0);     
-    retS=(tmc2226_rdb_info.pulse_count*0.00455)/tmc2226_rdb_info.rdb_speed;//S    
+    HAL_TIM_PWM_Stop(&htim16,TIM_CHANNEL_1);    
+    tmc2226_en(0); 
+    retS=(HAL_GetTick()-tmc2226_rdb_info.pulse_count)/1000;//S     
     u_sys_param.sys_config_param.RDB_use_timeS+=retS;
-    tmc2226_rdb_info.pulse_count=0;
+    tmc2226_rdb_info.pulse_count=HAL_GetTick();    
     return retS; 
   } 
  /************************************************************************//**
