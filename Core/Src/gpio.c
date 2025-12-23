@@ -146,6 +146,7 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(FOOT_SWITCH_IN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LCD_12V_ON_Pin */
+  
   GPIO_InitStruct.Pin = LCD_12V_ON_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
