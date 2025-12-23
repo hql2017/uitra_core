@@ -149,7 +149,6 @@ void Error_Handler(void);
 #define RF24_IRQ_in_GPIO_Port GPIOD
 #define TMC2226_index_in_Pin GPIO_PIN_13
 #define TMC2226_index_in_GPIO_Port GPIOD
-#define TMC2226_index_in_EXTI_IRQn EXTI15_10_IRQn
 #define TMC2226_ERROR_out_Pin GPIO_PIN_14
 #define TMC2226_ERROR_out_GPIO_Port GPIOD
 #define FOOT_SWITCH_IN_Pin GPIO_PIN_15
@@ -187,9 +186,9 @@ void Error_Handler(void);
 #define circulating_water_pump_EN_GPIO_Port GPIOD
 #define PTC_EN_Pin GPIO_PIN_4
 #define PTC_EN_GPIO_Port GPIOD
-#define JDQ_STAND_Pin GPIO_PIN_5
+#define JDQ_STAND_Pin GPIO_PIN_6
 #define JDQ_STAND_GPIO_Port GPIOD
-#define JDQ_READY_Pin GPIO_PIN_6
+#define JDQ_READY_Pin GPIO_PIN_5
 #define JDQ_READY_GPIO_Port GPIOD
 #define DAC_DIN_Pin GPIO_PIN_7
 #define DAC_DIN_GPIO_Port GPIOD
@@ -251,9 +250,10 @@ void Error_Handler(void);
 #define ONE_WIRE_BUS_JT_SLAVE 
 #endif
 
-#ifndef IWDG_USED
+#ifdef IWDG_USED
 #define IWDG_USED  
 #endif
+
 #ifndef DEBUG_MSG_UART 
 #define DEBUG_MSG_UART  /*use printf*/
 #define DEBUG_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)

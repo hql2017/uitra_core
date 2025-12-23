@@ -788,13 +788,13 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
 	//{//严重错误
 		//	return JDQ_PWR_GWB_3200W_ERROR_FLAG;//err
 	//}
-	if(jdq_sts_reg.outVoltage+10>jdq_sts_reg.setVoltage&&jdq_sts_reg.outVoltage+10<jdq_sts_reg.setVoltage)
+	if(jdq_sts_reg.outVoltage+500>jdq_sts_reg.setVoltage&&jdq_sts_reg.outVoltage<500+jdq_sts_reg.setVoltage)
 	{
-		return jdq_sts_reg.setVoltage;
+		return jdq_sts_reg.setVoltage*0.01;
 	}
 	else 
 	{
-		return jdq_sts_reg.outVoltage;  //err
+		return jdq_sts_reg.outVoltage*0.01;  //err
 	}
 	#else 
 	return jdq_sts_reg_value[6];

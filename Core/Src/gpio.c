@@ -63,7 +63,7 @@ void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, RS485_DIR_out_Pin|H_AIR_EN_out_Pin|TMC2226_DIR_out_Pin|circulating_water_pump_EN_Pin
-                          |PTC_EN_Pin|JDQ_STAND_Pin|JDQ_READY_Pin, GPIO_PIN_RESET);
+                          |PTC_EN_Pin|JDQ_READY_Pin|JDQ_STAND_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LCD_12V_ON_GPIO_Port, LCD_12V_ON_Pin, GPIO_PIN_RESET);
@@ -123,9 +123,9 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pins : RS485_DIR_out_Pin H_AIR_EN_out_Pin TMC2226_DIR_out_Pin circulating_water_pump_EN_Pin
-                           PTC_EN_Pin JDQ_STAND_Pin JDQ_READY_Pin */
+                           PTC_EN_Pin JDQ_READY_Pin JDQ_STAND_Pin */
   GPIO_InitStruct.Pin = RS485_DIR_out_Pin|H_AIR_EN_out_Pin|TMC2226_DIR_out_Pin|circulating_water_pump_EN_Pin
-                          |PTC_EN_Pin|JDQ_STAND_Pin|JDQ_READY_Pin;
+                          |PTC_EN_Pin|JDQ_READY_Pin|JDQ_STAND_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

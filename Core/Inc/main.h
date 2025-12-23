@@ -186,10 +186,10 @@ void Error_Handler(void);
 #define circulating_water_pump_EN_GPIO_Port GPIOD
 #define PTC_EN_Pin GPIO_PIN_4
 #define PTC_EN_GPIO_Port GPIOD
-#define JDQ_STAND_Pin GPIO_PIN_5
-#define JDQ_STAND_GPIO_Port GPIOD
-#define JDQ_READY_Pin GPIO_PIN_6
+#define JDQ_READY_Pin GPIO_PIN_5
 #define JDQ_READY_GPIO_Port GPIOD
+#define JDQ_STAND_Pin GPIO_PIN_6
+#define JDQ_STAND_GPIO_Port GPIOD
 #define DAC_DIN_Pin GPIO_PIN_7
 #define DAC_DIN_GPIO_Port GPIOD
 #define DAC_CLK_Pin GPIO_PIN_3
@@ -250,7 +250,7 @@ void Error_Handler(void);
 #define ONE_WIRE_BUS_JT_SLAVE 
 #endif
 
-#ifndef IWDG_USED
+#ifdef IWDG_USED
 #define IWDG_USED  
 #endif
 

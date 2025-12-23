@@ -131,19 +131,13 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : treatment_water_ready_ok_in_Pin RF24_IRQ_in_Pin TMC2226_ERROR_out_Pin Hyperbaria_OFF_Signal_Pin
-                           EMERGENCY_LASER_STOP_STATUS_in_Pin circulating_water_pump_status_in_Pin */
-  GPIO_InitStruct.Pin = treatment_water_ready_ok_in_Pin|RF24_IRQ_in_Pin|TMC2226_ERROR_out_Pin|Hyperbaria_OFF_Signal_Pin
-                          |EMERGENCY_LASER_STOP_STATUS_in_Pin|circulating_water_pump_status_in_Pin;
+  /*Configure GPIO pins : treatment_water_ready_ok_in_Pin RF24_IRQ_in_Pin TMC2226_index_in_Pin TMC2226_ERROR_out_Pin
+                           Hyperbaria_OFF_Signal_Pin EMERGENCY_LASER_STOP_STATUS_in_Pin circulating_water_pump_status_in_Pin */
+  GPIO_InitStruct.Pin = treatment_water_ready_ok_in_Pin|RF24_IRQ_in_Pin|TMC2226_index_in_Pin|TMC2226_ERROR_out_Pin
+                          |Hyperbaria_OFF_Signal_Pin|EMERGENCY_LASER_STOP_STATUS_in_Pin|circulating_water_pump_status_in_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : TMC2226_index_in_Pin */
-  GPIO_InitStruct.Pin = TMC2226_index_in_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(TMC2226_index_in_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : FOOT_SWITCH_IN_Pin */
   GPIO_InitStruct.Pin = FOOT_SWITCH_IN_Pin;

@@ -160,7 +160,7 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t myTask02Handle;
 const osThreadAttr_t myTask02_attributes = {
   .name = "myTask02",
-  .stack_size = 312 * 4,
+  .stack_size = 296 * 4,
   .priority = (osPriority_t) osPriorityNormal4,
 };
 /* Definitions for myTask03 */
@@ -186,14 +186,14 @@ const osThreadAttr_t myTask04_attributes = {
 osThreadId_t myTask05Handle;
 const osThreadAttr_t myTask05_attributes = {
   .name = "myTask05",
-  .stack_size = 176 * 4,
+  .stack_size = 224 * 4,
   .priority = (osPriority_t) osPriorityNormal5,
 };
 /* Definitions for myTask06 */
 osThreadId_t myTask06Handle;
 const osThreadAttr_t myTask06_attributes = {
   .name = "myTask06",
-  .stack_size = 128 * 4,
+  .stack_size = 192 * 4,
   .priority = (osPriority_t) osPriorityNormal5,
 };
 /* Definitions for myTask07 */
@@ -791,7 +791,7 @@ void auxTask02(void *argument)
   for(;;)
   {
 		if(osKernelGetTickCount()>led_tick+1000)
-		{      
+		{          
 			led_tick=osKernelGetTickCount();	
       app_fan_manage(led_tick);		      
 			HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
@@ -975,7 +975,7 @@ void laserWorkTask04(void *argument)
         }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);       
         osDelay(50);
         jdq_reley_charge_ready(1);       
-        DEBUG_PRINTF("laser close ok\r\n");
+        DEBUG_PRINTF("laser close ok %f\r\n",app_jdq_voltage_monitor());
         #else
         if(app_jdq_get_vbus_sta()==0)
         {	
@@ -1444,13 +1444,14 @@ void laserProhotTask09(void *argument)
     } while(u_sys_param.sys_config_param.synchronousFlag!=3&&timeout<LASER_JDQ_CHARGE_TIMEOUT_MS);
     if(local_proHotCtr!=0)	
     {	 
-      #ifdef JDQ_PWR_GWB_3200W
+      #ifdef JDQ_PWR_GWB_3200W 
       //app_jdq_current_limit_charge();
       jdq_reley_charge_ready(0);
       osDelay(JDQ_RS485_FRAME_MIN_MS);
       jdq_reley_charge(1);	
       osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS);         
       app_jdq_bus_power_on_off(1);
+      
       timeout = 0;
       do
       {
@@ -1466,43 +1467,40 @@ void laserProhotTask09(void *argument)
         timeout+=JDQ_RS485_FRAME_MIN_MS;    
       }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
       //charge
-      osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS);       
+      osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
+      osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS);        
       timeout = 0;
       do
       {
         app_jdq_bus_power_onoff_sta_req();
         HAL_Delay(JDQ_RS485_FRAME_MAX_DELAY_MS);         
         timeout+=JDQ_RS485_FRAME_MAX_DELAY_MS;
-        l_jdq_set_voltage= app_jdq_get_vbus_sta();         
-      }while(l_jdq_set_voltage+5.0<local_f&&timeout<LASER_JDQ_CHARGE_TIMEOUT_MS);
-      if(l_jdq_set_voltage!=JDQ_PWR_GWB_3200W_ERROR_FLAG&&l_jdq_set_voltage!=0)
+        l_jdq_set_voltage= app_jdq_get_vbus_sta(); 
+        outVoltage = app_jdq_voltage_monitor();
+        if(laser_ctr_param.proHotCtr==0) 
+        {
+          timeout=LASER_JDQ_CHARGE_TIMEOUT_MS;
+          DEBUG_PRINTF("charge fail pro\r\n");    
+          break;
+        }  
+        DEBUG_PRINTF("charge jdq—v%f %f \r\n",outVoltage,l_jdq_set_voltage);                
+      }while(timeout<LASER_JDQ_CHARGE_TIMEOUT_MS&&outVoltage+5.0<local_f);
+      if(l_jdq_set_voltage!=JDQ_PWR_GWB_3200W_ERROR_FLAG&&l_jdq_set_voltage+5.0>local_f&&outVoltage+5.0>=local_f)
       {
-        timeout=0;
+        osDelay(JDQ_RS485_FRAME_MIN_MS); 
+        if(laser_ctr_param.laserType==0&&laser_ctr_param.ctrTestMode==0)
+        {        
+          app_jdq_bus_vol_current_set(local_f,LASER_JDQ_CURRENT_LIMIT_F);
+        }
+        else  app_jdq_bus_vol_current_set(local_f,LASER_JDQ_CURRENT_LIMIT_F+0.6);//high freq
+        timeout = 0;
         do
-        {  
-          app_jdq_bus_power_onoff_sta_req();
-          osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS);
-          timeout+=JDQ_RS485_FRAME_MAX_DELAY_MS;            
-          outVoltage = app_jdq_voltage_monitor();                        
-          if(laser_ctr_param.proHotCtr==0) 
-          {
-            timeout=LASER_JDQ_CHARGE_TIMEOUT_MS;
-            break;
-          }          
-        } while (outVoltage+5.0<local_f&&timeout<LASER_JDQ_CHARGE_TIMEOUT_MS); //(90%)          
+        {
+          osDelay(JDQ_RS485_FRAME_MIN_MS);         
+          timeout+=JDQ_RS485_FRAME_MIN_MS;    
+        }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);     
       }        
-      osDelay(JDQ_RS485_FRAME_MIN_MS); 
-      if(laser_ctr_param.laserType==0&&laser_ctr_param.ctrTestMode==0)
-      {        
-        app_jdq_bus_vol_current_set(local_f,LASER_JDQ_CURRENT_LIMIT_F);
-      }
-      else  app_jdq_bus_vol_current_set(local_f,LASER_JDQ_CURRENT_LIMIT_F+0.6);//high freq
-      timeout = 0;
-      do
-      {
-        osDelay(JDQ_RS485_FRAME_MIN_MS);         
-        timeout+=JDQ_RS485_FRAME_MIN_MS;    
-      }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS); 
+      
       #else
       app_jdq_current_limit_charge();
       osDelay(JDQ_RS485_FRAME_MIN_MS); 
@@ -2489,7 +2487,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask02Handle);
   taskSize= myTask02_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask02Handle); 
- // DEBUG_PRINTF("myTask02 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask02 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {      
     if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
@@ -2533,7 +2531,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask06Handle);
   taskSize= myTask06_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask06Handle); 
- // DEBUG_PRINTF("myTask06 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask06 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
     if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
@@ -2566,7 +2564,7 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask09Handle);
   taskSize= myTask09_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask09Handle); 
- // DEBUG_PRINTF("myTask09 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+ //DEBUG_PRINTF("myTask09 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
     if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
