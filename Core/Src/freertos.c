@@ -1033,11 +1033,7 @@ void laserWorkTask04(void *argument)
             if(laser_ctr_param.laserEnerge< ENERGE_MIN_VALUE) laser_ctr_param.laserEnerge=ENERGE_MIN_VALUE;
             if(u_sys_param.sys_config_param.laser_pulse_width_us<100) u_sys_param.sys_config_param.laser_pulse_width_us=100;
             if(u_sys_param.sys_config_param.laser_pulse_width_us>230) u_sys_param.sys_config_param.laser_pulse_width_us=230; 
-
-            if(laser_ctr_param.laserType==1&&laser_ctr_param.ctrTestMode==0)
-            {
-              laser_ctr_param.laserFreq=100;
-            }     
+             
            //temprature
             float freq_e=1.0;
             float  e_pulse=0;//脉宽补偿
@@ -1898,7 +1894,7 @@ void app_sys_genaration_status_manage(void)
     osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_14_EMERGENCY_KEY_BIT);
     if(laser_ctr_param.proHotCtr!=0&&sGenSta.laser_run_B0_pro_hot_status!=0)
     {
-      laser_ctr_param.proHotCtr=0;
+      laser_ctr_param.proHotCtr=0;      
       osSemaphoreRelease(laserCloseSem05Handle);  
     } 
   }
