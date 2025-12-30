@@ -442,24 +442,7 @@ void filter_ad1(void)
   advalue[3]=(unsigned short int)(sum[3]>>6); 
 } 
  
-/**
-  * @brief HAL_ADC_ConvCpltCallback
-  * @param void
-  * @note   
-  * @retval None 
-  */
-void app_in_energe_adc_value(void);
-void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
-{ 
-  if(hadc->Instance==ADC1)
-  {    
-    filter_ad1();     
-  }
-  if(hadc->Instance==ADC2)
-  { 
-    app_in_energe_adc_value();
-  }
-}
+ 
 /**
   * @brief app_get_energe_adc_value
   * @param void         

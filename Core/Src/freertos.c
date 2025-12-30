@@ -1205,11 +1205,43 @@ void laserWorkTask04(void *argument)
           osDelay(JDQ_RS485_FRAME_MIN_MS);         
           timeout+=JDQ_RS485_FRAME_MIN_MS;  
         }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
-        if(app_jdq_get_vbus_sta()==JDQ_PWR_GWB_3200W_ERROR_FLAG)
-        {//err
-          //DEBUG_PRINTF("jdqV=%.1f\r\n",app_jdq_get_vbus_sta());
-        }
-        #endif                
+				if(timeout<JDQ_RS485_FRAME_MAX_DELAY_MS)
+				{
+					 //if(app_jdq_get_vbus_sta()!=JDQ_PWR_GWB_3200W_ERROR_FLAG)
+					{//err/jdq sleep ,restart	
+						//DEBUG_PRINTF("jdqV=%.1f\r\n",app_jdq_get_vbus_sta());
+						if(sGenSta.laser_run_B0_pro_hot_status!=0)
+						{
+							if(app_jdq_get_vbus_sta()+5.0<LASER_JDQ_VOLTAGE_F)
+							{					
+								osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS);         
+								app_jdq_bus_power_on_off(1);   						
+								timeout = 0;
+								do
+								{
+									osDelay(JDQ_RS485_FRAME_MIN_MS);         
+									timeout+=JDQ_RS485_FRAME_MIN_MS;    
+								}while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);    
+								osDelay(JDQ_RS485_FRAME_MIN_MS); 
+								if(laser_ctr_param.laserType==0&&laser_ctr_param.ctrTestMode==0)
+								{        
+									app_jdq_bus_vol_current_set(LASER_JDQ_VOLTAGE_F,LASER_JDQ_CURRENT_LIMIT_F);
+								}
+								else  app_jdq_bus_vol_current_set(LASER_JDQ_VOLTAGE_F,LASER_JDQ_CURRENT_LIMIT_F+0.6);//high freq
+								timeout = 0;
+								do
+								{
+									osDelay(JDQ_RS485_FRAME_MIN_MS);         
+									timeout+=JDQ_RS485_FRAME_MIN_MS;    
+								}while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
+
+							}
+						}
+					}       
+				}//else {//sleep}
+				
+       
+				#endif                
       }             
     }     
     else

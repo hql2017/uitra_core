@@ -832,6 +832,7 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
 	#endif
 	
  }
+ 
    /************************************************************************//**
   * @brief 读总电源电压输出状态请求
   * @param 
