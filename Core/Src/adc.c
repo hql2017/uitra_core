@@ -495,6 +495,23 @@ void filter_ad1(void)
     DEBUG_PRINTF("leve=%d ad2=%d\r\n",ad2vale,ad2hle);   
    #endif   
   }
+  /**
+  * @brief HAL_ADC_ConvCpltCallback
+  * @param void
+  * @note   
+  * @retval None 
+  */
+void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{ 
+  if(hadc->Instance==ADC1)
+  {    
+    filter_ad1();     
+  }
+  if(hadc->Instance==ADC2)
+  { 
+    app_in_energe_adc_value();
+  }
+}
 /**
   * @brief NTC_T cal
   * @param void         
