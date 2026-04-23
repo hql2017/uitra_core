@@ -1032,8 +1032,7 @@ void laserWorkTask04(void *argument)
             if(laser_ctr_param.laserEnerge> ENERGE_MAX_VALUE) laser_ctr_param.laserEnerge=ENERGE_MAX_VALUE;
             if(laser_ctr_param.laserEnerge< ENERGE_MIN_VALUE) laser_ctr_param.laserEnerge=ENERGE_MIN_VALUE;
             if(u_sys_param.sys_config_param.laser_pulse_width_us<100) u_sys_param.sys_config_param.laser_pulse_width_us=100;
-            if(u_sys_param.sys_config_param.laser_pulse_width_us>230) u_sys_param.sys_config_param.laser_pulse_width_us=230; 
-             
+            if(u_sys_param.sys_config_param.laser_pulse_width_us>230) u_sys_param.sys_config_param.laser_pulse_width_us=230;            
            //temprature
             float freq_e=1.0;
             float  e_pulse=0;//脉宽补偿
@@ -1095,20 +1094,19 @@ void laserWorkTask04(void *argument)
             if(laser_ctr_param.laserEnerge>4)
             {
               if(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali>2500)
-
               {
                local_f+=(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali-2500)*0.0001;//
               }
               else  local_f-=(2500-u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali)*0.0001;//
             }           
             DEBUG_PRINTF("e=%dev=%.3f freq=%d timeU=%d\r\n",laser_ctr_param.laserEnerge,local_f,laser_ctr_param.laserFreq,u_sys_param.sys_config_param.laser_pulse_width_us); 
-            if(local_f>DAC_MAX_VOLTAGE_F) local_f=DAC_MAX_VOLTAGE_F;//4.0           
-            if(local_f<DAC_MIN_VOLTAGE_F) local_f=DAC_MIN_VOLTAGE_F;//4.0
+            if(local_f>DAC_MAX_VOLTAGE_F) local_f = DAC_MAX_VOLTAGE_F;//4.0           
+            if(local_f<DAC_MIN_VOLTAGE_F) local_f = DAC_MIN_VOLTAGE_F;//4.0
             if(local_f<1.85) laser_ctr_param.lowEnergeMode=1;
             else laser_ctr_param.lowEnergeMode=0;  
             fisrt_pulse_cali= local_f*0.6+DAC_MIN_VOLTAGE_F*0.4;       
             AD5541A_SetVoltage(fisrt_pulse_cali,4.096);   //首脉冲减半
-            fisrt_pulse_cali= local_f;     
+            fisrt_pulse_cali = local_f;     
             sGenSta.laser_run_B1_laser_out_status=1; 
             rgbMessage = RGB_LASER_WORK_STATUS;
             osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);                    
@@ -1137,12 +1135,9 @@ void laserWorkTask04(void *argument)
             {               
               app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback);  
              // float ene_moni_cali= u_sys_param.sys_config_param.laser_pulse_width_us*0.00088+laser_ctr_param.laserEnerge*0.00009-0.0065; 
-              float ene_peak_p= e_feedback*0.00125;//peak  power
-               //float ene_peak_p= laser_ctr_param.laserEnerge/(u_sys_param.sys_config_param.laser_pulse_width_us/1000);//peak power unit mW
-              //float ene_average_p= ene_peak_p*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//average power  unit mJ
-               //float ene_average_p= laser_ctr_param.laserEnerge*laser_ctr_param.laserFreq;//average power  unit mW
-               //float ene_average_p= e_feedback*(u_sys_param.sys_config_param.laser_pulse_width_us/1000*0.001*laser_ctr_param.laserFreq;//average power  unit mJ
-              sEnvParam.laser_1064_energy=e_feedback*0.00100*(u_sys_param.sys_config_param.laser_pulse_width_us);
+              float ene_average_p= (e_feedback*0.00125)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power
+               
+              sEnvParam.laser_1064_energy=ene_average_p/laser_ctr_param.laserFreq;
               DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV pulseCount=%d rdb=%d 980=%d\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback,u_sys_param.sys_config_param.laser_pulse_count,u_sys_param.sys_config_param.RDB_use_timeS,u_sys_param.sys_config_param.laser_use_timeS);              
               if(sEnvParam.laser_1064_energy>0&&laser_ctr_param.laserEnerge>0)
               {   
@@ -1741,8 +1736,8 @@ void musicTask11(void *argument)
   for(;;)
   {
     osMessageQueueGet(musicQueue03Handle,&music_num,0,portMAX_DELAY);	
-    app_buzz_music(music_num,50);  
-    osDelay(10);
+    app_buzz_music(music_num,50);
+		osDelay(10);
   }
   /* USER CODE END musicTask11 */
 }

@@ -484,16 +484,7 @@ void filter_ad1(void)
     }  
     ad2vale = ( sum>>3);   
     #endif 
-    #if 0
-    //kalman_filter_update(&kalmAd2, sum>>3);
-    //ad2vale= kalmAd2.estimate;    
-    DEBUG_PRINTF("laserAD=\r\n");
-    for(int i=0;i<MAX_AD2_ENERGE_BUFF_LENGTH;i++)
-    {
-      DEBUG_PRINTF(" %d",ad2Buff[i]);
-    }
-    DEBUG_PRINTF("leve=%d ad2=%d\r\n",ad2vale,ad2hle);   
-   #endif   
+     
   }
   /**
   * @brief HAL_ADC_ConvCpltCallback

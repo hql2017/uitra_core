@@ -61,7 +61,7 @@ void app_hmi_report_status(sys_genaration_status *sys_status)
 	|sys_status->laser_run_B4_laser_980_out_status<<4|sys_status->laser_run_B5_timer_status<<5|sys_status->laser_run_B6_close_device_status<<6;	
 	if(sys_status->laser_param_B456_jt_status==IO_KEY_IDLE)
 	{
-		if(sEnvParam.JT_bat<30)	sys_status->laser_param_B456_jt_status=KEY_LOW_POWER;	
+		if(sEnvParam.JT_bat<30)	send_buff_jt=KEY_LOW_POWER;	
 		else send_buff_jt=1;
 	}
 	else send_buff_jt=(sys_status->laser_param_B456_jt_status%5);	

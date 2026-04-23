@@ -164,7 +164,7 @@ void FDCAN1_filter_config(void)
 	sFilterConfig.FilterIndex = 0;         //
 	sFilterConfig.FilterType = FDCAN_FILTER_RANGE;   //range ID
 	sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;   // Rx FIFO 0
-	sFilterConfig.FilterID1 = 0x0000;   //min ID
+	sFilterConfig.FilterID1 = 0x0000;   //min ID 
 	sFilterConfig.FilterID2 = 0x07FF;   //max ID
 	#else
 	sFilterConfig.IdType = FDCAN_STANDARD_ID; //ID
