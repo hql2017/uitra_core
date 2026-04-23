@@ -58,7 +58,7 @@ void MX_ADC1_Init(void)
   hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   hadc1.Init.LowPowerAutoWait = ENABLE;
   hadc1.Init.ContinuousConvMode = DISABLE;
-  hadc1.Init.NbrOfConversion = 4;
+  hadc1.Init.NbrOfConversion = 5;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T6_TRGO;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
@@ -116,6 +116,15 @@ void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_18;
   sConfig.Rank = ADC_REGULAR_RANK_4;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_8;
+  sConfig.Rank = ADC_REGULAR_RANK_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -200,16 +209,23 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
     }
 
     __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
     /**ADC1 GPIO Configuration
     PA0     ------> ADC1_INP16
     PA1     ------> ADC1_INP17
     PA2     ------> ADC1_INP14
     PA4     ------> ADC1_INP18
+    PC5     ------> ADC1_INP8
     */
     GPIO_InitStruct.Pin = AD_OCP_CHANNEL_Pin|AD_VBUS_24V_CHANNEL_Pin|AD_TMC_NTC_CHANNEL_Pin|AD_AIR_PRESSURE_CHANNEL_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = AD_TREATMENT_WATER_PRESSURE_CHANNEL_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(AD_TREATMENT_WATER_PRESSURE_CHANNEL_GPIO_Port, &GPIO_InitStruct);
 
     /* ADC1 DMA Init */
     /* ADC1 Init */
@@ -310,8 +326,11 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
     PA1     ------> ADC1_INP17
     PA2     ------> ADC1_INP14
     PA4     ------> ADC1_INP18
+    PC5     ------> ADC1_INP8
     */
     HAL_GPIO_DeInit(GPIOA, AD_OCP_CHANNEL_Pin|AD_VBUS_24V_CHANNEL_Pin|AD_TMC_NTC_CHANNEL_Pin|AD_AIR_PRESSURE_CHANNEL_Pin);
+
+    HAL_GPIO_DeInit(AD_TREATMENT_WATER_PRESSURE_CHANNEL_GPIO_Port, AD_TREATMENT_WATER_PRESSURE_CHANNEL_Pin);
 
     /* ADC1 DMA DeInit */
     HAL_DMA_DeInit(adcHandle->DMA_Handle);

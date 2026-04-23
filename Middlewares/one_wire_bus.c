@@ -79,7 +79,7 @@ void one_wire_bus_init(void)
 void  app_owb_receive_handle(unsigned char *pData,unsigned short int length)
  {
 	unsigned short int  i=0;
-	while(i+7<owb_frame.rxLength)
+	while(owb_frame.rxLength>7)
 	{
 		if(owb_rxBuff[i]=='['&&owb_rxBuff[i+7]==']')
 		{
@@ -100,43 +100,48 @@ void  app_owb_receive_handle(unsigned char *pData,unsigned short int length)
   *****************************************************************************/
 void owb_dq_edge_callback(void)
 {	
-	if(owb_frame.busStart )
-	{
-		if(owb_frame.busIdleFlag==0)
-		{
-			HAL_TIM_Base_Stop_IT(&htim17);
-			owb_frame.busIdleFlag=4;//reset丢弃第一包
-			owb_frame.busTime=HAL_GetTick();
-		}
-		else if(owb_frame.busIdleFlag==1) 
-		{	
-			owb_frame.busTime=OWB_FRAME_RESET_TIM;//next bit						
-			__HAL_TIM_SetAutoreload(&htim17,OWB_FRAME_RESET_TIM-100);
-			HAL_TIM_Base_Start_IT(&htim17);	
-		}
-		else if(owb_frame.busIdleFlag==3) 
-		{	
-			owb_frame.busTime=OWB_FRAME_READ_TIM;//next bit	
-			__HAL_TIM_SetAutoreload(&htim17,OWB_FRAME_READ_TIM-1);
-			HAL_TIM_Base_Start_IT(&htim17);
-		}
-		else if(owb_frame.busIdleFlag==4)
-		{
-			if(HAL_GetTick()>owb_frame.busTime+50)
-			{//start
-				owb_frame.busIdleFlag=1;
-				owb_frame.busTime=OWB_FRAME_RESET_TIM;//next bit						
-				__HAL_TIM_SetAutoreload(&htim17,OWB_FRAME_RESET_TIM-100);
-				HAL_TIM_Base_Start_IT(&htim17);		
-			}
-		}
-	}
-	else 
-	{
-		HAL_TIM_Base_Stop_IT(&htim17);
-		owb_frame.busTime=0;
-		owb_frame.busIdleFlag=0;		
-	}
+	if (!owb_frame.busStart) {
+        // 总线未启动，停止定时器并重置状态
+        HAL_TIM_Base_Stop_IT(&htim17);
+        owb_frame.busTime = 0;
+        owb_frame.busIdleFlag = 0;
+        return;
+    }
+
+    switch (owb_frame.busIdleFlag) {
+        case 0: // 总线忙状态
+            HAL_TIM_Base_Stop_IT(&htim17);
+            owb_frame.busIdleFlag = 4; // 标记重置状态，丢弃第一包
+            owb_frame.busTime = HAL_GetTick();
+            break;
+
+        case 1: // 重置时序状态
+            owb_frame.busTime = OWB_FRAME_RESET_TIM;
+            __HAL_TIM_SetAutoreload(&htim17, OWB_FRAME_RESET_TIM - 100);
+            HAL_TIM_Base_Start_IT(&htim17);
+            break;
+
+        case 3: // 读取时序状态
+            owb_frame.busTime = OWB_FRAME_READ_TIM;
+            __HAL_TIM_SetAutoreload(&htim17, OWB_FRAME_READ_TIM - 1);
+            HAL_TIM_Base_Start_IT(&htim17);
+            break;
+
+        case 4: // 重置等待状态
+            if (HAL_GetTick() > owb_frame.busTime + 50) {
+                // 等待超时，进入重置时序
+                owb_frame.busIdleFlag = 1;
+                owb_frame.busTime = OWB_FRAME_RESET_TIM;
+                __HAL_TIM_SetAutoreload(&htim17, OWB_FRAME_RESET_TIM - 100);
+                HAL_TIM_Base_Start_IT(&htim17);
+            }
+            break;
+
+        default:
+            // 未知状态，停止定时器
+            HAL_TIM_Base_Stop_IT(&htim17);
+            break;
+    }
 }
 /************************************************************************//**
 * @brief 写0
@@ -145,75 +150,72 @@ void owb_dq_edge_callback(void)
   * @retval  
   *****************************************************************************/
  void owb_tim_callback(unsigned int timeUs)
- {	
-	static unsigned char txrxData,txrxBit=0;
-	HAL_TIM_Base_Stop_IT(&htim17);
-	if (owb_frame.busTime>OWB_FRAME_MAX_DELAY_TIM)//err
-	{	
-		owb_frame.busTime=0;						
-		txrxBit=0;							
-		txrxData=0;
-		owb_frame.busIdleFlag=0;		
-	}
-	if(owb_frame.busStart==0)
-	{
-		owb_frame.busTime=0;						
-		txrxBit=0;							
-		txrxData=0;
-		owb_frame.busIdleFlag=0;	
-	}
-	else 
-	{
-		switch(owb_frame.busIdleFlag)
-		{	
-			case 1://ack		
-				if(owb_frame.busTime>=OWB_FRAME_RESET_TIM)//reset semr
-				{
-					if(OWB_DQ_READ==GPIO_PIN_RESET)
-					{	
-						owb_frame.busTime=0;
-						owb_frame.busIdleFlag=3;
-						txrxData=0;
-						txrxBit=0;
-					}
-					else 
-					{	
-						txrxData=0;
-						txrxBit=0;
-						owb_frame.busTime=0;
-						owb_frame.busIdleFlag = 0;	//err						
-					}				
-				}	
-				break;	
-			case 3://rx
-				if(owb_frame.busTime>=OWB_FRAME_READ_TIM)//最少15us后读取
-				{
-					owb_frame.busTime=0;
-					if(OWB_DQ_READ==GPIO_PIN_SET)	
-					{
-						txrxData|=(0x01<<txrxBit);	
-					}	
-					txrxBit+=1;	
-					if(txrxBit>7) 
-					{
-						txrxBit=0;	
-						owb_frame.rxLength%=(OWB_MAX_FRAME_LENGTH+1);
-						owb_rxBuff[owb_frame.rxLength]=txrxData;			
-						txrxData=0;										
-						owb_frame.rxLength+=1;//=1;	
-					}				
-				}
-				break;
-			default :
-				{	//接收结束	
-					owb_frame.busTime=0;						
-					txrxBit=0;							
-					txrxData=0;
-					owb_frame.busIdleFlag=0;
-				}			
-				break;
-		}	
-	} 	 
+ {
+	 static unsigned char txrxData = 0, txrxBit = 0;
+	 
+	 HAL_TIM_Base_Stop_IT(&htim17);
+	 
+	 // 检查总线延迟超时错误
+	 if (owb_frame.busTime > OWB_FRAME_MAX_DELAY_TIM) {
+		 owb_frame.busTime = 0;
+		 txrxBit = 0;
+		 txrxData = 0;
+		 owb_frame.busIdleFlag = 0;
+		 return;
+	 }
+	 
+	 // 若未开始通信，则重置状态
+	 if (owb_frame.busStart == 0) {
+		 owb_frame.busTime = 0;
+		 txrxBit = 0;
+		 txrxData = 0;
+		 owb_frame.busIdleFlag = 0;
+		 return;
+	 }
+	 
+	 switch (owb_frame.busIdleFlag) {
+		 case 1: // ACK阶段
+			 if (owb_frame.busTime >= OWB_FRAME_RESET_TIM) {
+				 if (OWB_DQ_READ == GPIO_PIN_SET) {
+					 owb_frame.busTime = 0;
+					 owb_frame.busIdleFlag = 3;
+					 txrxData = 0;
+					 txrxBit = 0;
+				 } else {
+					 owb_frame.busTime = 0;
+					 txrxBit = 0;
+					 txrxData = 0;
+					 owb_frame.busIdleFlag = 0; // err
+				 }
+			 }
+			 break;
+			 
+		 case 3: // 接收数据阶段
+			 if (owb_frame.busTime >= OWB_FRAME_READ_TIM) { // 最少15us后读取
+				 owb_frame.busTime = 0;
+				 if (OWB_DQ_READ == GPIO_PIN_RESET) {
+					 txrxData |= (0x01 << txrxBit);
+				 }
+				 txrxBit += 1;
+				 
+				 if (txrxBit > 7) {
+					 txrxBit = 0;
+					 owb_frame.rxLength %= (OWB_MAX_FRAME_LENGTH + 1);
+					 owb_rxBuff[owb_frame.rxLength] = txrxData;
+					 txrxData = 0;
+					 owb_frame.rxLength += 1;
+				 }
+			 }
+			 break;
+			 
+		 default:
+			 // 其他情况默认处理：清空并复位标志
+			 owb_frame.busTime = 0;
+			 txrxBit = 0;
+			 txrxData = 0;
+			 owb_frame.busIdleFlag = 0;
+			 break;
+	 }
  }
 #else 
 //主机,只写

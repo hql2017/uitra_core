@@ -42,6 +42,8 @@ TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim15;
 TIM_HandleTypeDef htim16;
 TIM_HandleTypeDef htim17;
+TIM_HandleTypeDef htim23;
+TIM_HandleTypeDef htim24;
 
 /* TIM1 init function */
 void MX_TIM1_Init(void)
@@ -59,12 +61,12 @@ void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 26;
+  htim1.Init.Prescaler = 53;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim1.Init.Period = 999;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
-  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
   {
     Error_Handler();
@@ -170,36 +172,40 @@ void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 0 */
 
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM3_Init 1 */
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 26;
-  htim3.Init.CounterMode = TIM_COUNTERMODE_DOWN;
-  htim3.Init.Period = 1229;
+  htim3.Init.Prescaler = 53;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 124;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
   }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
 
 }
 /* TIM4 init function */
@@ -284,10 +290,6 @@ void MX_TIM8_Init(void)
   sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
   sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_SET;
   if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim8, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -458,6 +460,87 @@ void MX_TIM17_Init(void)
   /* USER CODE END TIM17_Init 2 */
 
 }
+/* TIM23 init function */
+void MX_TIM23_Init(void)
+{
+
+  /* USER CODE BEGIN TIM23_Init 0 */
+
+  /* USER CODE END TIM23_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM23_Init 1 */
+
+  /* USER CODE END TIM23_Init 1 */
+  htim23.Instance = TIM23;
+  htim23.Init.Prescaler = 2699;
+  htim23.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim23.Init.Period = 99999;
+  htim23.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim23.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim23) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim23, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim23, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM23_Init 2 */
+
+  /* USER CODE END TIM23_Init 2 */
+
+}
+/* TIM24 init function */
+void MX_TIM24_Init(void)
+{
+
+  /* USER CODE BEGIN TIM24_Init 0 */
+
+  /* USER CODE END TIM24_Init 0 */
+
+  TIM_SlaveConfigTypeDef sSlaveConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM24_Init 1 */
+
+  /* USER CODE END TIM24_Init 1 */
+  htim24.Instance = TIM24;
+  htim24.Init.Prescaler = 0;
+  htim24.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim24.Init.Period = 4294967295;
+  htim24.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim24.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim24) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sSlaveConfig.SlaveMode = TIM_SLAVEMODE_EXTERNAL1;
+  sSlaveConfig.InputTrigger = TIM_TS_ITR3;
+  if (HAL_TIM_SlaveConfigSynchro(&htim24, &sSlaveConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim24, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM24_Init 2 */
+
+  /* USER CODE END TIM24_Init 2 */
+
+}
 
 void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef* tim_pwmHandle)
 {
@@ -472,6 +555,17 @@ void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef* tim_pwmHandle)
   /* USER CODE BEGIN TIM1_MspInit 1 */
 
   /* USER CODE END TIM1_MspInit 1 */
+  }
+  else if(tim_pwmHandle->Instance==TIM3)
+  {
+  /* USER CODE BEGIN TIM3_MspInit 0 */
+
+  /* USER CODE END TIM3_MspInit 0 */
+    /* TIM3 clock enable */
+    __HAL_RCC_TIM3_CLK_ENABLE();
+  /* USER CODE BEGIN TIM3_MspInit 1 */
+
+  /* USER CODE END TIM3_MspInit 1 */
   }
   else if(tim_pwmHandle->Instance==TIM8)
   {
@@ -515,21 +609,6 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
 
   /* USER CODE END TIM2_MspInit 1 */
   }
-  else if(tim_baseHandle->Instance==TIM3)
-  {
-  /* USER CODE BEGIN TIM3_MspInit 0 */
-
-  /* USER CODE END TIM3_MspInit 0 */
-    /* TIM3 clock enable */
-    __HAL_RCC_TIM3_CLK_ENABLE();
-
-    /* TIM3 interrupt Init */
-    HAL_NVIC_SetPriority(TIM3_IRQn, 5, 0);
-    HAL_NVIC_EnableIRQ(TIM3_IRQn);
-  /* USER CODE BEGIN TIM3_MspInit 1 */
-
-  /* USER CODE END TIM3_MspInit 1 */
-  }
   else if(tim_baseHandle->Instance==TIM4)
   {
   /* USER CODE BEGIN TIM4_MspInit 0 */
@@ -571,6 +650,36 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
 
   /* USER CODE END TIM17_MspInit 1 */
   }
+  else if(tim_baseHandle->Instance==TIM23)
+  {
+  /* USER CODE BEGIN TIM23_MspInit 0 */
+
+  /* USER CODE END TIM23_MspInit 0 */
+    /* TIM23 clock enable */
+    __HAL_RCC_TIM23_CLK_ENABLE();
+
+    /* TIM23 interrupt Init */
+    HAL_NVIC_SetPriority(TIM23_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(TIM23_IRQn);
+  /* USER CODE BEGIN TIM23_MspInit 1 */
+
+  /* USER CODE END TIM23_MspInit 1 */
+  }
+  else if(tim_baseHandle->Instance==TIM24)
+  {
+  /* USER CODE BEGIN TIM24_MspInit 0 */
+
+  /* USER CODE END TIM24_MspInit 0 */
+    /* TIM24 clock enable */
+    __HAL_RCC_TIM24_CLK_ENABLE();
+
+    /* TIM24 interrupt Init */
+    HAL_NVIC_SetPriority(TIM24_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(TIM24_IRQn);
+  /* USER CODE BEGIN TIM24_MspInit 1 */
+
+  /* USER CODE END TIM24_MspInit 1 */
+  }
 }
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
 {
@@ -596,6 +705,27 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
 
   /* USER CODE END TIM1_MspPostInit 1 */
   }
+  else if(timHandle->Instance==TIM3)
+  {
+  /* USER CODE BEGIN TIM3_MspPostInit 0 */
+
+  /* USER CODE END TIM3_MspPostInit 0 */
+
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    /**TIM3 GPIO Configuration
+    PB1     ------> TIM3_CH4
+    */
+    GPIO_InitStruct.Pin = AIR_PUMP_TIM3CH4_PWM_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF2_TIM3;
+    HAL_GPIO_Init(AIR_PUMP_TIM3CH4_PWM_GPIO_Port, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN TIM3_MspPostInit 1 */
+
+  /* USER CODE END TIM3_MspPostInit 1 */
+  }
   else if(timHandle->Instance==TIM8)
   {
   /* USER CODE BEGIN TIM8_MspPostInit 0 */
@@ -605,14 +735,13 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
     __HAL_RCC_GPIOB_CLK_ENABLE();
     /**TIM8 GPIO Configuration
     PB0     ------> TIM8_CH2N
-    PB1     ------> TIM8_CH3N
     */
-    GPIO_InitStruct.Pin = FAN1_TIM8CH2N_PWM_Pin|FAN2_TIM8CH3N_PWM_Pin;
+    GPIO_InitStruct.Pin = FAN1_TIM8CH2N_PWM_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF3_TIM8;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    HAL_GPIO_Init(FAN1_TIM8CH2N_PWM_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN TIM8_MspPostInit 1 */
 
@@ -677,6 +806,17 @@ void HAL_TIM_PWM_MspDeInit(TIM_HandleTypeDef* tim_pwmHandle)
 
   /* USER CODE END TIM1_MspDeInit 1 */
   }
+  else if(tim_pwmHandle->Instance==TIM3)
+  {
+  /* USER CODE BEGIN TIM3_MspDeInit 0 */
+
+  /* USER CODE END TIM3_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_TIM3_CLK_DISABLE();
+  /* USER CODE BEGIN TIM3_MspDeInit 1 */
+
+  /* USER CODE END TIM3_MspDeInit 1 */
+  }
   else if(tim_pwmHandle->Instance==TIM8)
   {
   /* USER CODE BEGIN TIM8_MspDeInit 0 */
@@ -718,20 +858,6 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 
   /* USER CODE END TIM2_MspDeInit 1 */
   }
-  else if(tim_baseHandle->Instance==TIM3)
-  {
-  /* USER CODE BEGIN TIM3_MspDeInit 0 */
-
-  /* USER CODE END TIM3_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_TIM3_CLK_DISABLE();
-
-    /* TIM3 interrupt Deinit */
-    HAL_NVIC_DisableIRQ(TIM3_IRQn);
-  /* USER CODE BEGIN TIM3_MspDeInit 1 */
-
-  /* USER CODE END TIM3_MspDeInit 1 */
-  }
   else if(tim_baseHandle->Instance==TIM4)
   {
   /* USER CODE BEGIN TIM4_MspDeInit 0 */
@@ -771,6 +897,34 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 
   /* USER CODE END TIM17_MspDeInit 1 */
   }
+  else if(tim_baseHandle->Instance==TIM23)
+  {
+  /* USER CODE BEGIN TIM23_MspDeInit 0 */
+
+  /* USER CODE END TIM23_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_TIM23_CLK_DISABLE();
+
+    /* TIM23 interrupt Deinit */
+    HAL_NVIC_DisableIRQ(TIM23_IRQn);
+  /* USER CODE BEGIN TIM23_MspDeInit 1 */
+
+  /* USER CODE END TIM23_MspDeInit 1 */
+  }
+  else if(tim_baseHandle->Instance==TIM24)
+  {
+  /* USER CODE BEGIN TIM24_MspDeInit 0 */
+
+  /* USER CODE END TIM24_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_TIM24_CLK_DISABLE();
+
+    /* TIM24 interrupt Deinit */
+    HAL_NVIC_DisableIRQ(TIM24_IRQn);
+  /* USER CODE BEGIN TIM24_MspDeInit 1 */
+
+  /* USER CODE END TIM24_MspDeInit 1 */
+  }
 }
 
 /* USER CODE BEGIN 1 */
@@ -778,25 +932,24 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 /************************************************************************//**
 * @brief 激光指示灯PWM
   * @param 
-  * @note  推介频率2k GREEN 40<duty>60 : RED 8<duty>30
+  * @note  推介频率2k GREEN 40<duty>60 :推介频率50k RED 35<duty>100 ,freq 10K~50K
   * @retval  
   *****************************************************************************/
  void app_auxiliary_bulb_pwm(unsigned char lightLevel,FunctionalState flag)
  { 
-	unsigned char duty;
   if(flag==ENABLE&&lightLevel!=0)
   { 
 		unsigned int timeUs;
 		unsigned short int period;
-		//check freq,timer1 10M clock freq
-    //freq=2000;	
-		//period=(10000000/freq);
-    period=5000;//
-		__HAL_TIM_SetAutoreload(&htim1,period-1);//low 10K  50kHz  MAX 400kHz
-		//duty 1%  100%; 0% close
-    if(lightLevel>100) duty=80;//max
-    else  duty=40+lightLevel*2/5;
-		timeUs= period * duty/100;
+		//check freq,timer2 5M clock freq
+    //freq=50000;	
+		//period=(5000000/freq);
+    period=100;//50k
+		__HAL_TIM_SetAutoreload(&htim1,period-1);
+		//duty 1%  100%; 0% close ;duty=lightLevel
+    if(lightLevel>99) timeUs=99;//max
+    if(lightLevel<40) timeUs=40;//min
+    else  timeUs=lightLevel;	   
 		__HAL_TIM_SetCompare(&htim1,TIM_CHANNEL_1,timeUs-1);
 		HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);
   }
@@ -812,9 +965,9 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
   * @note  推介频率25k 
   * @retval  
   *****************************************************************************/
- void app_fan_pwm_set(unsigned char duty,unsigned char fanNum)
+ void app_fan_pwm_set(unsigned short int  dutyCount,unsigned char fanNum)
  { 	
-  if(duty!=0)
+  if(dutyCount!=0)
   {    
 		unsigned int timeUs;
 		unsigned short int period;
@@ -822,27 +975,47 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 		period=400;//(10000000/25000);
 		__HAL_TIM_SetAutoreload(&htim8,period-1);//low 0.5k  20kHz  MAX 20kHz
 		//duty 1%  100%; 0% close 	
-		timeUs = (duty)*4;//period*duty/100;	//duty = 12.5%;
-		if(fanNum==1) 
+		timeUs =dutyCount;//*4;//period*duty/100;	//duty = 12.5%;
+    if(timeUs>400)
     {
-      __HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,timeUs-1);  
-      HAL_TIMEx_PWMN_Start(&htim8,TIM_CHANNEL_2);     
-
+      timeUs=400;
     }
-    else //(fanNum==2) 
-    {
-      if(duty<20)  timeUs =80;// (duty)*4;
-      __HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_3,timeUs-1);          
-      HAL_TIMEx_PWMN_Start(&htim8,TIM_CHANNEL_3); 
-    }
+    if(timeUs<2) timeUs=2;	
+    __HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,timeUs-1); 
   }
   else
-  {     
-    if(fanNum==1) HAL_TIMEx_PWMN_Stop(&htim8,TIM_CHANNEL_2);
-    else //if(fanNum==2)
-    {
-      HAL_TIMEx_PWMN_Stop(&htim8,TIM_CHANNEL_3);
-    }     
+  {   
+    HAL_TIMEx_PWMN_Stop(&htim8,TIM_CHANNEL_2);     
+  }	
+ }
+  /************************************************************************//**
+* @brief   新气泵PWM
+  * @param duty 占空比20~35(3.3V 控制电压)
+  * @note  推介频率40k ,环境气压95kPa,相对气压 P(180~200kPa)
+  *      duty 35% -》 Pair=320kPa  ；P=Pair-95;
+  *      duty 30% -》 Pair=300kPa  ；P=Pair-95;P=200kPa
+  *      duty 25% -》 Pair=280kPa ；  P=Pair-95;P=180kP
+  *      duty 20% -》 Pair=260kPa；   P=Pair-95;
+  * @retval  
+  *****************************************************************************/
+ void app_air_pum_pwm_set(unsigned char  duty)
+ { 	
+  if( duty!=0)
+  {    
+		unsigned int timeUs;
+		unsigned short int period;
+		//check freq,timer3 5M clock  ;  
+		period=125;//(5000000/40000);//40kHz  
+		__HAL_TIM_SetAutoreload(&htim3,period-1);
+		//duty 1%  100%; 0% close 
+    if(duty<20)		timeUs=25;
+    if(duty>35)	timeUs=43;//MAX
+    else 	timeUs =(duty*5)>>2;///*1.25;//;	    
+    __HAL_TIM_SetCompare(&htim3,TIM_CHANNEL_2,timeUs-1);  
+  }
+  else
+  {  
+    HAL_TIM_PWM_Stop(&htim3,TIM_CHANNEL_2);        
   }	
  }
 /* USER CODE END 1 */

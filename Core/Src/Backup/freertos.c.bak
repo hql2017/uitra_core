@@ -940,7 +940,7 @@ void laserWorkTask04(void *argument)
 	pLaserConfig = &laser_ctr_param;
   uint32_t event;
   osStatus_t laser_close_sem;       
-  uint16_t jdq_Volate_heart;
+  uint32_t jdq_Volate_heart=0;
   for(;;)
   {  
     event=osEventFlagsWait(laserEvent02Handle,EVENTS_LASER_PREPARE_OK_ALL_BITS_MASK,osFlagsNoClear,portMAX_DELAY);
@@ -991,7 +991,7 @@ void laserWorkTask04(void *argument)
           osDelay(100);
         }  
         #endif            
-        sGenSta.laser_run_B0_pro_hot_status=0;	
+        sGenSta.laser_run_B0_pro_hot_status=0;	       
         osTimerDelete(laserWorkTimer01Handle);
         rgbMessage = RGB_G_STANDBY;
         osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);
@@ -1031,12 +1031,7 @@ void laserWorkTask04(void *argument)
             if(laser_ctr_param.laserEnerge> ENERGE_MAX_VALUE) laser_ctr_param.laserEnerge=ENERGE_MAX_VALUE;
             if(laser_ctr_param.laserEnerge< ENERGE_MIN_VALUE) laser_ctr_param.laserEnerge=ENERGE_MIN_VALUE;
             if(u_sys_param.sys_config_param.laser_pulse_width_us<100) u_sys_param.sys_config_param.laser_pulse_width_us=100;
-            if(u_sys_param.sys_config_param.laser_pulse_width_us>230) u_sys_param.sys_config_param.laser_pulse_width_us=230; 
-
-            if(laser_ctr_param.laserType==1&&laser_ctr_param.ctrTestMode==0)
-            {
-              laser_ctr_param.laserFreq=100;
-            }     
+            if(u_sys_param.sys_config_param.laser_pulse_width_us>230) u_sys_param.sys_config_param.laser_pulse_width_us=230;            
            //temprature
             float freq_e=1.0;
             float  e_pulse=0;//脉宽补偿
@@ -1098,20 +1093,19 @@ void laserWorkTask04(void *argument)
             if(laser_ctr_param.laserEnerge>4)
             {
               if(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali>2500)
-
               {
                local_f+=(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali-2500)*0.0001;//
               }
               else  local_f-=(2500-u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali)*0.0001;//
             }           
             DEBUG_PRINTF("e=%dev=%.3f freq=%d timeU=%d\r\n",laser_ctr_param.laserEnerge,local_f,laser_ctr_param.laserFreq,u_sys_param.sys_config_param.laser_pulse_width_us); 
-            if(local_f>DAC_MAX_VOLTAGE_F) local_f=DAC_MAX_VOLTAGE_F;//4.0           
-            if(local_f<DAC_MIN_VOLTAGE_F) local_f=DAC_MIN_VOLTAGE_F;//4.0
+            if(local_f>DAC_MAX_VOLTAGE_F) local_f = DAC_MAX_VOLTAGE_F;//4.0           
+            if(local_f<DAC_MIN_VOLTAGE_F) local_f = DAC_MIN_VOLTAGE_F;//4.0
             if(local_f<1.85) laser_ctr_param.lowEnergeMode=1;
             else laser_ctr_param.lowEnergeMode=0;  
             fisrt_pulse_cali= local_f*0.6+DAC_MIN_VOLTAGE_F*0.4;       
             AD5541A_SetVoltage(fisrt_pulse_cali,4.096);   //首脉冲减半
-            fisrt_pulse_cali= local_f;     
+            fisrt_pulse_cali = local_f;     
             sGenSta.laser_run_B1_laser_out_status=1; 
             rgbMessage = RGB_LASER_WORK_STATUS;
             osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);                    
@@ -1119,7 +1113,7 @@ void laserWorkTask04(void *argument)
           }  
           else 
           {
-            if (sGenSta.laser_run_B1_laser_out_status!=0&&fisrt_pulse_cali!=0) // genera
+            if(sGenSta.laser_run_B1_laser_out_status!=0&&fisrt_pulse_cali!=0) // genera
             {
               if(fisrt_pulse_cali>DAC_MAX_VOLTAGE_F) fisrt_pulse_cali=DAC_MAX_VOLTAGE_F;
               if(fisrt_pulse_cali<DAC_MIN_VOLTAGE_F) fisrt_pulse_cali=DAC_MIN_VOLTAGE_F;       
@@ -1140,12 +1134,9 @@ void laserWorkTask04(void *argument)
             {               
               app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback);  
              // float ene_moni_cali= u_sys_param.sys_config_param.laser_pulse_width_us*0.00088+laser_ctr_param.laserEnerge*0.00009-0.0065; 
-              float ene_peak_p= e_feedback*0.00125;//peak  power
-               //float ene_peak_p= laser_ctr_param.laserEnerge/(u_sys_param.sys_config_param.laser_pulse_width_us/1000);//peak power unit mW
-              //float ene_average_p= ene_peak_p*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//average power  unit mJ
-               //float ene_average_p= laser_ctr_param.laserEnerge*laser_ctr_param.laserFreq;//average power  unit mW
-               //float ene_average_p= e_feedback*(u_sys_param.sys_config_param.laser_pulse_width_us/1000*0.001*laser_ctr_param.laserFreq;//average power  unit mJ
-              sEnvParam.laser_1064_energy=e_feedback*0.00125*(u_sys_param.sys_config_param.laser_pulse_width_us);
+              float ene_average_p= (e_feedback*0.00125)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power
+               
+              sEnvParam.laser_1064_energy=ene_average_p/laser_ctr_param.laserFreq;
               DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV pulseCount=%d rdb=%d 980=%d\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback,u_sys_param.sys_config_param.laser_pulse_count,u_sys_param.sys_config_param.RDB_use_timeS,u_sys_param.sys_config_param.laser_use_timeS);              
               if(sEnvParam.laser_1064_energy>0&&laser_ctr_param.laserEnerge>0)
               {   
@@ -1199,8 +1190,13 @@ void laserWorkTask04(void *argument)
           }                      
         }         
        
-        #ifdef JDQ_PWR_GWB_3200W
-        osDelay(JDQ_RS485_FRAME_MIN_MS); 
+       
+      } 
+      #ifdef JDQ_PWR_GWB_3200W
+      if(osKernelGetTickCount()>jdq_Volate_heart+JDQ_RS485_FRAME_MIN_MS)
+      {
+        jdq_Volate_heart=osKernelGetTickCount();
+        //osDelay(JDQ_RS485_FRAME_MIN_MS); 
         app_jdq_bus_power_onoff_sta_req();
         timeout = 0;
         do
@@ -1208,12 +1204,45 @@ void laserWorkTask04(void *argument)
           osDelay(JDQ_RS485_FRAME_MIN_MS);         
           timeout+=JDQ_RS485_FRAME_MIN_MS;  
         }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
-        if(app_jdq_get_vbus_sta()==JDQ_PWR_GWB_3200W_ERROR_FLAG)
-        {//err
-          //DEBUG_PRINTF("jdqV=%.1f\r\n",app_jdq_get_vbus_sta());
-        }
-        #endif                
-      }             
+        if(timeout>=JDQ_RS485_FRAME_MAX_DELAY_MS)//sleep
+        {
+          //if(app_jdq_get_vbus_sta()!=JDQ_PWR_GWB_3200W_ERROR_FLAG)
+          {//err/jdq sleep ,restart	
+            if(sGenSta.laser_run_B0_pro_hot_status!=0)
+            {
+              if(app_jdq_get_vbus_sta()+5.0<LASER_JDQ_VOLTAGE_F)
+              {					
+                osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS);         
+                app_jdq_bus_power_on_off(1);   						
+                uint32_t timeoutR = 0;
+                do
+                {
+                  osDelay(JDQ_RS485_FRAME_MIN_MS);         
+                  timeoutR+=JDQ_RS485_FRAME_MIN_MS;    
+                }while(app_get_jdq_rs485_bus_statu()!=0&&timeoutR<JDQ_RS485_FRAME_MAX_DELAY_MS);    
+                osDelay(JDQ_RS485_FRAME_MIN_MS); 
+                if(laser_ctr_param.laserType==0&&laser_ctr_param.ctrTestMode==0)
+                {        
+                  app_jdq_bus_vol_current_set(LASER_JDQ_VOLTAGE_F,LASER_JDQ_CURRENT_LIMIT_F);
+                }
+                else  app_jdq_bus_vol_current_set(LASER_JDQ_VOLTAGE_F,LASER_JDQ_CURRENT_LIMIT_F+0.6);//high freq
+                timeoutR = 0;
+                do
+                {
+                  osDelay(JDQ_RS485_FRAME_MIN_MS);         
+                  timeoutR+=JDQ_RS485_FRAME_MIN_MS;    
+                }while(app_get_jdq_rs485_bus_statu()!=0&&timeoutR<JDQ_RS485_FRAME_MAX_DELAY_MS);
+
+              }
+            }
+          }       
+        }//else {//sleep}       
+      }
+      else
+      {
+        if(jdq_Volate_heart>osKernelGetTickCount())  jdq_Volate_heart=osKernelGetTickCount();
+      }      
+      #endif                            
     }     
     else
     {
@@ -1236,7 +1265,7 @@ void fastAuxTask05(void *argument)
   /* USER CODE BEGIN fastAuxTask05 */
   /* Infinite loop */
   float  treatmentWaterC; 
-  float  recVoltage,recCurrent; 
+  float  recVoltage,recCurrent;   
   for(;;)
   {
 		/***********环境气压、温度监测*******************/ 	 
@@ -1251,7 +1280,8 @@ void fastAuxTask05(void *argument)
 		app_air_pump_manage(laser_ctr_param.airPressureLevel);    
 		/***********aux genaration状态检查*******************/  
     app_sys_genaration_status_manage();	
-		app_fresh_laser_status_param();	    
+		app_fresh_laser_status_param();	
+   
     osDelay(5);
   }
   /* USER CODE END fastAuxTask05 */
@@ -1323,7 +1353,7 @@ void canReceiveTask07(void *argument)
     if(readLen<fd_canRxLen) 
     {
       packLen = fd_canRxLen-readLen;      
-      #if 0       
+      #if 1       
       DEBUG_PRINTF("CAN_receive_pack:\r\n");
       for(int i=0;i<packLen;i++)
       {
@@ -1444,13 +1474,27 @@ void laserProhotTask09(void *argument)
     } while(u_sys_param.sys_config_param.synchronousFlag!=3&&timeout<LASER_JDQ_CHARGE_TIMEOUT_MS);
     if(local_proHotCtr!=0)	
     {	 
-      #ifdef JDQ_PWR_GWB_3200W 
+      #ifdef JDQ_PWR_GWB_3200W     
+      outVoltage = app_jdq_voltage_monitor();  
+      if(outVoltage>local_f+5.0) 
+      { 
+        jdq_reley_charge(0);
+        osDelay(JDQ_RS485_FRAME_MIN_MS);		
+        jdq_reley_charge_ready(1);
+        timeout=0;
+        do
+        {  
+          osDelay(JDQ_RS485_FRAME_MIN_MS);
+          timeout+=JDQ_RS485_FRAME_MIN_MS;            
+          outVoltage = app_jdq_voltage_monitor();  
+        }while (outVoltage>local_f+5.0&&timeout<LASER_JDQ_CHARGE_TIMEOUT_MS);
+      }
       //app_jdq_current_limit_charge();
       jdq_reley_charge_ready(0);
       osDelay(JDQ_RS485_FRAME_MIN_MS);
       jdq_reley_charge(1);	
       osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS);         
-      app_jdq_bus_power_on_off(1);
+      app_jdq_bus_power_on_off(1);      
       timeout = 0;
       do
       {
@@ -1466,7 +1510,8 @@ void laserProhotTask09(void *argument)
         timeout+=JDQ_RS485_FRAME_MIN_MS;    
       }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
       //charge
-      osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS);       
+      osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
+      osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS);        
       timeout = 0;
       do
       {
@@ -1482,8 +1527,8 @@ void laserProhotTask09(void *argument)
           break;
         }  
         DEBUG_PRINTF("charge jdq—v%f %f \r\n",outVoltage,l_jdq_set_voltage);                
-      }while(l_jdq_set_voltage+5.0<local_f&&timeout<LASER_JDQ_CHARGE_TIMEOUT_MS&&outVoltage+5.0<local_f);
-      if(l_jdq_set_voltage!=JDQ_PWR_GWB_3200W_ERROR_FLAG&&l_jdq_set_voltage+5.0>local_f&&outVoltage+5.0>=local_f)
+      }while(timeout<LASER_JDQ_CHARGE_TIMEOUT_MS&&outVoltage+5.0<local_f);
+      if(l_jdq_set_voltage!=JDQ_PWR_GWB_3200W_ERROR_FLAG&&outVoltage+5.0>=local_f)
       {
         osDelay(JDQ_RS485_FRAME_MIN_MS); 
         if(laser_ctr_param.laserType==0&&laser_ctr_param.ctrTestMode==0)
@@ -1496,9 +1541,8 @@ void laserProhotTask09(void *argument)
         {
           osDelay(JDQ_RS485_FRAME_MIN_MS);         
           timeout+=JDQ_RS485_FRAME_MIN_MS;    
-        }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);     
-      }        
-      
+        }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);           
+      }             
       #else
       app_jdq_current_limit_charge();
       osDelay(JDQ_RS485_FRAME_MIN_MS); 
@@ -1511,7 +1555,7 @@ void laserProhotTask09(void *argument)
         timeout+=JDQ_RS485_FRAME_MIN_MS;          
       }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);        
       outVoltage=app_jdq_voltage_monitor();
-      if(outVoltage>local_f) 
+      if(outVoltage>local_f+5.0) 
       { 
         jdq_reley_charge(0);
         osDelay(50);		
@@ -1691,8 +1735,8 @@ void musicTask11(void *argument)
   for(;;)
   {
     osMessageQueueGet(musicQueue03Handle,&music_num,0,portMAX_DELAY);	
-    app_buzz_music(music_num,50);  
-    osDelay(10);
+    app_buzz_music(music_num,50);
+		osDelay(10);
   }
   /* USER CODE END musicTask11 */
 }
@@ -1750,10 +1794,6 @@ void tmcMaxRunTimesCallback03(void *argument)
   if(GPIO_Pin==FAN1_COUNT_in_Pin)
   {
     app_fan_feed_count(1);
-  }
-  if(GPIO_Pin==FAN2_COUNT_in_Pin)
-  {
-    app_fan_feed_count(2);
   }  
   if(GPIO_Pin==LASER_PULSE_COUNT_in_Pin)
   {   
@@ -1876,12 +1916,16 @@ void app_sys_genaration_status_manage(void)
   //紧急开关,低有效
   if(HAL_GPIO_ReadPin(EMERGENCY_LASER_STOP_STATUS_in_GPIO_Port,EMERGENCY_LASER_STOP_STATUS_in_Pin)==GPIO_PIN_RESET)
   {
-    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_14_EMERGENCY_KEY_BIT);//弹起
+    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_14_EMERGENCY_KEY_BIT);
   }
   else 
   {
-    osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_14_EMERGENCY_KEY_BIT);//按下
-    osSemaphoreRelease(laserCloseSem05Handle);//关闭激光
+    osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_14_EMERGENCY_KEY_BIT);
+    if(laser_ctr_param.proHotCtr!=0&&sGenSta.laser_run_B0_pro_hot_status!=0)
+    {
+      laser_ctr_param.proHotCtr=0;      
+      osSemaphoreRelease(laserCloseSem05Handle);  
+    } 
   }
   //DEBUG_PRINTF("IO8~1=%d%d%d%d%d%d%d%d\r\n" ,sGenSta.water_circle_ok_status,sGenSta.water_ready_ok_status,\
     sGenSta.Hyperbaria_OFF_Signal_staus,sGenSta.h_air_error_status ,sGenSta.enviroment_tmprature_alert_status,\

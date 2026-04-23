@@ -115,13 +115,13 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
   void tmc2226_en ( unsigned  char en )
   {
     tmc2226_rdb_info.run=en;
-    if(en!=0)  
+    if(en==0)  
     {     
-      HAL_GPIO_WritePin ( TMC2226_EN_out_GPIO_Port , TMC2226_EN_out_Pin , GPIO_PIN_RESET );    
+      HAL_GPIO_WritePin ( TMC2226_EN_GPIO_Port , TMC2226_EN_Pin , GPIO_PIN_SET );    
     } 
     else 
     {
-      HAL_GPIO_WritePin ( TMC2226_EN_out_GPIO_Port , TMC2226_EN_out_Pin , GPIO_PIN_SET );   
+      HAL_GPIO_WritePin ( TMC2226_EN_GPIO_Port , TMC2226_EN_Pin , GPIO_PIN_RESET );   
     }  
   }
  /**
@@ -134,8 +134,7 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
   {
       tmc2226_rdb_info.run = 0;
       tmc2226_rdb_info.dir = 0;
-      tmc2226_rdb_info.errStatus = 0;
-      tmc2226_rdb_info.rdb_speed = u_sys_param.sys_config_param.t_water_mid;
+      tmc2226_rdb_info.errStatus = 0;     
       if(tmc2226_rdb_info.rdb_speed < 5) tmc2226_rdb_info.rdb_speed = 5;
       if(tmc2226_rdb_info.rdb_speed >35) tmc2226_rdb_info.rdb_speed = 35;
       tmc2226_rdb_info.pulse_count=0;//用于脉冲计数
@@ -160,7 +159,8 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
  void tmc2226_init(void)
  {
     tmc2226_param_default(); 
-    tmc2226_stop();     
+    tmc2226_stop();
+    HAL_TIM_Base_Start_IT(&htim24);      
  }
  /**
   * @brief tem2226_step_pwm
@@ -179,46 +179,43 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
 		if(rdbSpd>35)   rdbSpd=35;//8k
 		//period=(1000000/freq);
     period=4550/rdbSpd;	//
-		__HAL_TIM_SetAutoreload(&htim16,period-1);//low 1K  MAX 8kHz
+		__HAL_TIM_SetAutoreload(&htim4,period-1);//low 1K  MAX 8kHz
 		//duty 1%  100%; 0% close	
 		timeUs=period /2;	//duty 50%
-		__HAL_TIM_SetCompare(&htim16,TIM_CHANNEL_1,timeUs-1);
-		HAL_TIM_PWM_Start(&htim16,TIM_CHANNEL_1);
+		__HAL_TIM_SetCompare(&htim4,TIM_CHANNEL_3,timeUs-1);
+		HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_3);
   }
   else
   {
-    HAL_TIM_PWM_Stop(&htim16,TIM_CHANNEL_1);
+    HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_3);
   }	
  }
 /**
   * @brief app_steps_pulse
   * @param  void
-  * @note   1 circle: 1 index  pulse -> 4 steps
+  * @note   1  pulse -> 4 steps
   * @retval None
   */
 void app_steps_pulse(unsigned int steps)
- { 
-  static unsigned int timeout;    
+ {      
   if(steps==0)
   {
-    if(tmc2226_rdb_info.run!=0) tmc2226_stop(); 
+    tmc2226_rdb_info.pulse_count=0;
+    __HAL_TIM_SET_COUNTER(&htim24,0);
+    tmc2226_rdb_info.run=0;
+    tmc2226_stop(); 
   }
   else 
-  {      
-    if(tmc2226_rdb_info.run!=0) 
-    {
-      tmc2226_rdb_info.pulse_count++;      
-      if(steps<CONTINUOUS_STEPS_COUNT)
-      {
-        if(tmc2226_rdb_info.pulse_count*4>steps)
-        {          
-         // tmc2226_stop(); 
-        }
-      }        
-    }  
+  {  
+    if(steps<CONTINUOUS_STEPS_COUNT)
+    {  
+      tmc2226_rdb_info.run=0;
+      u_sys_param.sys_config_param.RDB_use_timeS+=tmc2226_rdb_info.pulse_count;
+      tmc2226_stop();
+    } 
+    else u_sys_param.sys_config_param.RDB_use_timeS++;//1s
   }     
  }
-
  /**
   * @brief tmc2226_start
   * @param  unsigned char dir,unsigned short int speed
@@ -226,7 +223,7 @@ void app_steps_pulse(unsigned int steps)
   *   timeUs=500;5ml/min;timeUs=100;20ml/min; timeUs=62;35ml/min;  
   * @retval None
   */
-void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
+void tmc2226_start(unsigned char dir,unsigned short int spdLevel,unsigned int steps)
 {
 	unsigned short int timeUs;	
 	//check status ,error status	
@@ -235,13 +232,27 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
 		tmc2226_stop();
 	}
 	else 
-	{   
-    if(tmc2226_rdb_info.run==0) tmc2226_rdb_info.pulse_count=HAL_GetTick();   
+	{        
 		tmc2226_dir(dir);
-    app_tmc2226_speed_set(spdLevel);        
+    app_tmc2226_speed_set(spdLevel); 
+    //if continus 1s counts
+    //tmc2226_rdb_info.pulse_count = (tmc2226_rdb_info.rdb_speed*228); count freq;
+    //else steps =4*pulse; 
+    if(steps<4) steps=4;
+    if(steps==CONTINUOUS_STEPS_COUNT)
+    {
+      //steps=tmc2226_rdb_info.rdb_speed(8000/35)); //1s pulse count
+      tmc2226_rdb_info.pulse_count = 1;
+      __HAL_TIM_SetAutoreload(&htim24,(tmc2226_rdb_info.rdb_speed*228));    
+    }
+    else
+    {
+      tmc2226_rdb_info.pulse_count = (steps>>2)/(tmc2226_rdb_info.rdb_speed*228); //s  
+      __HAL_TIM_SetAutoreload(&htim24,(steps>>2));         
+    }  
     tem2226_step_pwm(tmc2226_rdb_info.rdb_speed);
 		tmc2226_en(1);
-    
+    tmc2226_rdb_info.run=1;
 	}
 }
   /**
@@ -250,15 +261,20 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
   * @note   停止蠕动泵电机
   * @retval 本次运行时间单位S
   */
-  unsigned int  tmc2226_stop(void)
-  {
-    unsigned int retS;
-    HAL_TIM_PWM_Stop(&htim16,TIM_CHANNEL_1);    
-    tmc2226_en(0); 
-    retS=(HAL_GetTick()-tmc2226_rdb_info.pulse_count)/1000;//S     
-    u_sys_param.sys_config_param.RDB_use_timeS+=retS;
-    tmc2226_rdb_info.pulse_count=HAL_GetTick();    
-    return retS; 
+  void  tmc2226_stop(void)
+  {    
+    HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_3);    
+    tmc2226_en(0);  
+    if(tmc2226_rdb_info.run!=0)
+    {//soft stop
+      if(tmc2226_rdb_info.pulse_count!=1)
+      {
+        tmc2226_rdb_info.pulse_count=(__HAL_TIM_GET_COUNTER(&htim24))/(tmc2226_rdb_info.rdb_speed*228);
+        u_sys_param.sys_config_param.RDB_use_timeS+=tmc2226_rdb_info.pulse_count;        
+      }     
+      tmc2226_rdb_info.pulse_count=0;
+      tmc2226_rdb_info.run=0;  
+    }  
   } 
  /************************************************************************//**
   * @brief 设置蠕动泵速度等级
@@ -270,6 +286,7 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel)
  {
     if(spdLevel==0)
     {
+      __HAL_TIM_SET_COUNTER(&htim24,0);
       tmc2226_stop();
     }
     else 

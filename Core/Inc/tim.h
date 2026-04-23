@@ -48,6 +48,10 @@ extern TIM_HandleTypeDef htim16;
 
 extern TIM_HandleTypeDef htim17;
 
+extern TIM_HandleTypeDef htim23;
+
+extern TIM_HandleTypeDef htim24;
+
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
@@ -60,13 +64,16 @@ void MX_TIM8_Init(void);
 void MX_TIM15_Init(void);
 void MX_TIM16_Init(void);
 void MX_TIM17_Init(void);
+void MX_TIM23_Init(void);
+void MX_TIM24_Init(void);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* USER CODE BEGIN Prototypes */
 extern  void app_auxiliary_bulb_pwm(unsigned char lightLevel,FunctionalState flag);
-extern  void app_fan_pwm_set(unsigned char duty,unsigned char fanNum);
+extern   void app_fan_pwm_set(unsigned short int  dutyCount,unsigned char fanNum);
 extern void tim_triger_ad(TIM_HandleTypeDef *htim);
+extern void app_air_pum_pwm_set(unsigned char  duty);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

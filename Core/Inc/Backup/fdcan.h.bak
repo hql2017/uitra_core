@@ -37,7 +37,7 @@ extern FDCAN_HandleTypeDef hfdcan1;
 /* USER CODE BEGIN Private defines */
 #define MAX_FDCAN_FRAME_DATALEN  312
 extern unsigned char fd_canRxBuff[MAX_FDCAN_FRAME_DATALEN+1];
-extern unsigned short int  fd_canRxLen;
+extern unsigned short int fd_canRxLen;
 
 /* USER CODE END Private defines */
 

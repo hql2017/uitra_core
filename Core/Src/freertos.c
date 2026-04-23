@@ -376,7 +376,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
-  /* USER CODE END RTOS_MUTEX */ 
+  /* USER CODE END RTOS_MUTEX */
 
   /* Create the semaphores(s) */
   /* creation of powerOffBinarySem02 */
@@ -418,7 +418,6 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of musicQueue03 */
   musicQueue03Handle = osMessageQueueNew (3, sizeof(uint16_t), &musicQueue03_attributes);
-
 
   /* creation of keyJTMessageQueue01 */
   keyJTMessageQueue01Handle = osMessageQueueNew (3, sizeof(uint16_t), &keyJTMessageQueue01_attributes);
@@ -746,7 +745,7 @@ void StartDefaultTask(void *argument)
     osTimerDelete(cleanTimer02Handle);
     if(app_get_io_status(In7_water_ready_ok)!=SUCCESS) 
     {
-      tmc2226_start(TMC_WATER_OUT_DIR_VALUE,3);
+      tmc2226_start(TMC_WATER_OUT_DIR_VALUE,3,CONTINUOUS_STEPS_COUNT );
       timeout=0;
       do
       { 
@@ -1077,7 +1076,7 @@ void laserWorkTask04(void *argument)
               if(pLaserConfig->treatmentWaterLevel!=0)
               {   
                 app_deflate_air_solenoid(ENABLE);             
-                tmc2226_start(TMC_WATER_OUT_DIR_VALUE,laser_ctr_param.treatmentWaterLevel); 
+                tmc2226_start(TMC_WATER_OUT_DIR_VALUE,laser_ctr_param.treatmentWaterLevel,CONTINUOUS_STEPS_COUNT); 
               }   
               else   
               {
@@ -1114,7 +1113,7 @@ void laserWorkTask04(void *argument)
           }  
           else 
           {
-            if (sGenSta.laser_run_B1_laser_out_status!=0&&fisrt_pulse_cali!=0) // genera
+            if(sGenSta.laser_run_B1_laser_out_status!=0&&fisrt_pulse_cali!=0) // genera
             {
               if(fisrt_pulse_cali>DAC_MAX_VOLTAGE_F) fisrt_pulse_cali=DAC_MAX_VOLTAGE_F;
               if(fisrt_pulse_cali<DAC_MIN_VOLTAGE_F) fisrt_pulse_cali=DAC_MIN_VOLTAGE_F;       
@@ -1179,7 +1178,7 @@ void laserWorkTask04(void *argument)
             sGenSta.laser_run_B1_laser_out_status=0; 
             if(pLaserConfig->proCali==0&&pLaserConfig->treatmentWaterLevel!=0)
             {   
-              tmc2226_start(!TMC_WATER_OUT_DIR_VALUE,laser_ctr_param.treatmentWaterLevel);  
+              tmc2226_start(!TMC_WATER_OUT_DIR_VALUE,laser_ctr_param.treatmentWaterLevel,CONTINUOUS_STEPS_COUNT);  
               osDelay(120);
             }
             tmc2226_stop();  
@@ -1795,10 +1794,6 @@ void tmcMaxRunTimesCallback03(void *argument)
   if(GPIO_Pin==FAN1_COUNT_in_Pin)
   {
     app_fan_feed_count(1);
-  }
-  if(GPIO_Pin==FAN2_COUNT_in_Pin)
-  {
-    app_fan_feed_count(2);
   }  
   if(GPIO_Pin==LASER_PULSE_COUNT_in_Pin)
   {   
@@ -2221,7 +2216,7 @@ void app_laser_preapare_semo(void)
   {
     if(local_tmc_flag==0)
     {
-      tmc2226_start(TMC_WATER_OUT_DIR_VALUE,3);     
+      tmc2226_start(TMC_WATER_OUT_DIR_VALUE,3,CONTINUOUS_STEPS_COUNT);     
       tmcMaxRunTimer03Handle = osTimerNew(tmcMaxRunTimer03Handle, osTimerOnce, NULL, &tmcMaxRunTimer03_attributes);
       osTimerStart(tmcMaxRunTimer03Handle,20*SYS_1_MINUTES_TICK);
       local_tmc_flag = 1;
@@ -2235,7 +2230,7 @@ void app_laser_preapare_semo(void)
       {
         osTimerStop(tmcMaxRunTimer03Handle);
       }
-      tmc2226_start(!TMC_WATER_OUT_DIR_VALUE,3); 
+      tmc2226_start(!TMC_WATER_OUT_DIR_VALUE,3,CONTINUOUS_STEPS_COUNT); 
       osDelay(120);
       tmc2226_stop(); 
       osTimerDelete(tmcMaxRunTimer03Handle);      
@@ -2259,7 +2254,7 @@ void app_laser_preapare_semo(void)
       cleanTimer02Handle = osTimerNew(cleanWaterCallback02, osTimerOnce, NULL, &cleanTimer02_attributes);
       osTimerStart(cleanTimer02Handle,runtimeS);
       osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_16_CLEAN_BIT);
-      tmc2226_start(TMC_WATER_OUT_DIR_VALUE,3);        
+      tmc2226_start(TMC_WATER_OUT_DIR_VALUE,3,CONTINUOUS_STEPS_COUNT);        
     }     
     else
     {      
