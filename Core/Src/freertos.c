@@ -281,11 +281,6 @@ osSemaphoreId_t hmiCanBusIdleSem06Handle;
 const osSemaphoreAttr_t hmiCanBusIdleSem06_attributes = {
   .name = "hmiCanBusIdleSem06"
 };
-/* Definitions for CANBusReceiveFrameSem07 */
-osSemaphoreId_t CANBusReceiveFrameSem07Handle;
-const osSemaphoreAttr_t CANBusReceiveFrameSem07_attributes = {
-  .name = "CANBusReceiveFrameSem07"
-};
 /* Definitions for auxStatusEvent01 */
 osEventFlagsId_t auxStatusEvent01Handle;
 osStaticEventGroupDef_t auxStatusEvent01ControlBlock;
@@ -390,9 +385,6 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of hmiCanBusIdleSem06 */
   hmiCanBusIdleSem06Handle = osSemaphoreNew(1, 0, &hmiCanBusIdleSem06_attributes);
-
-  /* creation of CANBusReceiveFrameSem07 */
-  CANBusReceiveFrameSem07Handle = osSemaphoreNew(1, 0, &CANBusReceiveFrameSem07_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
@@ -798,23 +790,49 @@ void auxTask02(void *argument)
       app_sram_status_monitor();      
 		}	    
 		/**********************RGB****************************/		
-		osMessageQueueGet(rgbQueue02Handle,&rgbRun,0,5);		
-    rgbRun%=4;
+		/**********************RGB****************************/		
+		osStatus_t rgb_s=osMessageQueueGet(rgbQueue02Handle,&rgbRun,0,5);	 
     switch(rgbRun)
     {
       case 0:
-        rgb_color_all(0);
+        rgb_color_all(0);        
       break;
-      case RGB_G_STANDBY:
-        Green_Breath();
-        //osDelay(2);//8-6);//1K
-        osDelay(12);//16-6);//2K	
+      case RGB_G_STANDBY:      
+        {
+          Green_Breath(u_sys_param.sys_config_param.rgb_light); 
+          osDelay(15);//frq=(1000/(64*(15+1) ))*2
+          if(rgb_s==osOK)	        
+          {
+            fan_spd_set(FAN25_NUM,1000);
+            fan_spd_set(FAN38_COMPRESSOR_NUM,1000);          
+          }
+        }
       break;
       case RGB_LASER_PREPARE_OK:
-        rgb_color_all(2);
+        {
+          rgb_color_all(2);
+          if(rgb_s==osOK)	
+          {
+            if(sEnvParam.eth_k1_temprature>32.0)	
+            {//high temprature
+              fan_spd_set(FAN25_NUM,4000);
+              fan_spd_set(FAN38_COMPRESSOR_NUM,4000);       
+            }
+            else if(sEnvParam.eth_k1_temprature>28.0)	
+            {//high temprature
+              fan_spd_set(FAN25_NUM,3000);
+              fan_spd_set(FAN38_COMPRESSOR_NUM,3000);       
+            }
+            else  if(sEnvParam.eth_k1_temprature>10.0)	
+            {
+              fan_spd_set(FAN25_NUM,2000);
+              fan_spd_set(FAN38_COMPRESSOR_NUM,2000);       
+            }         
+          }
+        }
       break;
       case RGB_LASER_WORK_STATUS:
-        app_rgb_breath_ctl(laser_ctr_param.laserFreq,9);        
+        app_rgb_breath_ctl(laser_ctr_param.laserFreq,9); 
       break;
       default:
         rgb_color_all(0);        
@@ -1303,8 +1321,7 @@ void hmiAppTask06(void *argument)
   uint16_t send_music_num = MUSIC_SYS_ON;
   osMessageQueuePut(musicQueue03Handle,&send_music_num,0,100);
   u_sys_param.sys_config_param.synchronousFlag=0; 
-  uint32_t syncTimeOutS=0;
-  
+  uint32_t syncTimeOutS=0;  
   for(;;)
   {   
     while(u_sys_param.sys_config_param.synchronousFlag!=3)   
@@ -1323,10 +1340,10 @@ void hmiAppTask06(void *argument)
       osDelay(1000);       
     }    
     osStatus_t status = osSemaphoreAcquire(hmiCanBusIdleSem06Handle,HMI_CAN_FRAME_DELAY_TIME);
-    if(status==pdTRUE)
+    if(status==osOK)
     {
-      osDelay(50);
-    }		
+      osDelay(HMI_CAN_FRAME_DELAY_TIME);
+    }	    
     sGenSta.genaration_io_status = osEventFlagsGet(auxStatusEvent01Handle);		    
     app_hmi_report_status(&sGenSta);    
 		osDelay(1);
@@ -1345,38 +1362,52 @@ void canReceiveTask07(void *argument)
 {
   /* USER CODE BEGIN canReceiveTask07 */
   /* Infinite loop */
-  uint16_t packLen=0,readLen=0;
+  uint16_t peekLen=0;
+  uint8_t buff[8];
+  uint32_t Identifier;
+  uint16_t len;
+  unsigned char fd_canRxBuff[MAX_FDCAN_FRAME_DATALEN+1];//hmi
+  unsigned short int  fd_canRxLen = 0;//hmi (initialized to avoid undefined behavior)
+  unsigned  int can_rec_timeout=0;
   for(;;)
   {
-    /*******************CAN RX-DATA********************/	
-		osStatus_t sta = osSemaphoreAcquire(CANBusReceiveFrameSem07Handle,portMAX_DELAY);      
-    if(readLen<fd_canRxLen) 
-    {
-      packLen = fd_canRxLen-readLen;      
-      #if 1       
-      DEBUG_PRINTF("CAN_receive_pack:\r\n");
-      for(int i=0;i<packLen;i++)
+		/*******************CAN RX-DATA********************/
+    can_rec_timeout=osKernelGetTickCount();	    
+    while(FDCAN1_Receive_Msg(buff, &Identifier, &len))
+    {  
+		  if(Identifier==CAN_BROADCAST_ID)//屏幕
       {
-        DEBUG_PRINTF(" %02x",fd_canRxBuff[i+readLen]);
-      }
-      DEBUG_PRINTF(" Len=%d\r\n",packLen);      
-      #endif   
-      packLen = app_hmi_package_check(&fd_canRxBuff[readLen],packLen);
-      if(packLen!=0)
-      {
-        readLen+=packLen;
-        if(readLen==fd_canRxLen)
-        {
-          readLen=0;
-          fd_canRxLen=0;
+        memcpy(&fd_canRxBuff[fd_canRxLen],buff,8);
+        fd_canRxLen+=len;
+        fd_canRxLen%=(MAX_FDCAN_FRAME_DATALEN+1);     
+        if(fd_canRxLen>7) 
+        {       
+          #if 0       
+          DEBUG_PRINTF("CAN_lcd_receive_pack:\r\n");
+          for(int i=0;i<peekLen;i++)
+          {
+            DEBUG_PRINTF(" %02x",fd_canRxBuff[i+readLen]);
+          }
+          DEBUG_PRINTF(" Len=%d\r\n",peekLen);      
+          #endif   
+          peekLen = app_hmi_package_check(fd_canRxBuff,fd_canRxLen);
+          if(peekLen!=0)
+          {     
+            osSemaphoreRelease(hmiCanBusIdleSem06Handle);//busy    
+            if(peekLen<fd_canRxLen)
+            {  
+              uint16_t packLen =  fd_canRxLen-peekLen; 
+              memcpy(fd_canRxBuff,&fd_canRxBuff[peekLen],packLen); 
+              fd_canRxLen-=peekLen;           
+            }
+            else  {//buff full!
+              fd_canRxLen=0;            
+            }                       
+          }  
         }
-      }   
+      }
+      if(osKernelGetTickCount()>can_rec_timeout+HMI_CAN_FRAME_DELAY_TIME) break; 
     }
-    if(readLen>fd_canRxLen&&readLen!=0)//full
-    {
-      readLen=0;
-      fd_canRxLen=0;
-    } 
     /*****************激光指示灯***********************/	
     if(laser_ctr_param.ledLightLevel!=0) 
     {
@@ -1394,8 +1425,7 @@ void canReceiveTask07(void *argument)
         sGenSta.laser_run_B3_laser_pilot_lamp_status=0;
       }					
     }	
-    osSemaphoreRelease(hmiCanBusIdleSem06Handle);         
-   	osDelay(1);   
+   	osDelay(10);  
   }
   /* USER CODE END canReceiveTask07 */
 }
@@ -1690,6 +1720,7 @@ void ge2117ManageTask10(void *argument)
       app_fan_manage(local_timeS*1000);		   
     }    
     float temp_t_f = Get_pt_tempture();
+    
     sEnvParam.eth_k1_temprature = temp_t_f;
     sEnvParam.eth_k2_temprature = temp_t_f;   
     if(sEnvParam.eth_k1_temprature>ERR_LOW_TEMPRATURE_LASER&&sEnvParam.eth_k1_temprature<ERR_HIGH_TEMPRATURE_LASER)
@@ -2184,16 +2215,6 @@ void app_set_default_sys_config_param(void)
   
  /***************************extern api**********************************************************/
  /************************************************************************//**
-  * @brief 给出canBus数据接收信号量
-  * @param 无
-  * @note   
-  * @retval 
-  *****************************************************************************/
- void app_canBbus_receive_semo(void) 
- {  
-	  osSemaphoreRelease(CANBusReceiveFrameSem07Handle);   
- }
- /************************************************************************//**
   * @brief 给出激光准备信号量
   * @param 无
   * @note   
@@ -2226,10 +2247,7 @@ void app_laser_preapare_semo(void)
   {
     if(local_tmc_flag!=0)
     { 
-      if(osTimerIsRunning(tmcMaxRunTimer03Handle)==pdTRUE)
-      {
-        osTimerStop(tmcMaxRunTimer03Handle);
-      }
+      osTimerStop(tmcMaxRunTimer03Handle);      
       tmc2226_start(!TMC_WATER_OUT_DIR_VALUE,3,CONTINUOUS_STEPS_COUNT); 
       osDelay(120);
       tmc2226_stop(); 
@@ -2275,33 +2293,61 @@ void app_laser_preapare_semo(void)
 *******************************************************************************/
 unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int buffLen) 
 {
-	unsigned short int retLen=0,i=0,pLen,crc;  
-	while(i<buffLen)
-	{   
-		if(pBuff[i]==0x7E&&pBuff[i+1]==0x7E)
-		{
-			pLen=pBuff[i+2];       
-      if(i+pLen>buffLen) 
-      {
-        retLen=i;
-        break;
-      } 
-      else    
-      { 
-        //if(pBuff[i+pLen-2]==0x0D&&pBuff[i+pLen-1]==0x0A)
-        crc=pBuff[pLen+i-4]|pBuff[pLen+i-3]<<8;      
-        if(crc==crc16Num(pBuff+i,pLen-4))
+	unsigned short int retLen = 0;
+    unsigned short i = 0;
+
+    while (i < buffLen)
+    {
+        // need at least 3 bytes to read header+length
+        if (buffLen < i+3)
         {
-          HMI_Parse_Data(&pBuff[i], pLen);
-          retLen = pLen+i; 
-          i+=pLen;       
-        } 
-      } 
+            retLen = i;
+            break;
+        }
+        if (pBuff[i] == 0x7E && pBuff[i + 1] == 0x7E)
+        {
+            unsigned short pLen = pBuff[i + 2];
+            // basic sanity: minimum packet length (protocol dependent). Use 8 as previous comment suggested.
+            if (pLen >= 8)
+            {
+                // if full packet not yet received, wait for more data
+                if ((unsigned int)i + (unsigned int)pLen <= (unsigned int)buffLen)
+                {
+                    // safe to read CRC bytes now
+                    unsigned short crc_read = (unsigned short)pBuff[i + pLen - 4] | ((unsigned short)pBuff[i + pLen - 3] << 8);
+                    if (crc_read == crc16Num(pBuff + i, pLen - 4))
+                    {
+                      HMI_Parse_Data(&pBuff[i], pLen);                      
+                      retLen = pLen + i;
+                      i += pLen;
+                    }
+                    else
+                    {
+                        i++;
+                    }
+                }
+                else
+                {
+                    retLen = i;
+                    break;
+                }
+            }
+            else
+            {
+                i++;
+            }
+        }
+        else
+        {
+            i++;
+        }
     }
-		i++; 
-	}
-  if(i==buffLen) retLen=i;
-	return retLen;
+
+    if (i == buffLen)
+    {
+        retLen = i;
+    }
+    return retLen;
 }
 /************************************************************************//**
 * @brief 蜂鸣器PWM

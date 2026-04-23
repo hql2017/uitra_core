@@ -34,7 +34,7 @@
  void SPI_ReadBuff_Pro(void);
  
  void Reset_Register(void);
- void Green_Breath(void );//单次呼吸
+ void Green_Breath(unsigned char maxlight);//单次呼吸
  void High_Breath(void );//单次呼吸
  void IS31FL3236A_Init(void);
  void is_12_all_gLED(void);

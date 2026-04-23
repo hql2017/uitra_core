@@ -464,7 +464,13 @@ uint8_t I2C_WriteByte(int DeviceAddress, int WriteAddress, int SendByte)
 {
 	HAL_StatusTypeDef err; 	
 	err=HAL_I2C_Mem_Write(&hi2c5,Addr_GND_GND,(uint16_t)WriteAddress,I2C_MEMADD_SIZE_8BIT,(uint8_t*)&SendByte,1,IS3_I2C_TIMEOUT);	
-	return err;
+	#if 1
+  if(err!=HAL_OK)
+  {
+    DEBUG_PRINTF("ISI i2c5 comunication Error!!\r\n");
+  }
+  #endif
+  return err;
 }
 uint8_t I2C_Write2Byte(int WriteAddress, int SendByte)
 {	
@@ -484,7 +490,7 @@ void IC_Write_Pro(void)
     uint8_t i, j = 0, succeed = 1;
     if (fl3236_data[62] == 0x02)
     {
-       succeed = I2C_Write2Byte(fl3236_data[4], fl3236_data[5]);
+      succeed = I2C_Write2Byte(fl3236_data[4], fl3236_data[5]);
     }
     else
     {
@@ -511,33 +517,39 @@ void IC_WriteBuff_Pro(void)
     fl3236_data[4] = I2C_WriteBuffer(&fl3236_data[6], fl3236_data[62] - 2, fl3236_data[4], fl3236_data[5]);
   }
 }
-void Green_Breath(void )//呼吸一次，约耗时465ms，单色约600/128=4.7ms
+void Green_Breath(unsigned char maxlight )//呼吸一次，约耗时465ms，单色约600/128=4.7ms
 {
   uint8_t i; 
-  static uint8_t j;
-  //for (j=0; j<128; j++)	  
+  static unsigned char j;  
+  //for (j=0; j<128; j++)	//circle  
   j++;
-  j%=128; 
+  j%=128;
+  unsigned char runLight,m64Light;
+  if(maxlight==0)
   {
-      for (i=0; i<12; i++) //R
-      { // R  G  B  
-        I2C_WriteByte(Addr_GND_GND,1+i*3,0);   //B//PWM  
-        if(u_sys_param.sys_config_param.rgb_light!=0) 
-        {
-          if(j<4||j>124) I2C_WriteByte(Addr_GND_GND,2+i*3,(unsigned char )(PWM_64_table[4]*(u_sys_param.sys_config_param.rgb_light*0.01))); //low 5%
-          else I2C_WriteByte(Addr_GND_GND,2+i*3,(unsigned char )(PWM_64_table[j]*(u_sys_param.sys_config_param.rgb_light*0.01)));   //PWM
-        }          
-        else I2C_WriteByte(Addr_GND_GND,2+i*3,0);   //PWM 
-        I2C_WriteByte(Addr_GND_GND,3+i*3,0);  //R
-      }      
-      I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
-      I2C_WriteByte(Addr_GND_GND,0x4B,0x01);//all channel out  freq
-      I2C_WriteByte(Addr_GND_GND,0x00,0x01);// 
-		//osDelay(8);//1K
-    //osDelay(16);//2K	
+    runLight=0;
   }
+  else {
+    m64Light= (unsigned char)maxlight*2.56;
+    runLight=(unsigned char)(PWM_64_table[j]*(maxlight*0.01));
+    while(runLight<1)  //low light= 1
+    {   
+      j++; 
+      j%=128;
+      runLight=PWM_64_table[j]*(maxlight*0.01);
+    }
+  } 
+  for (i=0; i<12; i++) //R
+  { // R  G  B   
+    I2C_WriteByte(Addr_GND_GND,0x01+i*3,0);
+    I2C_WriteByte(Addr_GND_GND,0x02+i*3,runLight);//*2.55));//low 1% 
+    I2C_WriteByte(Addr_GND_GND,0x03+i*3,0);	
+  }      
+  I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
+  I2C_WriteByte(Addr_GND_GND,0x4B,0x01);//all channel out  freq
+  I2C_WriteByte(Addr_GND_GND,0x00,0x01);// 		
 }
-void High_Breath(void )//呼吸一次，
+void High_Breath( )//呼吸一次，
 {
   uint8_t i,j; 
 	static uint32_t local_stick;
@@ -646,4 +658,6 @@ void Reset_Register(void)
 {
 	I2C_WriteByte(Addr_GND_GND,0x4F,0x00);//reset
 }
+
+
  #endif

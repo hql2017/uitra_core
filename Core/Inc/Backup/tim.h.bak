@@ -71,8 +71,9 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* USER CODE BEGIN Prototypes */
 extern  void app_auxiliary_bulb_pwm(unsigned char lightLevel,FunctionalState flag);
-extern  void app_fan_pwm_set(unsigned char duty,unsigned char fanNum);
+extern   void app_fan_pwm_set(unsigned short int  dutyCount,unsigned char fanNum);
 extern void tim_triger_ad(TIM_HandleTypeDef *htim);
+extern void app_air_pum_pwm_set(unsigned char  duty);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

@@ -387,6 +387,7 @@ typedef struct{
 	unsigned char laser_param_B01_energe_status;            //Bit0~Bit1:激光能量计状态：
 	unsigned char laser_param_B23_air_pump_pressure_status;	//Bit2~Bit3:循环气泵压力状态：
 	unsigned char laser_param_B456_jt_status;               //Bit4~Bit6:脚踏状态：
+  unsigned char laser_param_B7_ykls_status;
 	unsigned short int genaration_io_status;                //bhit0~bit15		
 	//不需定时上传
 	unsigned int  laser1064PulseCount;
@@ -395,7 +396,7 @@ typedef struct{
 //	char circle_water_box_temprature;               //水箱温度 （-127 ~128）
 //	unsigned char water_air_level_status;           //治疗水气流速等级 bit0~3 水等级； bit4~7 气等级
 //	unsigned char laser_run_status;                	//激光运行状态Bit0：预燃状态；Bit1：出光状态；Bit2：光纤激活状态；Bit3：指示灯状态;bit4,水雾准备状态
-//	unsigned char laser_param_status;               //激光参数状态 Bit0~Bit1:激光能量计状态：Bit2~Bit3:循环气泵压力状态：Bit4~Bit6:脚踏状态：
+//	unsigned char laser_param_status;               //激光参数状态 Bit0~Bit1:激光能量计状态：Bit2~Bit3:循环气泵压力状态：Bit4~Bit6:脚踏状态：Bit7
 //	unsigned short int genaration_io_status;        //bhit0~bit15
 	//IO 
 	/*

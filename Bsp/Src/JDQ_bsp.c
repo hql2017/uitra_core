@@ -74,7 +74,6 @@ static unsigned char UART1_RX_BUFF[MAX_UART1_BUFF_LENTH+1]={0};
 #define JDQ_RS485_TX  HAL_GPIO_WritePin(RS485_DIR_out_GPIO_Port, RS485_DIR_out_Pin, GPIO_PIN_SET)
 #define JDQ_RS485_RX  HAL_GPIO_WritePin(RS485_DIR_out_GPIO_Port, RS485_DIR_out_Pin, GPIO_PIN_RESET)
 
-
 static HAL_StatusTypeDef app_jdq_read_req_frame(uint16_t regStart,uint16_t regOffset);
 static HAL_StatusTypeDef app_jdq_write_req_frame(uint16_t regStart,uint16_t data);
 /****************ADS1110**IO 模拟I2C****0.4M~3.4M************************/

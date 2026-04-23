@@ -21,27 +21,10 @@
 #include "fdcan.h"
 
 /* USER CODE BEGIN 0 */
-#include <stdio.h>
-#include <stdbool.h>
-#include <string.h> 
+void FDCAN1_filter_config(void);
 
-static void FDCAN1_filter_config(void);
 static FDCAN_RxHeaderTypeDef RxHeader;
 
-static  void FDCAN1_filter_config(void);
-unsigned char fd_canRxBuff[MAX_FDCAN_FRAME_DATALEN+1]={0};
-unsigned short int  fd_canRxLen=0;
-typedef struct{
-  //unsigned short int frameHeader;
-  unsigned char frameHeaderL;
-  unsigned char frameHeaderH;
-  unsigned char frameDatalen;
-  unsigned char frameCode;
-  unsigned char *pData;
-  //unsigned short int frameCrc;
-  unsigned char frameCrcL;
-  unsigned char frameCrcH;
-}hmi_can_frame;
 /* USER CODE END 0 */
 
 FDCAN_HandleTypeDef hfdcan1;
@@ -55,7 +38,7 @@ void MX_FDCAN1_Init(void)
   /* USER CODE END FDCAN1_Init 0 */
 
   /* USER CODE BEGIN FDCAN1_Init 1 */
-  /***********RX FIFO0����64��8�ֽڶ��У�TX FIFO������oFDCAN1��RX FIFO1��ʱ�����oFDCAN2************/
+
   /* USER CODE END FDCAN1_Init 1 */
   hfdcan1.Instance = FDCAN1;
   hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
@@ -90,7 +73,7 @@ void MX_FDCAN1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN FDCAN1_Init 2 */
-  FDCAN1_filter_config();//filter config and start
+   FDCAN1_filter_config();
   /* USER CODE END FDCAN1_Init 2 */
 
 }
@@ -164,12 +147,12 @@ void FDCAN1_filter_config(void)
 	sFilterConfig.FilterIndex = 0;         //
 	sFilterConfig.FilterType = FDCAN_FILTER_RANGE;   //range ID
 	sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;   // Rx FIFO 0
-	sFilterConfig.FilterID1 = 0x0000;   //min ID 
+	sFilterConfig.FilterID1 = 0x0000;   //min ID
 	sFilterConfig.FilterID2 = 0x07FF;   //max ID
 	#else
 	sFilterConfig.IdType = FDCAN_STANDARD_ID; //ID
 	sFilterConfig.FilterIndex = 0;         //
-	sFilterConfig.FilterType = FDCAN_FILTER_DUAL;   //DUAL ID
+	sFilterConfig.FilterType = FDCAN_FILTER_DUAL; //DUAL ID
 	sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;   // Rx FIFO 0
 	sFilterConfig.FilterID1 = CAN_IDENTIFIER_POWER_ID;   //minID
 	sFilterConfig.FilterID2 = CAN_MCU2_STATUS_ID;   //MCU ID
@@ -209,7 +192,6 @@ ErrorStatus FDCAN3_Send_Msg(uint8_t* msg,uint16_t targetID)
   if(HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1,&TxHeader,msg)!=HAL_OK)  return ERROR;
 	return SUCCESS;	
 }
-extern  void app_canBbus_receive_semo(void);
 /**
   * @brief  FDCAN1接收消息处理，轮询模式
   * @param  buf: 数据缓存
@@ -220,8 +202,7 @@ extern  void app_canBbus_receive_semo(void);
   */
  uint16_t FDCAN1_Receive_Msg(uint8_t *buf, uint32_t *Identifier, uint16_t *len)
  {
-    // check FIFO0 
-    uint16_t ret_len;
+    // check FIFO0
     if (HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0) == 0)
     {
       return 0; 
@@ -232,11 +213,7 @@ extern  void app_canBbus_receive_semo(void);
       DEBUG_PRINTF("HAL_FDCAN_GetRxMessage---------------EEROR\n");
     }	      
     *Identifier = RxHeader.Identifier;
-    *len = RxHeader.DataLength; 
-    memcpy(fd_canRxBuff,buf,RxHeader.DataLength);
-    fd_canRxLen+=RxHeader.DataLength;
-    fd_canRxLen%=MAX_FDCAN_FRAME_DATALEN;
-    app_canBbus_receive_semo();
+    *len = RxHeader.DataLength;  
     return RxHeader.DataLength;
  }
  /**
@@ -250,19 +227,17 @@ extern  void app_canBbus_receive_semo(void);
 
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 {	
+  unsigned char buff[8];
   if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != 0)
   {	 
     /* Retrieve Rx messages from RX FIFO0 */    
-   if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, &fd_canRxBuff[fd_canRxLen]) != HAL_OK)
-   {
+    if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &RxHeader, buff) != HAL_OK)
+    {
       Error_Handler();
-		  DEBUG_PRINTF("HAL_FDCAN_GetRxMessage---------------EEROR\n");
-    }	   
-    fd_canRxLen+=RxHeader.DataLength;
-    fd_canRxLen%=(MAX_FDCAN_FRAME_DATALEN+1);  
-    if (HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0) == 0) app_canBbus_receive_semo();     
-        
+      DEBUG_PRINTF("HAL_FDCAN_GetRxMessage---------------EEROR\n");
+    }
   }
+	 
 }
 /***************************************************************************//**
  * @brief 发送数据包
@@ -289,8 +264,9 @@ void APP_CAN_SEND_DATA(	uint8_t *data,uint16_t dataLen,uint16_t targetID)
 	while(txlen<dataLen) 
 	{	
     time_out=0;
-    while(HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) !=3)
+    while(HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) ==0)
     {   
+      //DEBUG_PRINTF("can_tx fast\r\n"); 
       HAL_Delay(1); 
       time_out++;
       if(time_out>100) break;
@@ -299,11 +275,8 @@ void APP_CAN_SEND_DATA(	uint8_t *data,uint16_t dataLen,uint16_t targetID)
     if(err!=HAL_OK) 
     {//restart      
       DEBUG_PRINTF("can_txerror%d\r\n",err);  
-      HAL_FDCAN_Stop(&hfdcan1);      
-      if(HAL_FDCAN_Start(&hfdcan1) == HAL_OK)
-      {
-        //DEBUG_PRINTF("can_txerror\r\n");      
-      }	
+		     
+      HAL_FDCAN_Start(&hfdcan1);
       break;
     }     
     txlen+=FDCAN_DLC_BYTES_8;    

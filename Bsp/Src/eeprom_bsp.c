@@ -236,7 +236,9 @@ uint8_t IIC_Read_OneByte(uint8_t ack)
 	status=EEPROM_M24C32_Test();
 	DEBUG_PRINTF("24C32 init ok syncFlag=%x",status);	
 }
+
 /**
+ * 
   * @brief EEPROM_M24C32_I2C_Read
   * @param   uint16_t addr:device IIC address
             uint8_t* rBuf��receive data buff 
@@ -252,8 +254,8 @@ static HAL_StatusTypeDef EEPROM_M24C32_I2C_Read(unsigned short int regAddr,unsig
 }
 /**
   * @brief EEPROM_M24C32_I2C_Write
-  * @param   uint16_t addr:device IIC address��
-            uint8_t* rBuf��receive data buff 
+  * @param  uint16_t addr:device IIC address
+            uint8_t* rBuff receive data buff 
             uint16_t len:data length
   * @note   EEPROM_M24C32_I2C_Write
   * @retval None
@@ -326,60 +328,85 @@ uint32_t Buf_4Byte(uint8_t *pBuffer,uint32_t Date_4Byte,uint8_t Byte_num,uint8_t
 	}
 }
 /****************************************************************************
-* ��    ��: void EEPROM_M24C32_Read(uint8_t ReadAddr,uint8_t *pBuffer,uint16_t ReadNum)
-* ��    �ܣ���EEPROM_M24C32�����ָ����ַ��ʼ����ָ������������,
-* ��ڲ�����ReadAddr :��ʼ�����ĵ�ַ  0~255
-            pBuffer  :���������׵�ַ
-            ReadNum:Ҫ�������ݵĸ���
-* ���ز�����
-* ˵    ����  ?B
+ * @brief 从M24C32 EEPROM指定地址读取数据
+ * @param ReadAddr 读取起始地址
+ * @param pBuffer 数据存储缓冲区指针
+ * @param ReadNum 需要读取的字节数
+ * @return 成功返回0，失败返回1
 ****************************************************************************/
 unsigned char EEPROM_M24C32_Read(unsigned short int ReadAddr, unsigned char *pBuffer, unsigned short int ReadNum)
 {
-	unsigned int i;
-  HAL_StatusTypeDef err=	EEPROM_M24C32_I2C_Read(ReadAddr,pBuffer,ReadNum);
-	if(err!=HAL_OK)
-	{
-		return 1;
+	// 参数检查
+	if (!pBuffer || !ReadNum) return 1;
+		
+	// 检查读取操作是否超出EEPROM最大容量
+	if ((ReadNum + ReadAddr) > EEPROM_M24C32_MAX_BYTE_LENGTH) return 1;
+	
+	// 执行I2C读操作
+	HAL_StatusTypeDef err = EEPROM_M24C32_I2C_Read(ReadAddr, pBuffer, ReadNum);
+	
+	// 检查读取结果
+	if (err != HAL_OK) {
+		return 1; // 读取失败
 	}
-	return 0;	//�ɹ�
+	
+	return 0; // 读取成功
 }
 /****************************************************************************
-* ��    ��: void EEPROM_M24C32_Write(uint8_t WriteAddr,uint8_t *pBuffer,uint16_t WriteNum)
-
-* ��    �ܣ���EEPROM_M24C32�����ָ����ַ��ʼд��ָ������������
-* ��ڲ�����WriteAddr :��ʼд��ĵ�ַ  0~255
-            pBuffer  :���������׵�ַ
-            WriteNum:Ҫд�����ݵĸ���
-* ���ز�����errCode 0:ok 1:�ռ䲻��
-* ˵    ����  ?B
+ * @brief 向M24C32 EEPROM写入数据，自动处理跨页写入
+ * @param WriteAddr 写入起始地址
+ * @param pBuffer 数据缓冲区指针
+ * @param WriteNum 需要写入的字节数
+ * @return 成功返回0，失败返回1
 ****************************************************************************/
 unsigned char EEPROM_M24C32_Write(unsigned short int WriteAddr,unsigned char *pBuffer,unsigned short int WriteNum)
 {
-	uint16_t pageNum,eLen,fLen=0;	
-	if((WriteNum+WriteAddr)>EEPROM_M24C32_MAX_BYTE_LENGTH)  return 1;	
-	fLen=EEPROM_M24C32_PAGE_LENGTH-(WriteAddr%EEPROM_M24C32_PAGE_LENGTH);		
-	EEPROM_WC_ENABLE;		
-	EEPROM_M24C32_I2C_Write(WriteAddr,pBuffer,fLen);//首页
-	WriteNum-=fLen;	
-	WriteAddr+=fLen;
-	pBuffer+=fLen;
-	pageNum=WriteNum/EEPROM_M24C32_PAGE_LENGTH;
-	HAL_Delay(5);		
-	while(pageNum)
-	{
-		EEPROM_M24C32_I2C_Write(WriteAddr,pBuffer,EEPROM_M24C32_PAGE_LENGTH);				
-		pageNum--; 
-		WriteAddr+=EEPROM_M24C32_PAGE_LENGTH;
-		WriteNum-= EEPROM_M24C32_PAGE_LENGTH;
-		pBuffer+=EEPROM_M24C32_PAGE_LENGTH;
-		HAL_Delay(5);
-	}
-	eLen=WriteNum%EEPROM_M24C32_PAGE_LENGTH;
-	if(eLen)  EEPROM_M24C32_I2C_Write(WriteAddr,pBuffer,eLen);//剩余部分	
-	HAL_Delay(5); 
-	EEPROM_WC_DISABLE;
-	return 0;		
+	 // 参数检查
+	 if (!pBuffer || !WriteNum) return 1;
+    
+	 // 检查写入操作是否超出EEPROM最大容量
+	 if ((WriteNum + WriteAddr) > EEPROM_M24C32_MAX_BYTE_LENGTH) return 1;
+	 
+	 // 使能写保护
+	 EEPROM_WC_ENABLE;
+	 
+	 // 计算第一页可写入的长度
+	 uint16_t firstPageLen = EEPROM_M24C32_PAGE_LENGTH - (WriteAddr % EEPROM_M24C32_PAGE_LENGTH);
+	 // 确保不超过总写入长度
+	 if (firstPageLen > WriteNum) {
+		 firstPageLen = WriteNum;
+	 }
+	 
+	 // 写入第一页数据
+	 EEPROM_M24C32_I2C_Write(WriteAddr, pBuffer, firstPageLen);
+	 HAL_Delay(5);
+	 
+	 // 更新剩余待写入数据
+	 WriteNum -= firstPageLen;
+	 WriteAddr += firstPageLen;
+	 pBuffer += firstPageLen;
+	 
+	 // 计算完整页数量并写入
+	 uint16_t pageNum = WriteNum / EEPROM_M24C32_PAGE_LENGTH;
+	 while (pageNum--) {
+		 EEPROM_M24C32_I2C_Write(WriteAddr, pBuffer, EEPROM_M24C32_PAGE_LENGTH);
+		 HAL_Delay(5);
+		 
+		 WriteAddr += EEPROM_M24C32_PAGE_LENGTH;
+		 pBuffer += EEPROM_M24C32_PAGE_LENGTH;
+		 WriteNum -= EEPROM_M24C32_PAGE_LENGTH;
+	 }
+	 
+	 // 写入剩余数据（不足一页）
+	 if (WriteNum) {
+		 EEPROM_M24C32_I2C_Write(WriteAddr, pBuffer, WriteNum);
+		 HAL_Delay(5);
+	 }
+	 
+	 // 关闭写保护
+	 EEPROM_WC_DISABLE;
+	 
+	 return 0;
 }
 /****************************************************************************
 * ��    ��: void EEPROM_M24C32_PageRead(uint16_t page,uint8_t *pBuffer,uint8_t ReadNum)
@@ -421,54 +448,53 @@ uint8_t EEPROM_M24C32_Test(void)
 	return err;								  
 }
 /****************************************************************************
-* ��    ��: 按字读取
-* ��    �ܣ���EEPROM_M24C32�����ָ����ַ��ʼ����ָ������������,
-* ��ڲ�����ReadAddr :��ʼ�����ĵ�ַ  0~255
-            pBuffer  :���������׵�ַ
-            ReadNum:Ҫ�������ݵĸ���
-* ���ز�����
-* ˵    ����  ?B
+ * @brief 从M24C32 EEPROM指定地址开始读取多个32位无符号整数
+ * @param ReadAddr 起始地址
+ * @param pBuffer 数据存储缓冲区指针
+ * @param ReadNum 需要读取的数据个数（单位：word）
+ * @return 成功返回0，失败可扩展返回错误码
 ****************************************************************************/
 unsigned char EEPROM_M24C32_Read_WORD(unsigned short int ReadAddr, unsigned int *pBuffer, unsigned short int ReadNum)
 {
-	unsigned int i;
-	unsigned char *pByteBuffer;
-	unsigned short int len;
-	len=ReadNum*4;
-  	EEPROM_M24C32_I2C_Read(ReadAddr,pByteBuffer,len);
-	for(int i=0;i<ReadNum;i++)
-	{
-		*pBuffer=(pByteBuffer[0]<<24)|(pByteBuffer[1]<<16)|(pByteBuffer[2]<<8)|pByteBuffer[3];		
-		pByteBuffer+=4;
-		pBuffer++;
-	}
+	if (!pBuffer || !ReadNum) return 1; // 参数检查
+    
+    const uint16_t byte_len = ReadNum * sizeof(uint32_t); // 计算总字节数
+    uint8_t buffer[byte_len];                             // 使用栈上数组减少动态分配开销
+    
+    EEPROM_M24C32_I2C_Read(ReadAddr, buffer, byte_len);   // 执行底层I2C读操作
+    
+    for (uint16_t i = 0; i < ReadNum; ++i) {              // 将大端序转换为主机序并存入目标缓冲区
+        pBuffer[i] = ((uint32_t)buffer[i * 4]     << 24) |
+                     ((uint32_t)buffer[i * 4 + 1] << 16) |
+                     ((uint32_t)buffer[i * 4 + 2] << 8 ) |
+                      (uint32_t)buffer[i * 4 + 3];
+    }
 
-	return 0;	//�ɹ�
+    return 0;
 }
 /****************************************************************************
-* ��    ��: 按字写
-* ��    �ܣ���EEPROM_M24C32�����ָ����ַ��ʼ����ָ������������,
-* ��ڲ�����ReadAddr :��ʼ�����ĵ�ַ  0~255
-            pBuffer  :���������׵�ַ
-            ReadNum:Ҫ�������ݵĸ���
-* ���ز�����
-* ˵    ����  ?B
+* @brief 向M24C32 EEPROM指定地址写入多个32位无符号整数
+ * @param writeAddr 起始地址
+ * @param pBuffer 数据源缓冲区指针
+ * @param WriteNum 需要写入的数据个数（单位：word）
+ * @return 成功返回0，失败可扩展返回错误码
 ****************************************************************************/
 unsigned char EEPROM_M24C32_write_WORD(unsigned short int writeAddr, unsigned int *pBuffer, unsigned short int WriteNum)
 {
-	unsigned int i;
-	unsigned char *pByteBuffer;
-	unsigned short int len;
-	len=WriteNum*4;
-	for(int i=0;i<WriteNum;i++)
-	{
-		pByteBuffer[WriteNum*4]  =*pBuffer>>24;
-		pByteBuffer[1+4*WriteNum]=*pBuffer>>16;
-		pByteBuffer[2+4*WriteNum]=*pBuffer>>8;
-		pByteBuffer[3+4*WriteNum]=*pBuffer;	
-		pBuffer++;
-	}
-	EEPROM_M24C32_I2C_Write(writeAddr,pByteBuffer,WriteNum*4);
-
-	return 0;	//�ɹ�
+	if (!pBuffer || !WriteNum) return 1; // 参数检查
+    
+    const uint16_t byte_len = WriteNum * sizeof(uint32_t); // 计算总字节数
+    uint8_t buffer[byte_len];                              // 使用栈上数组减少动态分配开销
+    
+    // 将32位整数转换为大端序字节流
+    for (uint16_t i = 0; i < WriteNum; ++i) {
+        buffer[i * 4]     = (uint8_t)(pBuffer[i] >> 24);
+        buffer[i * 4 + 1] = (uint8_t)(pBuffer[i] >> 16);
+        buffer[i * 4 + 2] = (uint8_t)(pBuffer[i] >> 8);
+        buffer[i * 4 + 3] = (uint8_t)(pBuffer[i]);
+    }
+    
+    EEPROM_M24C32_I2C_Write(writeAddr, buffer, byte_len);  // 执行底层I2C写操作
+    
+    return 0;
 }

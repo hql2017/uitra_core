@@ -50,22 +50,21 @@ void app_hmi_report_status(sys_genaration_status *sys_status)
 	can_tx_data[0]=0x7E;
 	can_tx_data[1]=0x7E;	
 	can_tx_data[2]=26;
-	can_tx_data[3]=HMI_CODE_STATUS_QUERY|HMI_CMD_ACK_MASK;
+	can_tx_data[3]=HMI_CODE_STATUS_QUERY|HMI_CMD_ACK_MASK;	
 	can_tx_data[4]=(uint8_t) sys_status->circle_water_box_temprature;
-	can_tx_data[5]=(sys_status->treatment_water_level_status&0x0F)|(sys_status->air_level_status<<4);
-	if(laser_ctr_param.laserType!=0)
-	{
-		sys_status->laser_run_B4_laser_980_out_status= sys_status->laser_run_B1_laser_out_status;
-	}
+	can_tx_data[5]=(sys_status->treatment_water_level_status&0x0F)|(sys_status->air_level_status<<4);	
 	can_tx_data[6]=sys_status->laser_run_B0_pro_hot_status|sys_status->laser_run_B1_laser_out_status<<1|sys_status->laser_run_B2_gx_test_status<<2|sys_status->laser_run_B3_laser_pilot_lamp_status<<3\
 	|sys_status->laser_run_B4_laser_980_out_status<<4|sys_status->laser_run_B5_timer_status<<5|sys_status->laser_run_B6_close_device_status<<6;	
 	if(sys_status->laser_param_B456_jt_status==IO_KEY_IDLE)
 	{
-		if(sEnvParam.JT_bat<30)	send_buff_jt=KEY_LOW_POWER;	
+		if(u_sys_param.sys_config_param.jt_status!=0&&sEnvParam.JT_ID==u_sys_param.sys_config_param.jtId&&sEnvParam.JT_bat<30)
+		{
+			send_buff_jt=KEY_LOW_POWER;	
+		}		
 		else send_buff_jt=1;
 	}
-	else send_buff_jt=(sys_status->laser_param_B456_jt_status%5);	
-	can_tx_data[7]=sys_status->laser_param_B01_energe_status|sys_status->laser_param_B23_air_pump_pressure_status<<2|send_buff_jt<<4;//sys_status->laser_param_B456_jt_status<<4;
+	else send_buff_jt=(sys_status->laser_param_B456_jt_status%KEY_NO_CONNECT);	
+	can_tx_data[7]=sys_status->laser_param_B01_energe_status|sys_status->laser_param_B23_air_pump_pressure_status<<2|send_buff_jt<<4|sys_status->laser_param_B7_ykls_status<<7;//sys_status->laser_param_B456_jt_status<<4;
 	can_tx_data[8]=sys_status->genaration_io_status&0xFF;
 	can_tx_data[9]=(sys_status->genaration_io_status>>8)&0xFF;
 	can_tx_data[10]=u_sys_param.sys_config_param.laser_pulse_count&0xFF;
@@ -90,7 +89,7 @@ void app_hmi_report_status(sys_genaration_status *sys_status)
 	can_tx_data[29]	=0;
 	can_tx_data[30]	=0;
 	can_tx_data[31]	=0;
-	APP_CAN_SEND_DATA(can_tx_data,26,HMI_BROADCAST_ADDR);//304 bytes(38package) use 75ms  t=75/38;2ms
+	APP_CAN_SEND_DATA(can_tx_data,26,CAN_HMI_ID);//304 bytes(38package) use 75ms  t=75/38;2ms
 }
 /***************************************************************************//**
 * @brief 脉冲数据上报
