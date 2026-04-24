@@ -195,7 +195,7 @@ uint8_t ads1110_read_mv( float *adc_mv)
 /**
  * @brief jdq_reley_charge 
  * @param  void
- * @note   init,常闭
+ * @note   init,常闭，充电继电器开关
  * @retval None
  */
 void jdq_reley_charge(unsigned char onOff)
@@ -206,7 +206,7 @@ void jdq_reley_charge(unsigned char onOff)
 /**
  * @brief jdq_reley_charge_ready 
  * @param  void
- * @note   init，常闭
+ * @note   init，常闭,放点负载
  * 
  * @retval None
  */
@@ -345,7 +345,7 @@ void AD5541A_SetVoltage_Load_disable(void)
 /***************************************************************************//**
  * @brief 通讯包校验
  * @param 16进制数
- * @note 
+ * @note 先求和再计算
  * @return 
 *******************************************************************************/
 uint16_t DEC2BCD(uint16_t ui16hexcode)
@@ -423,37 +423,34 @@ unsigned short int app_rs485_package_check(unsigned char* pBuff,unsigned short i
 {
 	unsigned short int retLen=0,i=0,j=0,pLen,decBcd;  
 	unsigned short int sum;
+	if(buffLen<6) return 0;
 	while(i<buffLen)
 	{   
 		if(pBuff[i]==0x7E)
 		{
-			pLen=(pBuff[i+2]>>4)*10+(pBuff[i+2]&0x0F);						      
+			pLen=(pBuff[i+2]>>4)*10+(pBuff[i+2]&0x0F);	
 			if(i+pLen+5>buffLen) 
 			{
-				retLen = i;//end
 				break;
-			} 
-			else    
-			{ 
-				if(pBuff[i+pLen+4]==0x0D)
+			}
+			if(pBuff[i+pLen+5]==0x0D)
+			{
+				sum=0;
+				for(j=1;j<pLen+3;j++)
 				{
-					sum=0;
-					for(j=1;j<pLen+3;j++)
-					{
-						sum += pBuff[i+j];
-					}
-					decBcd = pBuff[i+pLen+3]; 					  
-					if(decBcd == DEC2BCD((sum&0x00FF)%100))
-					{						
-						app_jdq_gwb3200_receive_handle(&pBuff[i],pLen+5);
-						retLen = pLen+i+5; 
-						i=retLen;    
-						jdq_rs485_sta.frame_regStart=0;
-						jdq_rs485_sta.frame_len=0;
-					} 
-
-				}				
-			} 
+					sum += pBuff[i+j];
+				}
+				decBcd = pBuff[i+pLen+3]; 					  
+				if(decBcd == DEC2BCD((sum&0x00FF)%100))
+				{						
+					app_jdq_gwb3200_receive_handle(&pBuff[i],pLen+5);
+					retLen = pLen+i+5; 
+					i=retLen;    
+					jdq_rs485_sta.frame_regStart=0;
+					jdq_rs485_sta.frame_len=0;
+					break;
+				} 
+			}	
     	}
 		i++; 
 	}
@@ -469,11 +466,12 @@ unsigned short int app_rs485_package_check(unsigned char* pBuff,unsigned short i
 *******************************************************************************/ 
 unsigned char  app_jdq_rs485_check_gwb3200_rec_package(void)
 {
-	unsigned char i=0,packgeLen=0;
-	static unsigned char readLen;
-	if(readLen<jdq_rs485_receiv_len) 
-    {
-		packgeLen = jdq_rs485_receiv_len-readLen;      
+	unsigned char i=0,peekLen=0,packgeLen;
+	unsigned char tempBuff[MAX_UART1_BUFF_LENTH+1];
+	memcpy(tempBuff,UART1_RX_BUFF,jdq_rs485_receiv_len);	
+	peekLen = jdq_rs485_receiv_len;   	
+	if(peekLen>5) 
+    {  
       #if 0   
 	  if(packgeLen>5) 
 	  {    
@@ -485,17 +483,23 @@ unsigned char  app_jdq_rs485_check_gwb3200_rec_package(void)
 		DEBUG_PRINTF(" Len=%d\r\n",packgeLen);    
 		}  
       #endif   
-      packgeLen = app_rs485_package_check(&UART1_RX_BUFF[readLen],packgeLen);	 
+      packgeLen = app_rs485_package_check(tempBuff,peekLen);	 
       if(packgeLen!=0)
       {
-        readLen+=packgeLen;		
+		if(packgeLen<peekLen)
+		{
+			for(i=0;i<peekLen-packgeLen;i++)
+			{
+				UART1_RX_BUFF[i]=UART1_RX_BUFF[i+packgeLen];
+			}
+		}	
+		if(packgeLen>jdq_rs485_receiv_len)	//full
+		{
+			jdq_rs485_receiv_len=0;
+		}
+		else jdq_rs485_receiv_len-=packgeLen;
       }   
-    }
-    if(readLen>=jdq_rs485_receiv_len&&readLen!=0)//full
-    {
-      readLen=0;
-      jdq_rs485_receiv_len=0;
-    }  
+    }    
 	return  packgeLen;
 }
 #else 
@@ -775,26 +779,20 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
 #endif
 }
   /************************************************************************//**
-  * @brief 读电源输出状态
-  * @param *sta  状态值指针
+  * @brief 读电源设定值
+  * @param 
   * @note   
   * @retval 
   *****************************************************************************/
- unsigned short int  app_jdq_get_vbus_sta(void)
+ unsigned short int  app_jdq_get_set_vbus(void)
  {		
 	#ifdef JDQ_PWR_GWB_3200W	
 	//if(jdq_sts_reg.emergencyErrorFlag!=0)	
 	//{//严重错误
 		//	return JDQ_PWR_GWB_3200W_ERROR_FLAG;//err
 	//}
-	if(jdq_sts_reg.outVoltage+500>jdq_sts_reg.setVoltage&&jdq_sts_reg.outVoltage<500+jdq_sts_reg.setVoltage)
-	{
-		return jdq_sts_reg.setVoltage*0.01;
-	}
-	else 
-	{
-		return jdq_sts_reg.outVoltage*0.01;  //err
-	}
+	return jdq_sts_reg.setVoltage;
+	
 	#else 
 	return jdq_sts_reg_value[6];
 	#endif	
@@ -828,8 +826,7 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
 	#else
 		HAL_StatusTypeDef err;	
 		err = app_jdq_read_req_frame(STS_1200_REG_SET_VOLTAGE,4);
-	#endif
-	
+	#endif	
  }
  
    /************************************************************************//**
@@ -846,6 +843,16 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
 	HAL_StatusTypeDef err;		
 	err= app_jdq_read_req_frame(STS_1200_REG_RUN_STOP,1);
 	#endif
+ }
+  /************************************************************************//**
+  * @brief 读总电源输出状态
+  * @param 
+  * @note   
+  * @retval 
+  *****************************************************************************/
+ unsigned char  app_jdq_gwb_pwr_flag(void)
+ {
+  return jdq_sts_reg.pwr_status;
  }
    /************************************************************************//**
   * @brief 读总电源电流设定值
@@ -1124,11 +1131,6 @@ void app_jdq_rs485_receive_data(void)
 *******************************************************************************/ 
 unsigned short int  app_get_jdq_rs485_bus_statu(void)
 {
-	#ifdef JDQ_PWR_GWB_3200W	
-	app_jdq_rs485_check_gwb3200_rec_package();	
-	#else 	
-	app_jdq_sts_1200_receive_handle();
-	#endif
 	return jdq_rs485_sta.frame_regStart;
 }
 

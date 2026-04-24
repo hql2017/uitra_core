@@ -105,7 +105,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  SCB->CACR|=1<<2;//DCATCH
+  //SCB->CACR|=1<<2;//DCATCH
   /* USER CODE END Init */
 
   /* Configure the system clock */

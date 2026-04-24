@@ -25,8 +25,8 @@
 
 #define AD_VREF_VOLTAGE  3000
 
-#define MAX_AD_BUFF_LENGTH  256//320
-#define MAX_AD_BUFF_BYTES_LENGTH  512//640//MAX_AD_BUFF_LENGTH*2 //字节长度
+#define MAX_AD_BUFF_LENGTH  320
+#define MAX_AD_BUFF_BYTES_LENGTH  640//MAX_AD_BUFF_LENGTH*2 //字节长度
 /* USER CODE END 0 */
 
 ADC_HandleTypeDef hadc1;
@@ -392,7 +392,7 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
   */
 
 static  unsigned  short int adBuff[MAX_AD_BUFF_LENGTH];
-static  unsigned short int advalue[4];
+static  unsigned short int advalue[5];
 static  unsigned short int ad2Buff[MAX_AD2_ENERGE_BUFF_LENGTH];
 static  unsigned short int ad2vale,ad2hle[16];
 //static KalmanFilter kalmAd2;
@@ -446,7 +446,7 @@ void pulse_adc_start(unsigned char Len)
   */
 void filter_ad1(void)
 {
-  long unsigned int sum[4]={0};  	
+  long unsigned int sum[5]={0};  	
 	SCB_InvalidateDCache_by_Addr(adBuff, MAX_AD_BUFF_BYTES_LENGTH); 
   for(unsigned int i=0;i<64;i++)
   {   
@@ -454,11 +454,13 @@ void filter_ad1(void)
     sum[1]+=adBuff[i*4+1];
     sum[2]+=adBuff[i*4+2];
     sum[3]+=adBuff[i*4+3];
+    sum[4]+=adBuff[i*5+4];
   } 
   advalue[0]=(unsigned short int)(sum[0]>>6);        
   advalue[1]=(unsigned short int)(sum[1]>>6);  
   advalue[2]=(unsigned short int)(sum[2]>>6); 
   advalue[3]=(unsigned short int)(sum[3]>>6); 
+  advalue[4]=(unsigned short int)(sum[4]>>6); 
 } 
  
  
@@ -601,6 +603,12 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
   {//相对气压kPa    
     temp=((((advalue[AD1_AIR_PRESSER_INDEX]-D_A_MIN)*AD_VREF_VOLTAGE)>>16) +22);
     *vBuff=temp*0.1654131+P_A_MIN;//0.150723+P_A_MIN;//(441/3000);//air pressure  ,dio
+    //DEBUG_PRINTF("air_pressure=%.2f v=%dmV ad=%x\r\n", *vBuff,temp,advalue[AD1_AIR_PRESSER_INDEX]);
+  }  
+  else if(adChannel==AD1_WATER_PRESSER_INDEX)
+  {//相对气压kPa    
+    temp=((((advalue[AD1_WATER_PRESSER_INDEX]-D_A_MIN)*AD_VREF_VOLTAGE)>>16) +22);
+    *vBuff=temp*0.1654131+P_A_MIN;//0.150723+P_A_MIN;//(441/3000);//water pressure  ,dio
     //DEBUG_PRINTF("air_pressure=%.2f v=%dmV ad=%x\r\n", *vBuff,temp,advalue[AD1_AIR_PRESSER_INDEX]);
   }  
 }

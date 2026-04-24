@@ -173,33 +173,25 @@ void pid_set_tunings(PIDController *pid, double kp, double ki, double kd) {
 void app_fan_feed_count(unsigned char fan_number)
 {	
 	unsigned char fan_index;
-	if(fan_number==1||fan_number==2)	
+	if(fan_number!=0)	
 	{	
-		fan_index=fan_number&0x01;//fan_number%2;	
+		fan_index=1;//fan_number&0x01;//fan_number%2;	
 		fanParam.fan_pulse_count[fan_index]++;	
 	}		
 	else {	
 		fanParam.fan_pulse_count[1]=0;//clear
 		fanParam.fan_pulse_count[0]=0;
 	}
-		
 }
 /************************************************************************//**
 * @brief 
 * @param 无
 * @note   
-* @retval run speed
+* @retval set speed
 *****************************************************************************/
-unsigned short int fan_get_run_spd(unsigned char fanNumber)
-{	
-	if(fanNumber==1)
-	{
-		return fanParam.fan_speed[1];
-	}
-	else
-	{		
-		return fanParam.fan_speed[0];
-	} 
+unsigned short int fan_get_set_spd(unsigned char fanNumber)
+{
+	return fanParam.fan_set_speed[1];
 }
   /************************************************************************//**
   * @brief 
@@ -231,16 +223,11 @@ unsigned short int fan_get_run_spd(unsigned char fanNumber)
   *****************************************************************************/
  static void fan_micro_pwm_pid(unsigned char fanNum ,unsigned short int  timeCount)
  {	
-	if(fanNum==1) 
+	if(fanNum!=0) 
     {
        if(timeCount<2) timeCount=2;
       __HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_2,timeCount-1);      
     }
-    else //if(fanNum==2) 
-    {
-		if(timeCount<2) timeCount=2;
-      __HAL_TIM_SetCompare(&htim8,TIM_CHANNEL_3,timeCount-1);
-    }     
  } 
 /************************************************************************//**
 * @brief 
@@ -270,7 +257,7 @@ void fan_spd_pid(unsigned char fanNum,unsigned int timeMs)
 #else 
 void fan_spd_pid(unsigned char runFlag,unsigned int P)
 {
-	unsigned char Index=(runFlag%2);		
+	unsigned char Index=1;////only fan1	(runFlag%2);	
 	if(fanParam.fan_speed[Index]>30+fanParam.fan_set_speed[Index])
 	{
 		if(fanParam.fan_speed[Index]>510+fanParam.fan_set_speed[Index])
@@ -323,22 +310,22 @@ void fan_spd_pid(unsigned char runFlag,unsigned int P)
 *****************************************************************************/
 static void get_fan_spd_calcu(unsigned int timeMs)
 {
-	unsigned char fanNum1;
-	unsigned char fanNum2;
-	fanNum1=fanParam.runflag&0x01;
-	fanNum2=fanParam.runflag&0x02;
+	unsigned char fanNum1;	
+	fanNum1=fanParam.runflag;//only fan1
 	if(fanNum1!=0)
 	{ 
 		fanParam.fan_speed[1]=30*fanParam.fanFreq[1];//get_fan_freq(1,1000);	//spd=count_freq*30;
 		fan_spd_pid(1,timeMs);
 		//DEBUG_PRINTF("fan_spd1=%d duty=%d\r\n",fanParam.fan_speed[1],__HAL_TIM_GET_COMPARE(&htim8,TIM_CHANNEL_2));		
 	}
+	/*
 	if(fanNum2!=0)
 	{ 
 		fanParam.fan_speed[0]=30*fanParam.fanFreq[0];//get_fan_freq(2,1000);;	//spd=count_freq*30;
 		fan_spd_pid(2,timeMs);		
 		//DEBUG_PRINTF("fan_spd2=%d duty=%d\r\n",fanParam.fan_speed[0],__HAL_TIM_GET_COMPARE(&htim8,TIM_CHANNEL_3));
 	}
+	*/
 }
 /************************************************************************//**
 * @brief 
@@ -348,7 +335,7 @@ static void get_fan_spd_calcu(unsigned int timeMs)
 *****************************************************************************/
 void fan_spd_set(unsigned char fanNumber,unsigned int spd)
 {
-	unsigned char fan_index;
+	unsigned char fan_index=1;//only fan1
 		
 	  // 输入参数规范化处理
 	  if (spd == 0) {
@@ -359,10 +346,9 @@ void fan_spd_set(unsigned char fanNumber,unsigned int spd)
     if (spd < 1000) spd = 1000;
     else if (spd > 5000) spd = 5000;
 	unsigned char spd_index=spd/1000;
-    switch (fanNumber) {
+    switch (fan_index) {
         case 1:
-            fanParam.fan_set_speed[1] = spd;
-			
+            fanParam.fan_set_speed[1] = spd;			
             break;
         case 2:
             fanParam.fan_set_speed[0] = spd;
@@ -389,62 +375,32 @@ void fan_spd_set(unsigned char fanNumber,unsigned int spd)
 /************************************************************************//**
 * @brief 
 * @param 无
-* @note   
+* @note   onlay fan1
 * @retval 
 *****************************************************************************/
 void fan_start(unsigned char fanNum)
 {		
-	unsigned int  period,timeDuty;	
-	if(fanNum==FAN25_NUM)
+	unsigned int  period,timeDuty;
+	if(fanParam.runflag==0)
 	{
-		fanParam.runflag|=0x01;
-		HAL_TIMEx_PWMN_Start(&htim8,TIM_CHANNEL_2); 
+		app_fan_feed_count(0);  
+		HAL_TIMEx_PWMN_Start(&htim8,TIM_CHANNEL_2); 	
+		HAL_TIM_Base_Start_IT(&htim23);	
 	}
-	else if(fanNum==FAN38_COMPRESSOR_NUM)
-	{
-		fanParam.runflag|=0x02;
-		HAL_TIMEx_PWMN_Start(&htim8,TIM_CHANNEL_3); 
-	}
-	else 
-	{
-		fanParam.runflag=3;
-		HAL_TIMEx_PWMN_Start(&htim8,TIM_CHANNEL_2); 
-		HAL_TIMEx_PWMN_Start(&htim8,TIM_CHANNEL_3); 		
-	}
-	HAL_TIM_Base_Start_IT(&htim23);	
+	fanParam.runflag=1;
 }
 /************************************************************************//**
 * @brief 
 * @param 无
-* @note   
+* @note   onlay fan1
 * @retval 
 *****************************************************************************/
 void fan_stop(unsigned char fanNum)
 {	
-	if(fanNum==FAN25_NUM)
-	{
-		app_fan_pwm_set(0,1);
-		fanParam.fan_set_speed[1]=0;
-		fanParam.fan_duty_count[1]=0;	
-		fanParam.runflag&=0x02;	//only stop fan1,keep fan2 run		
-	}
-	else if(fanNum==FAN38_COMPRESSOR_NUM)
-	{	
-		app_fan_pwm_set(0,2);
-		fanParam.fan_set_speed[0]=0;
-		fanParam.fan_duty_count[0]=0;		
-		fanParam.runflag&=0x01;//only stop fan2,keep fan1 run
-	}
-	else 
-	{
-		app_fan_pwm_set(0,1);
-		app_fan_pwm_set(0,2);	
-		fanParam.fan_set_speed[1]=0;
-		fanParam.fan_set_speed[0]=0;
-		fanParam.fan_duty_count[1]=0;
-		fanParam.fan_duty_count[0]=0;
-		fanParam.runflag=0;
-	}			
+	app_fan_pwm_set(0,1);
+	fanParam.fan_set_speed[1]=0;
+	fanParam.fan_duty_count[1]=0;	
+	fanParam.runflag=0;	//only stop fan1
 }
 
 /************************************************************************//**
@@ -456,9 +412,7 @@ void fan_stop(unsigned char fanNum)
 void fan_init(void)
 {
 	fan_spd_set(FAN25_NUM,1000);
-	app_fan_pwm_set(20,1);	
-	fan_spd_set(FAN38_COMPRESSOR_NUM,1000);	
-	app_fan_pwm_set(20,2);	
+	app_fan_pwm_set(20,1);		
 	app_fan_feed_count(3);  
 	#ifdef  FAN_PID_ENABLE 
     // 初始化PID控制器	

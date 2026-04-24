@@ -15,7 +15,7 @@
  extern void app_fan_manage( unsigned int handleTimeMs);
  extern void fan_spd_set(unsigned char fanNumber,unsigned int spd);
  extern void cacul_fan_freq(unsigned int timeMs);
-extern unsigned short int fan_get_run_spd(unsigned char fanNumber);
+extern unsigned short int fan_get_set_spd(unsigned char fanNumber);
 
  #define FAN38_COMPRESSOR_NUM  2//38风扇
  #define FAN25_NUM 1//25风扇

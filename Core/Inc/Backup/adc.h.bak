@@ -38,12 +38,12 @@ extern ADC_HandleTypeDef hadc2;
 
 /* USER CODE BEGIN Private defines */
 
-#define AD1_NTC_INDEX          0//1//14 //PA2
-#define AD1_OCP_Ibus_INDEX     1 // 2// 3// 16//PA0
-#define AD1_24V_VBUS_INDEX    2//  3// 4//17  //PA1
-#define AD1_AIR_PRESSER_INDEX 3//4// 5//18   //PA4
-
-#define AD2_LASER_1064_INDEX   4// 1// 2//15//PA3
+#define AD1_NTC_INDEX           0//1//14 //PA2
+#define AD1_OCP_Ibus_INDEX      1 // 2// 3// 16//PA0
+#define AD1_24V_VBUS_INDEX      2//  3// 4//17  //PA1
+#define AD1_AIR_PRESSER_INDEX   3//4// 5//18   //PA4
+#define AD1_WATER_PRESSER_INDEX 4//
+#define AD2_LASER_1064_INDEX    5// 
 
 #define  MAX_AD2_ENERGE_BUFF_LENGTH 128//36//一个时间约6us=2.96*2(387.5cycle 2.96us)
 #define  HALF_AD2_ENERGE_BUFF_LENGTH 36

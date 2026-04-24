@@ -442,7 +442,6 @@ PUTCHAR_PROTOTYPE
   }
 	return ch;
 }
-
 #if defined (__GNUC__) && !defined (__clang__)
 int _write(int fd, char *pbuffer, int size)
 {

@@ -244,7 +244,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
       if(compareTemp<MIN_TEMPRATURE_LASER)  
       {
         ptcRunTime=0;
-        fan_spd_set(FAN38_COMPRESSOR_NUM,2000);						
+        fan_spd_set(FAN38_COMPRESSOR_NUM,1000);						
         PTC_flag=1;
         app_PTC_en_switch(ENABLE);
       }
