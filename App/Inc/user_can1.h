@@ -10,8 +10,7 @@
 
 #include "main.h"
 #define HMI_CMD_ACK_MASK         0x80 //命令响应
-#define HMI_BROADCAST_ADDR       0x7FF
-#define HMI_CAN_FRAME_HEADER     0x7E //7E
+
 #define HMI_CAN_FRAME_DELAY_TIME  100//50 //最小数据帧间隔150
 
 typedef enum {

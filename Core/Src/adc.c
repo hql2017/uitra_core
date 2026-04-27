@@ -450,10 +450,10 @@ void filter_ad1(void)
 	SCB_InvalidateDCache_by_Addr(adBuff, MAX_AD_BUFF_BYTES_LENGTH); 
   for(unsigned int i=0;i<64;i++)
   {   
-    sum[0]+=adBuff[i*4];
-    sum[1]+=adBuff[i*4+1];
-    sum[2]+=adBuff[i*4+2];
-    sum[3]+=adBuff[i*4+3];
+    sum[0]+=adBuff[i*5];
+    sum[1]+=adBuff[i*5+1];
+    sum[2]+=adBuff[i*5+2];
+    sum[3]+=adBuff[i*5+3];
     sum[4]+=adBuff[i*5+4];
   } 
   advalue[0]=(unsigned short int)(sum[0]>>6);        
@@ -462,7 +462,6 @@ void filter_ad1(void)
   advalue[3]=(unsigned short int)(sum[3]>>6); 
   advalue[4]=(unsigned short int)(sum[4]>>6); 
 } 
- 
  
 /**
   * @brief app_get_energe_adc_value

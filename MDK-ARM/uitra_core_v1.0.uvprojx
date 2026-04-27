@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_PWR_LDO_SUPPLY,USE_HAL_DRIVER,STM32H723xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32H7xx_HAL_Driver/Inc;../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../Drivers/CMSIS/Device/ST/STM32H7xx/Include;../Drivers/CMSIS/Include;../Bsp/Src;../Bsp/Inc;../App/Src;../App/Inc;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares;../Middlewares/lwrb;../Middlewares/lwrb/lwrb;../Middlewares/lwrb/lwrb/src/lwrb;../Middlewares/lwrb/lwrb/src/include;../Middlewares/lwrb/lwrb/src/include/lwrb</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32H7xx_HAL_Driver/Inc;../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../Drivers/CMSIS/Device/ST/STM32H7xx/Include;../Drivers/CMSIS/Include;../Bsp/Src;../Bsp/Inc;../App/Src;../App/Inc;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares;../Middlewares/lwrb;../Middlewares/lwrb/lwrb;../Middlewares/lwrb/lwrb/src/lwrb;../Middlewares/lwrb/lwrb/src/include;../Middlewares/lwrb/lwrb/src/include/lwrb;../Middlewares/RTT</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -706,6 +706,11 @@
               <FileName>task_menu.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\App\Src\task_menu.c</FilePath>
+            </File>
+            <File>
+              <FileName>Readme.txt</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Readme.txt</FilePath>
             </File>
           </Files>
         </Group>
@@ -1110,6 +1115,31 @@
               <FileName>port.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/port.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Middlewares/RTT</GroupName>
+          <Files>
+            <File>
+              <FileName>SEGGER_RTT_printf.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Middlewares\RTT\SEGGER_RTT_printf.c</FilePath>
+            </File>
+            <File>
+              <FileName>SEGGER_RTT.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Middlewares\RTT\SEGGER_RTT.c</FilePath>
+            </File>
+            <File>
+              <FileName>SEGGER_RTT.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Middlewares\RTT\SEGGER_RTT.h</FilePath>
+            </File>
+            <File>
+              <FileName>SEGGER_RTT_Conf.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Middlewares\RTT\SEGGER_RTT_Conf.h</FilePath>
             </File>
           </Files>
         </Group>

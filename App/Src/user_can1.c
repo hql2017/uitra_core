@@ -35,7 +35,7 @@ void app_hmi_sysnc_req(void)
 	can_tx_data[9]=crc16Num(can_tx_data,9)&0xFF;
 	can_tx_data[11]=0x0D;
 	can_tx_data[12]=0x0A;		
-	APP_CAN_SEND_DATA(can_tx_data,13,HMI_BROADCAST_ADDR);
+	APP_CAN_SEND_DATA(can_tx_data,13,CAN_HMI_ID);
 }
 /***************************************************************************//**
  * @brief 报告状态数据
@@ -44,7 +44,7 @@ void app_hmi_sysnc_req(void)
  * @return 
 *******************************************************************************/
 void app_hmi_report_status(sys_genaration_status *sys_status) 
-{
+{	
 	uint8_t  can_tx_data[32];
 	uint8_t send_buff_jt;
 	can_tx_data[0]=0x7E;
@@ -65,8 +65,8 @@ void app_hmi_report_status(sys_genaration_status *sys_status)
 	}
 	else send_buff_jt=(sys_status->laser_param_B456_jt_status%KEY_NO_CONNECT);	
 	can_tx_data[7]=sys_status->laser_param_B01_energe_status|sys_status->laser_param_B23_air_pump_pressure_status<<2|send_buff_jt<<4|sys_status->laser_param_B7_ykls_status<<7;//sys_status->laser_param_B456_jt_status<<4;
-	can_tx_data[8]=sys_status->genaration_io_status&0xFF;
-	can_tx_data[9]=(sys_status->genaration_io_status>>8)&0xFF;
+	can_tx_data[8]=0xFF;//sys_status->genaration_io_status&0xFF;
+	can_tx_data[9]=0xFF;//(sys_status->genaration_io_status>>8)&0xFF;
 	can_tx_data[10]=u_sys_param.sys_config_param.laser_pulse_count&0xFF;
 	can_tx_data[11]=(u_sys_param.sys_config_param.laser_pulse_count>>8)&0xFF;
 	can_tx_data[12]=(u_sys_param.sys_config_param.laser_pulse_count>>16)&0xFF;
@@ -124,7 +124,7 @@ void app_hmi_report_pulse_count(void)
 	can_tx_data[21]	=0;
 	can_tx_data[22]	=0;
 	can_tx_data[23]	=0;
-	APP_CAN_SEND_DATA(can_tx_data,20,HMI_BROADCAST_ADDR);//304 bytes(38package) use 75ms  t=75/38;2ms		
+	APP_CAN_SEND_DATA(can_tx_data,20,CAN_HMI_ID);//304 bytes(38package) use 75ms  t=75/38;2ms		
 }
 /***************************************************************************//**
  * @brief ack
@@ -143,7 +143,7 @@ void app_hmi_cmd_ack(unsigned char code)
 	can_tx_data[4]=crc16Num(can_tx_data,4)&0xFF;
 	can_tx_data[6]=0x0D;
 	can_tx_data[7]=0x0A;
-	APP_CAN_SEND_DATA(can_tx_data,8,HMI_BROADCAST_ADDR);
+	APP_CAN_SEND_DATA(can_tx_data,8,CAN_HMI_ID);
 	
 }
 /***************************************************************************//**
@@ -154,6 +154,7 @@ void app_hmi_cmd_ack(unsigned char code)
 *******************************************************************************/
 extern  void app_laser_preapare_semo(void);
 extern void app_t_clean_run_timer(unsigned char *runflag);
+extern void app_cool_water_depth_semo(void);
 void HMI_Parse_Data(unsigned char  *data, unsigned int  length) 
 {		
 	unsigned char can_tx_data[256]={0};
@@ -171,9 +172,9 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			break;
 		case HMI_CODE_ENERGE_PARAM:	
 			laser_ctr_param.laserEnerge=(data[4]|(data[5]<<8));						
-			laser_ctr_param.laserFreq=data[6];	//(data[6]|(data[7]<<8));
+			laser_ctr_param.laserFreq=data[6];//(data[6]|(data[7]<<8));
 			laser_ctr_param.laserType=data[8];							
-			app_hmi_cmd_ack(hmi_code) ;				
+			app_hmi_cmd_ack(hmi_code);				
 			break;
 		case HMI_CODE_TREATMENT_WATER_LEVEL:
 			laser_ctr_param.treatmentWaterLevel=data[4];			
@@ -181,7 +182,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			u_sys_param.sys_config_param.t_water_low=data[5];
 			u_sys_param.sys_config_param.t_water_mid=data[6];
 			u_sys_param.sys_config_param.t_water_high=data[7];
-			app_hmi_cmd_ack(hmi_code) ;					
+			app_hmi_cmd_ack(hmi_code);					
 			break;
 		case HMI_CODE_AIR_LEVEL:
 			laser_ctr_param.airPressureLevel=data[4];
@@ -189,25 +190,30 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			u_sys_param.sys_config_param.air_low_pressure=data[5];
 			u_sys_param.sys_config_param.air_mid_pressure=data[6];
 			u_sys_param.sys_config_param.air_high_pressure=data[7];
-			app_hmi_cmd_ack(hmi_code) ;			
+			app_hmi_cmd_ack(hmi_code);			
 			break;
 		case HMI_CODE_LED_AUDIO_LEVEL:
 			laser_ctr_param.ledLightLevel=data[4];
 			u_sys_param.sys_config_param.rgb_light=data[5];	
-			u_sys_param.sys_config_param.beep=50;//data[6];//固定音量
+			u_sys_param.sys_config_param.beep=80;//data[6];//固定音量
 			laser_ctr_param.beep=data[6];
 			app_hmi_cmd_ack(hmi_code);				 		
 			break;			
 		case HMI_CODE_CTR_TEST_MODE:
-			laser_ctr_param.ctrTestMode=data[4];
-			sGenSta.laser_run_B2_gx_test_status=0;//1;		
-			app_laser_preapare_semo();	
-			app_hmi_cmd_ack(hmi_code) ;	
+			if(laser_ctr_param.laserType!=0)
+			{
+				laser_ctr_param.ctrTestMode=data[4];
+				laser_ctr_param.proHotCtr =laser_ctr_param.ctrTestMode;
+				laser_ctr_param.laserType = 1;
+				sGenSta.laser_run_B2_gx_test_status=data[4];		
+				app_laser_preapare_semo();	
+			}			
+			app_hmi_cmd_ack(hmi_code);	
 			break;
 		case HMI_CODE_PRO_HOT:
-		laser_ctr_param.proHotCtr = data[4];
-			laser_ctr_param.laserType=data[5];
-			laser_ctr_param.proCali=data[6];			
+			laser_ctr_param.proHotCtr = data[4];
+			laser_ctr_param.laserType = data[5];			
+			laser_ctr_param.proCali = data[6];	
 			app_laser_preapare_semo();	
 			app_hmi_cmd_ack(hmi_code) ;	
 			break;
@@ -232,33 +238,39 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			u_sys_param.sys_config_param.laser_pulse_width_us=data[4]|(data[5]<<8);
 			app_hmi_cmd_ack(hmi_code) ;
 			break;
-		case HMI_CODE_JT_CONFIG: 			 
-			if(data[8]==0)
+		case HMI_CODE_JT_CONFIG:
+			can_tx_data[2]=13;//len 			 
+			if(data[8]==2)//search
 			{
-				u_sys_param.sys_config_param.jtId=0;
-				u_sys_param.sys_config_param.jt_status=0;		
-			}
-			else if(data[8]==1)
-			{
-				u_sys_param.sys_config_param.jtId=data[4]|data[5]<<8|data[6]<<16|data[7]<<24;
-				u_sys_param.sys_config_param.jt_status=1;			
-			}
-			else if(data[8]==2)//search
-			{
-				u_sys_param.sys_config_param.jtId = sEnvParam.JT_ID;
-				DEBUG_PRINTF("JT ID%d",sEnvParam.JT_ID);											
-			}			
-			can_tx_data[2]=13;//len					
-			can_tx_data[4]=u_sys_param.sys_config_param.jtId&0xFF;
-			can_tx_data[5]=(u_sys_param.sys_config_param.jtId>>8)&0xFF;
-			can_tx_data[6]=(u_sys_param.sys_config_param.jtId>>16)&0xFF;
-			can_tx_data[7]=(u_sys_param.sys_config_param.jtId>>24)&0xFF;
+				DEBUG_PRINTF("seartch JT ID%d",sEnvParam.JT_ID);
+				can_tx_data[4]=sEnvParam.JT_ID&0xFF;
+				can_tx_data[5]=(sEnvParam.JT_ID>>8)&0xFF;
+				can_tx_data[6]=(sEnvParam.JT_ID>>16)&0xFF;
+				can_tx_data[7]=(sEnvParam.JT_ID>>24)&0xFF;											
+			}	
+			else
+			{		
+				if(data[8]==0)//exit bind
+				{
+					u_sys_param.sys_config_param.jtId=0;
+					u_sys_param.sys_config_param.jt_status=0;		
+				}
+				else if(data[8]==1)// bind
+				{
+					u_sys_param.sys_config_param.jtId=data[4]|data[5]<<8|data[6]<<16|data[7]<<24;
+					u_sys_param.sys_config_param.jt_status=1;			
+				}				
+				can_tx_data[4]=u_sys_param.sys_config_param.jtId&0xFF;
+				can_tx_data[5]=(u_sys_param.sys_config_param.jtId>>8)&0xFF;
+				can_tx_data[6]=(u_sys_param.sys_config_param.jtId>>16)&0xFF;
+				can_tx_data[7]=(u_sys_param.sys_config_param.jtId>>24)&0xFF;
+			}	
 			can_tx_data[8]=data[8];//cmd
 			can_tx_data[10]=(crc16Num(can_tx_data,9)>>8)&0xFF;
 			can_tx_data[9]=crc16Num(can_tx_data,9)&0xFF;	
 			can_tx_data[11]=0x0D;
 			can_tx_data[12]=0x0A;			
-			APP_CAN_SEND_DATA(can_tx_data,13,HMI_BROADCAST_ADDR);			
+			APP_CAN_SEND_DATA(can_tx_data,13,CAN_HMI_ID);			
 			break;
 		case HMI_CODE_LIQUID_DEPTH:
 			u_sys_param.sys_config_param.treatment_water_depth_high=data[4];
@@ -267,18 +279,19 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			u_sys_param.sys_config_param.cool_water_depth_low=data[9];		
 			can_tx_data[2]=14;			
 			can_tx_data[4]=u_sys_param.sys_config_param.treatment_water_depth_high;
-			can_tx_data[5]=(uint8_t)(sEnvParam.treatment_water_depth*10);
+			can_tx_data[5]=(uint8_t)(sEnvParam.treatment_water_depth);
 			can_tx_data[6]=u_sys_param.sys_config_param.treatment_water_depth_low;		
 			can_tx_data[7]=u_sys_param.sys_config_param.cool_water_depth_high;
-			can_tx_data[8]=(uint8_t)(sEnvParam.cool_water_depth*10);
+			can_tx_data[8]=(uint8_t)(sEnvParam.cool_water_depth);
 			can_tx_data[9]=	u_sys_param.sys_config_param.cool_water_depth_low;
 			can_tx_data[11]=(crc16Num(can_tx_data,10)>>8)&0xFF;
 			can_tx_data[10]=crc16Num(can_tx_data,10)&0xFF;
 			can_tx_data[12]=0x0D;
 			can_tx_data[13]=0x0A;
 			can_tx_data[14]=0;
-			can_tx_data[15]=0;
-			APP_CAN_SEND_DATA(can_tx_data,14,HMI_BROADCAST_ADDR);
+			can_tx_data[15]=0;					
+			//app_cool_water_depth_semo();
+			APP_CAN_SEND_DATA(can_tx_data,16,CAN_HMI_ID);//14,CAN_HMI_ID);
 			break;
 		case HMI_CODE_PHOTODIOD:
 			u_sys_param.sys_config_param.photodiod_low=data[4]|(data[5]<<8);
@@ -293,13 +306,14 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			if(data[4]==0)	
 			{
 				u_sys_param.sys_config_param.e_cali[dw].energe_cali=data[8]|(data[9]<<8);
+				laser_ctr_param.laserFreq=10;//固定
 			}		
 			else 
 			{
 				u_sys_param.sys_config_param.e_cali[dw].power_cali=data[8]|(data[9]<<8);
 			}
-			laser_ctr_param.laserEnerge=(data[6]|(data[7]<<8));						
-			laser_ctr_param.laserFreq=10;//固定					
+			laser_ctr_param.laserEnerge=(data[6]|(data[7]<<8));					
+								
 			app_hmi_cmd_ack(hmi_code);
 			break;
 		case HMI_CODE_CLEAN_AND_DISINFECTION_TIME:
@@ -353,7 +367,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 				can_tx_data[13]=0;
 				can_tx_data[14]=0;
 				can_tx_data[15]=0;
-				APP_CAN_SEND_DATA(can_tx_data,12,HMI_BROADCAST_ADDR);//ack      		
+				APP_CAN_SEND_DATA(can_tx_data,12,CAN_HMI_ID);//ack      		
 			}
 			else if(data[4]==2)//up param				 
 			{		
@@ -366,7 +380,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 				can_tx_data[SYS_LASER_CONFIG_PARAM_LENGTH+6]=0x0D;
 				can_tx_data[SYS_LASER_CONFIG_PARAM_LENGTH+7]=0x0A;
 				can_tx_data[223]=0;
-				APP_CAN_SEND_DATA(can_tx_data,SYS_LASER_CONFIG_PARAM_LENGTH+8,HMI_BROADCAST_ADDR);	//ack
+				APP_CAN_SEND_DATA(can_tx_data,SYS_LASER_CONFIG_PARAM_LENGTH+8,CAN_HMI_ID);	//ack
 			}
 			else if(data[4]==3)//up param			
 			{	

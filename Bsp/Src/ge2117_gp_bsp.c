@@ -417,13 +417,13 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 			}	
 			if(geWksta.workStaus==0)
 			{
-				if(compareTemp>MAX_TEMPRATURE_LASER&&geWksta.ge_seriel_err==0)
+				if(compareTemp>MAX_TEMPRATURE_LASER&&geWksta.ge_seriel_err==0&&sGenSta.laser_run_B0_pro_hot_status!=0)
 				{
 					//DEBUG_PRINTF("gestart\r\n");
 					geWksta.wkTimeOut=0;
 					if(compareTemp>5+MAX_TEMPRATURE_LASER)
 					{
-						geWksta.compressorSetSpd=5000;
+						geWksta.compressorSetSpd= 5000;
 					}
 					else geWksta.compressorSetSpd=3000;
 					fan_spd_set(FAN38_COMPRESSOR_NUM,geWksta.compressorSetSpd);	

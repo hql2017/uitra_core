@@ -251,7 +251,13 @@ void Error_Handler(void);
 
 #ifndef DEBUG_MSG_UART 
 #define DEBUG_MSG_UART  /*use printf*/
+#ifndef USE_RTT_DEBUG
+#include "SEGGER_RTT.h"
+#define DEBUG_PRINTF(fmt, ...) SEGGER_RTT_printf(0, fmt, ##__VA_ARGS__)
+#else 
 #define DEBUG_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#endif
+
 #else
 #define DEBUG_PRINTF(fmt, ...) do { } while(0)
 #endif

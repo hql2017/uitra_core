@@ -67,6 +67,8 @@
 "uitra_core_v1.0\cmsis_os2.o"
 "uitra_core_v1.0\heap_4.o"
 "uitra_core_v1.0\port.o"
+"uitra_core_v1.0\segger_rtt_printf.o"
+"uitra_core_v1.0\segger_rtt.o"
 --strict --scatter "uitra_core_v1.0\uitra_core_v1.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

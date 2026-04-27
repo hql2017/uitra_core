@@ -574,17 +574,23 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   }  
   else if(IoNum==In7_water_ready_ok)//治疗水出口状态ok
   {//低ok有效
+     
     #if 1
     //改为检测水压,就绪    
     if(sEnvParam.treatment_water_pressure>MIN_TREATMENT_WATER_PRESSURE+sEnvParam.enviroment_temprature)
     {
       err=SUCCESS;
-    }   
-    #endif      
+    }
+    #else 
+    if(HAL_GPIO_ReadPin(treatment_water_ready_ok_in_GPIO_Port,treatment_water_ready_ok_in_Pin)==GPIO_PIN_RESET)
+    {
+      err=SUCCESS;
+    }
+    #endif        
   }
   else if(IoNum==In8_water_circle_ok)//水循环状态
   {//低ok有效
-    if(HAL_GPIO_ReadPin(water_cycle_ok_GPIO_Port,water_cycle_ok_Pin)==GPIO_PIN_RESET)//&&water_c>1.001&&water_c<7.200)
+    if(HAL_GPIO_ReadPin(water_cycle_ok_GPIO_Port,water_cycle_ok_Pin)==GPIO_PIN_SET)//&&water_c>1.001&&water_c<7.200)
     {
       err=SUCCESS;
     }   

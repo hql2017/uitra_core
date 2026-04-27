@@ -38,11 +38,11 @@ typedef enum{
  //static unsigned short int fan_duty_buff[13]={0,20,112,148,192,254,324,390,479,559,640,710,890};//0,0,2000~11000RPM,890 ，10k 
  //static const unsigned short int fan_duty_buff[13]={0,40,76,120,160,200,240,280,320,360,360,360,360};//0,1500~5100RPM,25K
 	static unsigned short int fan_duty_buff[13]=     {0,10, 14, 38, 65, 86, 86, 86, 86, 86, 86, 86, 86 };//%fan25
-	#if 1
+	#if 0
+	//通电就转最低1710rpm duty0~100；
    	static unsigned short int fan2_38_duty_buff[13]= {0,20, 38, 53, 74, 90, 90, 90, 90, 90, 90, 90, 90 };//%fan38
 	 #else
-	 //通电就转最低1710rpm duty0~100；
-	 static unsigned short int fan2_38_duty_buff[13]={0,10, 15,38, 65,  86, 86, 86, 86, 86, 86, 86, 86};//%fan38
+	 static unsigned short int fan2_38_duty_buff[13]=  {0,10, 14, 38, 65, 86, 86, 86, 86, 86, 86, 86, 86 };//%fan25
 	 #endif
 #ifdef  FAN_PID_ENABLE 
 #define  FAN_PID_ENABLE 
