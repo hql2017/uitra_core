@@ -45,6 +45,10 @@ void app_jdq_rs485_receive_data(void);
 unsigned char  app_jdq_rs485_check_gwb3200_rec_package(void);
 
 unsigned char  app_jdq_gwb_pwr_flag(void);
+
+#define JDG_RELEY_ENABLE  1
+#define JDG_RELEY_DISABLE 0
+
 #define JDQ_RS485_FRAME_MAX_DELAY_MS 500
 #define JDQ_RS485_FRAME_MIN_MS 100
 #define MAX_UART1_BUFF_LENTH 128

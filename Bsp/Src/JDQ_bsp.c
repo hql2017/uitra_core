@@ -212,7 +212,7 @@ void jdq_reley_charge(unsigned char onOff)
  */
 void jdq_reley_charge_ready(unsigned char onOff)
 {
-	if(onOff==0) HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_SET);
+	if(onOff==JDG_RELEY_DISABLE) HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_SET);
 	else HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_RESET); 
 }
 
@@ -467,23 +467,21 @@ unsigned short int app_rs485_package_check(unsigned char* pBuff,unsigned short i
 unsigned char  app_jdq_rs485_check_gwb3200_rec_package(void)
 {
 	unsigned char i=0,peekLen=0,packgeLen;
-	unsigned char tempBuff[MAX_UART1_BUFF_LENTH+1];
-	memcpy(tempBuff,UART1_RX_BUFF,jdq_rs485_receiv_len);	
 	peekLen = jdq_rs485_receiv_len;   	
 	if(peekLen>5) 
     {  
-      #if 0   
+      #if 0 
 	  if(packgeLen>5) 
 	  {    
 		DEBUG_PRINTF("rs485_receive_pack:\r\n");
 		for(int i=0;i<packgeLen;i++)
 		{
-			DEBUG_PRINTF(" %02x",UART1_RX_BUFF[i+readLen]);
+			DEBUG_PRINTF(" %02x",UART1_RX_BUFF[i]);
 		}
 		DEBUG_PRINTF(" Len=%d\r\n",packgeLen);    
 		}  
       #endif   
-      packgeLen = app_rs485_package_check(tempBuff,peekLen);	 
+      packgeLen = app_rs485_package_check(UART1_RX_BUFF,peekLen);	 
       if(packgeLen!=0)
       {
 		if(packgeLen<peekLen)
@@ -820,7 +818,6 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
 	UART1_TX_BUFF[5] = 0x0D;
 	JDQ_RS485_TX;
 	err = HAL_UART_Transmit(&huart1,UART1_TX_BUFF, 6, 100);
-	
 	if(err==HAL_OK) app_jdq_lisen(GWB_3200_REG_SET_VOLTAGE_CURRENT,17);	
 	else jdq_rs485_sta.frame_regStart=0;
 	#else
@@ -962,9 +959,9 @@ void app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVoltage
 	else if(energeVoltage>DAC_MAX_VOLTAGE_F) num100ns = 210;
 	else num100ns=(unsigned short int)(energeVoltage*20)+130;
 	//100~200us	 
-	if(pulse100ns<800) __HAL_TIM_SetAutoreload(&htim3,799-num100ns-lowVoltage100ns);//100us	
-	else if(pulse100ns>2000) __HAL_TIM_SetAutoreload(&htim3,1999-num100ns-lowVoltage100ns);//200us
-	else __HAL_TIM_SetAutoreload(&htim3,pulse100ns-1-num100ns-lowVoltage100ns);  
+	if(pulse100ns<800) __HAL_TIM_SetAutoreload(&htim5,799-num100ns-lowVoltage100ns);//100us	
+	else if(pulse100ns>2000) __HAL_TIM_SetAutoreload(&htim5,1999-num100ns-lowVoltage100ns);//200us
+	else __HAL_TIM_SetAutoreload(&htim5,pulse100ns-1-num100ns-lowVoltage100ns);  
 }
 /**
   * @brief app_laser_pulse_start 
@@ -1120,7 +1117,7 @@ void app_jdq_rs485_receive_data(void)
 	if(HAL_UART_Receive_IT(&huart1, &rs485_rec_byte,1)!=HAL_OK)
 	{
 	 /*Transfer error in reception process */
-		//Error_Handler();			
+		//Error_Handler();	
 	}	
 }
 /***************************************************************************//**

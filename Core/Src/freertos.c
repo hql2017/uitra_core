@@ -637,8 +637,9 @@ void StartDefaultTask(void *argument)
     app_get_adc_value(AD1_OCP_Ibus_INDEX,&sEnvParam.iBus);
     app_get_adc_value(AD1_24V_VBUS_INDEX,&sEnvParam.vBus);    
     app_get_adc_value(AD1_AIR_PRESSER_INDEX,&sEnvParam.air_pump_pressure);
-    DEBUG_PRINTF("adc load:NTC=%.2f℃ laser_energe=%.1f iBus=%.1fmA ,vBus=%.1fmV,air_pump_pressure=%.2fkPa\r\n",sEnvParam.NTC_temprature,\
-      sEnvParam.laser_1064_energy,sEnvParam.iBus,sEnvParam.vBus,sEnvParam.air_pump_pressure); 
+    app_get_adc_value(AD1_WATER_PRESSER_INDEX,&sEnvParam.treatment_water_pressure);
+    DEBUG_PRINTF("adc load:NTC=%.2f℃ laser_energe=%.1f iBus=%.1fmA ,vBus=%.1fmV,air_pump_pressure=%.2fkPa,water_pressure=%.2fkPa\r\n",sEnvParam.NTC_temprature,\
+      sEnvParam.laser_1064_energy,sEnvParam.iBus,sEnvParam.vBus,sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure); 
      
     if(sEnvParam.NTC_temprature>-40&&sEnvParam.NTC_temprature<150)
     {      
@@ -708,90 +709,28 @@ void StartDefaultTask(void *argument)
       load_sta=3;
       DEBUG_PRINTF("laser jdq  load fail \r\n");      
     } 
-  #else
-    //HAL_Delay(JDQ_RS485_FRAME_MIN_MS);
-    HAL_Delay(3000);
-    app_jdq_bus_power_on_off(0);
-    timeout = 0;
-    do
-    {
-      HAL_Delay(JDQ_RS485_FRAME_MIN_MS);         
-      timeout+=JDQ_RS485_FRAME_MIN_MS;    
-    }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
-    HAL_Delay(JDQ_RS485_FRAME_MIN_MS);   
-    app_jdq_bus_get_v_c_req();
-    timeout=0;
-    do
-    {
-      HAL_Delay(JDQ_RS485_FRAME_MIN_MS); 
-      timeout+=JDQ_RS485_FRAME_MIN_MS;           				
-    }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
-    app_jdq_bus_get_set_v_c(&s_jdq_set_voltage,&s_jdq_set_current);
-    if(s_jdq_set_voltage!=LASER_JDQ_VOLTAGE_F)
-    {
-      HAL_Delay(JDQ_RS485_FRAME_MIN_MS);
-      app_jdq_bus_voltage_set(LASER_JDQ_VOLTAGE_F);
-      timeout = 0;
-      do
-      {
-        HAL_Delay(JDQ_RS485_FRAME_MIN_MS);         
-        timeout+=JDQ_RS485_FRAME_MIN_MS;    
-      }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
-    }
-    if(s_jdq_set_current!=LASER_JDQ_CURRENT_LIMIT_F)    
-    {
-      HAL_Delay(JDQ_RS485_FRAME_MIN_MS);
-      app_jdq_bus_current_set(LASER_JDQ_CURRENT_LIMIT_F);
-      timeout = 0; 
-      do
-      {
-        HAL_Delay(JDQ_RS485_FRAME_MIN_MS);         
-        timeout+=JDQ_RS485_FRAME_MIN_MS;    
-      }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS); 
-    }
-    HAL_Delay(JDQ_RS485_FRAME_MIN_MS);   
-    app_jdq_bus_get_v_c_req();
-    timeout=0;
-    do
-    {
-      HAL_Delay(JDQ_RS485_FRAME_MIN_MS); 
-      timeout+=JDQ_RS485_FRAME_MIN_MS;           				
-    }while(app_get_jdq_rs485_bus_statu()!=0&&timeout<JDQ_RS485_FRAME_MAX_DELAY_MS);
-    app_jdq_bus_get_set_v_c(&s_jdq_set_voltage,&s_jdq_set_current);
-    if(s_jdq_set_voltage>LASER_JDQ_VOLTAGE_F+5.0||s_jdq_set_voltage+5.0<LASER_JDQ_VOLTAGE_F)
-    {
-      load_sta=3;
-      DEBUG_PRINTF("laser jdq  load fail \r\n"); 
-    }
-    else
-    {
-      HAL_Delay(50);		
-      DEBUG_PRINTF("lasr jdq  load ok jdq_v=%.1f v \r\n",s_jdq_set_voltage); 
-      load_sta = 1;
-    } 
+  
   #endif   
     app_laser_pulse_start(LASER_PULSE_STOP, LASER_PULSE_STOP,LASER_PULSE_STOP);
     load_sta=0;
     DEBUG_PRINTF("load treatment water system...\r\n");
-    osTimerStop(cleanTimer02Handle);  
-    tmc2226_init();    
-    osTimerDelete(cleanTimer02Handle);
+    tmc2226_init();  
     if(app_get_io_status(In7_water_ready_ok)!=SUCCESS) 
     {
       tmc2226_start(TMC_WATER_OUT_DIR_VALUE,3,CONTINUOUS_STEPS_COUNT );
-      timeout=0;
-      do
-      { 
-        HAL_Delay(50);
-        timeout+=50; 
-        if(timeout>5000)
-        {
-          DEBUG_PRINTF("treatment water load fail \r\n");          
-          load_sta=3;
-          break;
-        }
-      }while(app_get_io_status(In7_water_ready_ok)!=SUCCESS); 
     }
+    timeout=0;
+    do
+    { 
+      HAL_Delay(50);
+      timeout+=50; 
+      if(timeout>5000)
+      {
+        DEBUG_PRINTF("treatment water load fail \r\n");          
+        load_sta=3;
+        break;
+      }
+    }while(app_get_io_status(In7_water_ready_ok)!=SUCCESS);     
     tmc2226_stop();
     if(load_sta==0)
     {     
@@ -831,6 +770,8 @@ void auxTask02(void *argument)
       app_fan_manage(led_tick);		      
 			HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
       app_sram_status_monitor(); 
+      DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure);
+      
 		}	    
 		/**********************RGB****************************/		
 		/**********************RGB****************************/		
@@ -843,14 +784,7 @@ void auxTask02(void *argument)
       case RGB_G_STANDBY:      
         {
           Green_Breath(u_sys_param.sys_config_param.rgb_light); 
-          osDelay(15);//frq=(1000/(64*(15+1) ))*2
-          if(rgb_s==osOK)	        
-          {
-            if(sEnvParam.eth_k1_temprature+MIN_TEMPRATURE_LASER<u_sys_param.sys_config_param.cool_temprature_target*0.1)
-            {        
-              if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)!=1000) fan_spd_set(FAN38_COMPRESSOR_NUM,1000);   
-            }       
-          }
+          osDelay(15);//frq=(1000/(64*(15+1) ))*2          
         }
       break;
       case RGB_LASER_PREPARE_OK:
@@ -997,8 +931,7 @@ void laserWorkTask04(void *argument)
     if(event==(EVENTS_LASER_1064_PREPARE_OK_BIT|EVENTS_LASER_JT_ENABLE_BIT))
     {      
       if(laser_close_sem==osOK&&sGenSta.laser_run_B0_pro_hot_status!=0)
-      {        	
-        sGenSta.laser_run_B1_laser_out_status=0; 
+      {   
         osTimerStop(laserWorkTimer01Handle);	
         app_laser_pulse_start(LASER_PULSE_STOP,LASER_PULSE_STOP,LASER_PULSE_STOP);          
         tmc2226_stop();  
@@ -1022,18 +955,17 @@ void laserWorkTask04(void *argument)
           timeout+=JDQ_RS485_FRAME_MIN_MS;
           if(timeout>LASER_JDQ_CHARGE_TIMEOUT_MS) break;
         }while(app_jdq_gwb_pwr_flag()!=0);  
-        jdq_reley_charge(1);//
+        jdq_reley_charge(JDG_RELEY_DISABLE);//
         if(app_jdq_gwb_pwr_flag()==0) 
         {
           osDelay(JDQ_RS485_FRAME_MIN_MS);
-          jdq_reley_charge_ready(1);
+          jdq_reley_charge_ready(JDG_RELEY_ENABLE);
           DEBUG_PRINTF("gwb3200 close ok %f,release voltage\r\n",app_jdq_voltage_monitor());
         }    
         else{
           DEBUG_PRINTF("gwb3200 close timeout !\r\n");          
         }           
-        sGenSta.laser_run_B0_pro_hot_status=0;	       
-        osTimerDelete(laserWorkTimer01Handle);
+        sGenSta.laser_run_B0_pro_hot_status=0;	  
         rgbMessage = RGB_G_STANDBY;
         osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);
         osEventFlagsClear(laserEvent02Handle,EVENTS_LASER_PREPARE_OK_ALL_BITS_MASK);
@@ -1357,14 +1289,14 @@ void canReceiveTask07(void *argument)
     can_rec_timeout=osKernelGetTickCount();	    
     while(FDCAN1_Receive_Msg(buff, &Identifier, &len))
     {  
-		  if(Identifier==CAN_HMI_ID||CAN_BROADCAST_ID)//屏幕
+		  if(Identifier==CAN_HMI_ID||Identifier==CAN_BROADCAST_ID)//屏幕
       {
         memcpy(&fd_canRxBuff[fd_canRxLen],buff,8);
         fd_canRxLen+=len;
         fd_canRxLen%=(MAX_FDCAN_FRAME_DATALEN+1);     
         if(fd_canRxLen>7) 
         {       
-          #if 1       
+          #if 0      
           DEBUG_PRINTF("CAN_lcd_receive_pack:\r\n");
           for(int i=0;i<peekLen;i++)
           {
@@ -1492,9 +1424,9 @@ void laserProhotTask09(void *argument)
       outVoltage = app_jdq_voltage_monitor();  
       if(outVoltage>local_f+5.0) 
       { // release voltage
-        jdq_reley_charge(0);
+        jdq_reley_charge(JDG_RELEY_DISABLE);
         osDelay(JDQ_RS485_FRAME_MIN_MS);		
-        jdq_reley_charge_ready(1);       
+        jdq_reley_charge_ready(JDG_RELEY_ENABLE);       
       }
       timeout=0;
       do
@@ -1504,9 +1436,9 @@ void laserProhotTask09(void *argument)
         outVoltage = app_jdq_voltage_monitor();  
       }while (outVoltage>local_f+5.0&&timeout<LASER_JDQ_CHARGE_TIMEOUT_MS);
       //limit charge current
-      jdq_reley_charge_ready(0);
+      jdq_reley_charge_ready(JDG_RELEY_DISABLE);
       osDelay(JDQ_RS485_FRAME_MIN_MS);
-      jdq_reley_charge(1);	
+      jdq_reley_charge(JDG_RELEY_ENABLE);	
       osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
       u_g3200w_ctr_tx_message.msg.cmdCode=GWB_3200_REG_RUN_STOP;
       u_g3200w_ctr_tx_message.msg.cmdLen=1;
@@ -1551,7 +1483,7 @@ void laserProhotTask09(void *argument)
           DEBUG_PRINTF("charge time out fail! exit prohot\r\n");    
           break;
         }  
-        DEBUG_PRINTF("charge jdq—v%f %f \r\n",outVoltage,l_jdq_set_voltage);                
+        DEBUG_PRINTF("charge jdq V=%f set=%f \r\n",outVoltage,l_jdq_set_voltage);                
       }while(outVoltage+5.0<local_f);//90% voltage
       if(l_jdq_set_voltage!=JDQ_PWR_GWB_3200W_ERROR_FLAG&&outVoltage+5.0>=local_f)
       {//charge ok set to current limit
@@ -1605,9 +1537,9 @@ void laserProhotTask09(void *argument)
           osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
           osMessageQueuePut(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_tx_message.data,NULL,0);
         } 
-        jdq_reley_charge(0);
+        jdq_reley_charge(JDG_RELEY_DISABLE);
         osDelay(JDQ_RS485_FRAME_MIN_MS);		
-        jdq_reley_charge_ready(1);         
+        jdq_reley_charge_ready(JDG_RELEY_ENABLE);         
       }
      
     }		
@@ -1722,11 +1654,11 @@ void jdqGWB3200wTask12(void *argument)
   osTimerStart(jdqHeart100msTimer04Handle,JDQ_RS485_FRAME_MIN_MS);
   for(;;)
   {
-    osDelay(10);
+    osDelay(20);
     unsigned char  reclen=app_jdq_rs485_check_gwb3200_rec_package();
     if(reclen==0)
     {
-      jdq_geb_hearttimeout+=10;
+      jdq_geb_hearttimeout+=20;
       if(jdq_geb_hearttimeout>SYS_1_MINUTES_TICK)
       {
         jdq_geb_hearttimeout=0;        
@@ -1831,7 +1763,7 @@ void jdqHeart100msCallback04(void *argument)
   {   
     if(laser_ctr_param.lowEnergeMode==0)
     {
-      HAL_TIM_Base_Start_IT(&htim3);
+      HAL_TIM_Base_Start_IT(&htim5);
     }
   }   
   #ifdef ONE_WIRE_BUS_JT_SLAVE 
@@ -2161,36 +2093,65 @@ void app_set_default_sys_config_param(void)
   *****************************************************************************/
  void app_air_pump_manage(unsigned char air_level)
  {
-		uint32_t eventFlag= osEventFlagsGet(auxStatusEvent01Handle);
-		float air_pressure=MID_AIR_PUMP_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa;
-		if(air_level==1)
+  uint32_t eventFlag= osEventFlagsGet(auxStatusEvent01Handle);
+  unsigned char duty_cali=0,duty;
+  float air_pressure=MID_AIR_PUMP_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa;
+  if(air_level==1)
+  {      
+    duty=20;
+    air_pressure = u_sys_param.sys_config_param.air_low_pressure+sEnvParam.air_gzp_enviroment_pressure_kpa;
+    //air_pressure = MIN_AIR_PUMP_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa;
+  }
+  else if(air_level==3)
+  {     
+    duty=30;
+    air_pressure   =  u_sys_param.sys_config_param.air_mid_pressure+sEnvParam.air_gzp_enviroment_pressure_kpa;
+    //air_pressure = MAX_AIR_PUMP_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa;			
+  }
+  else if(air_level==2)
+  {      
+    duty=25;
+    air_pressure = u_sys_param.sys_config_param.air_high_pressure+sEnvParam.air_gzp_enviroment_pressure_kpa;
+    //air_pressure=MID_AIR_PUMP_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa;
+  }    
+  if(air_level!=sGenSta.air_level_status) //= laser_ctr_param.airPressureLevel&&((eventFlag&EVENTS_AUX_STATUS_IO6_BIT)== EVENTS_AUX_STATUS_IO6_BIT)&&sGenSta.laser_run_B0_pro_hot_status!=0)//
+  {    
+    sGenSta.air_level_status=air_level; 
+    if(sEnvParam.air_gzp_enviroment_pressure_kpa>100.0)
     {
-      //air_pressure = u_sys_param.sys_config_param.air_low_pressure+sEnvParam.air_gzp_enviroment_pressure_kpa;
-      air_pressure = MIN_AIR_PUMP_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa;
+      duty_cali=(sEnvParam.air_pump_pressure-95.0)*100/air_pressure;
+      duty_cali%=5;//校准值不超过5%  
+      app_air_pum_pwm_set(duty-duty_cali);     
     }
-    else if(air_level==3)
+    else  if(sEnvParam.air_gzp_enviroment_pressure_kpa<90.0)
     {
-      //air_pressure   =  u_sys_param.sys_config_param.air_mid_pressure+sEnvParam.air_gzp_enviroment_pressure_kpa;
-      air_pressure = MAX_AIR_PUMP_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa;			
+      duty_cali=(95.0-sEnvParam.air_pump_pressure)*100/air_pressure;
+      duty_cali%=5;//校准值不超过5%
+      app_air_pum_pwm_set(duty+duty_cali);
     }
-    else if(air_level==2)
+    else 
     {
-      //air_pressure = u_sys_param.sys_config_param.air_high_pressure+sEnvParam.air_gzp_enviroment_pressure_kpa;
-      air_pressure=MID_AIR_PUMP_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa;
-    }    
-    if(air_level==0||((eventFlag&EVENTS_AUX_STATUS_IO6_BIT)!= EVENTS_AUX_STATUS_IO6_BIT)|| sEnvParam.air_pump_pressure>air_pressure+3 )//
-    {			
-      //app_air_pump_switch(DISABLE);     	     
-    }
-		else 
-		{
-			if(sEnvParam.air_pump_pressure+5 < air_pressure)
-			{	
-				//app_air_pump_switch(ENABLE);
-			}
-		} 
-		
-			sGenSta.laser_param_B23_air_pump_pressure_status = 1;
+      duty_cali=0;
+      app_air_pum_pwm_set(duty);
+    }           
+  }
+  #if 1
+  //本机取消气瓶
+  sGenSta.laser_param_B23_air_pump_pressure_status=1;
+  #else 
+  if(sEnvParam.air_pump_pressure+10<(MIN_AIR_PUMP_PRESSURE + sEnvParam.air_gzp_enviroment_pressure_kpa) )	
+  {
+    sGenSta.laser_param_B23_air_pump_pressure_status = 0;
+  }	
+  else if(sEnvParam.air_pump_pressure > ( MAX_AIR_PUMP_PRESSURE + sEnvParam.air_gzp_enviroment_pressure_kpa+10) )	
+  {
+    sGenSta.laser_param_B23_air_pump_pressure_status = 2;
+  }	
+  else 
+  {
+    sGenSta.laser_param_B23_air_pump_pressure_status = 1;
+  }	
+  #endif		
 					
  }
  /************************************************************************//**
@@ -2203,7 +2164,7 @@ void app_set_default_sys_config_param(void)
   {
     sGenSta.circle_water_box_temprature = (char)((int)sEnvParam.eth_k1_temprature);
     sGenSta.treatment_water_level_status = laser_ctr_param.treatmentWaterLevel;
-    sGenSta.air_level_status = laser_ctr_param.airPressureLevel;	
+
     sGenSta.laser_run_B2_gx_test_status = laser_ctr_param.ctrTestMode;
    
     sGenSta.genaration_io_status = osEventFlagsGet(auxStatusEvent01Handle);	 
@@ -2475,10 +2436,10 @@ unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int
 *******************************************************************************/
  void app_jdq_restart(void)
  {	  	
-	 jdq_reley_charge_ready(0);//负载断开
-	 jdq_reley_charge(0);//
+	 jdq_reley_charge_ready(JDG_RELEY_DISABLE);//负载断开
+	 jdq_reley_charge(JDG_RELEY_DISABLE);//
 	 osDelay(500);		
-	 jdq_reley_charge(1);//	
+	 jdq_reley_charge(JDG_RELEY_ENABLE);//	
    osDelay(1000);		 	
  }
  #ifdef JDQ_PWR_GWB_3200W

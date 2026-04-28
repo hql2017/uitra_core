@@ -402,7 +402,7 @@ extern TIM_HandleTypeDef htim6;//hal tick timer
 void app_start_multi_channel_adc(void)
 {    
 	tim_triger_ad(&htim6);//low power 
-  HAL_ADC_Start_DMA(&hadc1,(unsigned int*)adBuff,MAX_AD_BUFF_LENGTH);  //4*64 
+  HAL_ADC_Start_DMA(&hadc1,(unsigned int*)adBuff,MAX_AD_BUFF_LENGTH);  //5*64 
 
  // kalman_filter_init(&kalmAd2, 0, 0.1);
 }
@@ -412,8 +412,12 @@ void app_start_multi_channel_adc(void)
   * @note   脉冲AD采集,tmeus =32*5=160us
   * @retval None
   */
+ static uint16_t pulse_ad_count = 30;
 void pulse_adc_start(unsigned char Len)
 {  
+  if(Len>MAX_AD2_ENERGE_BUFF_LENGTH) pulse_ad_count=MAX_AD2_ENERGE_BUFF_LENGTH;
+  else if(Len<32) pulse_ad_count=32;
+  else  pulse_ad_count=Len;
   HAL_ADC_Start_DMA(&hadc2,(unsigned int*)ad2Buff,MAX_AD2_ENERGE_BUFF_LENGTH); 
 }
 /**
@@ -471,39 +475,51 @@ void filter_ad1(void)
   */
   void app_in_energe_adc_value(void)
   {
-    SCB_InvalidateDCache_by_Addr(ad2Buff, MAX_AD2_ENERGE_BUFF_LENGTH);
-    #if 0
-    ad2vale = ad_square_value(ad2Buff,MAX_AD2_ENERGE_BUFF_LENGTH);
-    #else
-    long unsigned int sum=0;
-    unsigned short int i=0,j=0,k=0;
-    static unsigned char levelLen;  
-    for(i=0;i<MAX_AD2_ENERGE_BUFF_LENGTH;i++)
-    {
-      if(ad2Buff[i]>546) //>25mV:546
+      /* invalidate full buffer in bytes */
+      SCB_InvalidateDCache_by_Addr((void*)ad2Buff, sizeof(ad2Buff));
+      #if 0
+      ad2vale = ad_square_value(ad2Buff,MAX_AD2_ENERGE_BUFF_LENGTH);
+      #else
+      uint32_t sum = 0U;
+      unsigned short int i = 0,j=0;
+      static unsigned char levelIdx = 0; 
+      //90%计算峰值;//50%计算脉宽和功率;
+      unsigned short int max_half_value=match_max(ad2Buff,pulse_ad_count)>>1;//50%; 
+      // Vmax;
+      for(i = 0; i < pulse_ad_count; i++)
       {
-        if(k==0) k=i;
-        j++;        
-      }          
-    } 
-    levelLen%=8; 
-    if(j>10)
-    {  
-      for(i=0;i<j;i++) 
-      {
-        if(i>2&&i+7<j) sum+=ad2Buff[i+k];
+        if(ad2Buff[i]>max_half_value)
+        {  
+          j++;
+          sum += ad2Buff[i];
+        }             
+      } 
+      /* store running levels in a circular 8-slot buffer */
+      const unsigned char idx = levelIdx & 0x07;
+      if (j > 1) {
+        ad2hle[idx] = (unsigned short int)(sum /j);
+      } else {
+        ad2hle[idx] = (unsigned short int)sum;
       }
-      ad2hle[levelLen]=(unsigned short int)(sum/(j-10));
-    }    
-    else ad2hle[levelLen]=0;    
-    levelLen++;
-    sum=0;
-    for(i=0;i<8;i++)
-    {     
-      sum+=ad2hle[i];       
-    }  
-    ad2vale = ( sum>>3);   
-    #endif 
+      levelIdx = (levelIdx + 1) & 0xFF; /* keep wrapping but idx uses &0x07 */
+      sum = 0;
+      for(i = 0; i < 8; i++)
+      {     
+        if(ad2hle[i]==0) sum += ad2hle[0];
+        else sum += ad2hle[i];       
+      } 
+      ad2vale = (unsigned short int)(sum >> 3);   
+      #endif 
+      #if 0
+      //kalman_filter_update(&kalmAd2, sum>>3);
+      //ad2vale= kalmAd2.estimate;    
+      DEBUG_PRINTF("laserAD=\r\n");
+      for(int i=0;i<MAX_AD2_ENERGE_BUFF_LENGTH;i++)
+      {
+        DEBUG_PRINTF(" %d",ad2Buff[i]);
+      }
+      DEBUG_PRINTF("leve=%d ad2=%d\r\n",ad2vale,ad2hle);   
+     #endif 
      
   }
   /**

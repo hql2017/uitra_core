@@ -174,12 +174,12 @@ void app_air_pump_switch( FunctionalState flag)
 {
   if(flag==DISABLE)
   {  
-    HAL_TIM_PWM_Stop(&htim3,TIM_CHANNEL_2);
+    HAL_TIM_PWM_Stop(&htim3,TIM_CHANNEL_4);
     HAL_GPIO_WritePin(H_AIR_PUMP_PWR_EN_GPIO_Port,H_AIR_PUMP_PWR_EN_Pin,GPIO_PIN_SET);//电源   
   } 
   else
   {
-    HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_4);
     HAL_GPIO_WritePin(H_AIR_PUMP_PWR_EN_GPIO_Port,H_AIR_PUMP_PWR_EN_Pin,GPIO_PIN_RESET);//电源
   }  
 }
@@ -244,7 +244,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
       if(compareTemp<MIN_TEMPRATURE_LASER)  
       {
         ptcRunTime=0;
-        fan_spd_set(FAN38_COMPRESSOR_NUM,1000);						
+        fan_spd_set(FAN38_COMPRESSOR_NUM,1000);	        
         PTC_flag=1;
         app_PTC_en_switch(ENABLE);
       }
@@ -260,7 +260,8 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
     if(compareTemp+4.0<MIN_TEMPRATURE_LASER)
     {
       if(ptcRunTime>17)//duty=%90)
-      {               
+      {     
+        fan_stop(FAN38_COMPRESSOR_NUM);          
         app_PTC_en_switch(DISABLE);
       } 
     }
@@ -277,8 +278,9 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
       {                       
         app_PTC_en_switch(DISABLE);
       }
-      if(compareTemp > MIN_TEMPRATURE_LASER) 
+      if(compareTemp >=MIN_TEMPRATURE_LASER) 
       {
+        fan_start(FAN38_COMPRESSOR_NUM);
         app_PTC_en_switch(DISABLE);
         PTC_flag=0;
       }        
@@ -577,7 +579,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
      
     #if 1
     //改为检测水压,就绪    
-    if(sEnvParam.treatment_water_pressure>MIN_TREATMENT_WATER_PRESSURE+sEnvParam.enviroment_temprature)
+    if(sEnvParam.treatment_water_pressure>MIN_TREATMENT_WATER_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa)
     {
       err=SUCCESS;
     }

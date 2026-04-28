@@ -410,9 +410,9 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 			compareTemp=circleWaterTmprature-(u_sys_param.sys_config_param.cool_temprature_target*0.1);			
 			if(compareTemp<MAX_TEMPRATURE_LASER&&compareTemp>MIN_TEMPRATURE_LASER)
 			{	
-				if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)!=2000)
+				if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)!=1000)
 				{
-					fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
+					fan_spd_set(FAN38_COMPRESSOR_NUM,1000);	
 				}
 			}	
 			if(geWksta.workStaus==0)
@@ -453,10 +453,9 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 					if(geWksta.ge_seriel_err==0)
 					{
 						//DEBUG_PRINTF("gestop\r\n");
-						fan_spd_set(FAN38_COMPRESSOR_NUM,3000);//slow						
+						fan_spd_set(FAN38_COMPRESSOR_NUM,2000);//slow						
 						geWksta.wkTimeOut=0;
-						ge2117_start_up_set(GE2117_STOP_CMD);
-						fan_stop(FAN38_COMPRESSOR_NUM);
+						ge2117_start_up_set(GE2117_STOP_CMD);						
 						geWksta.ge_seriel_err=10;					
 					}						
 				}

@@ -383,7 +383,7 @@ extern void app_jdq_rs485_receive_data(void);
     app_ge2117_receive_data_handle();
   }
   if(UartHandle->Instance==huart1.Instance)	
-  {   	    
+  {  
     app_jdq_rs485_receive_data();
   }
  }	

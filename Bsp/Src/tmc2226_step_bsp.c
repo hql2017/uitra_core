@@ -160,7 +160,7 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
  {
     tmc2226_param_default(); 
     tmc2226_stop();
-    HAL_TIM_Base_Start_IT(&htim24);      
+    HAL_TIM_Base_Start_IT(&htim23);      
  }
  /**
   * @brief tem2226_step_pwm
@@ -179,21 +179,21 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
 		if(rdbSpd>35)   rdbSpd=35;//8k
 		//period=(1000000/freq);
     period=4550/rdbSpd;	//
-		__HAL_TIM_SetAutoreload(&htim4,period-1);//low 1K  MAX 8kHz
+		__HAL_TIM_SetAutoreload(&htim16,period-1);//low 1K  MAX 8kHz
 		//duty 1%  100%; 0% close	
 		timeUs=period /2;	//duty 50%
-		__HAL_TIM_SetCompare(&htim4,TIM_CHANNEL_3,timeUs-1);
-		HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_3);
+		__HAL_TIM_SetCompare(&htim16,TIM_CHANNEL_1,timeUs-1);
+		HAL_TIM_PWM_Start(&htim16,TIM_CHANNEL_1);
   }
   else
   {
-    HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_3);
+    HAL_TIM_PWM_Stop(&htim16,TIM_CHANNEL_1);
   }	
  }
 /**
   * @brief app_steps_pulse
   * @param  void
-  * @note   1  pulse -> 4 steps
+  * @note   1  pulse -> 4 steps, 1s pulse count = rdb_speed*228 (4 steps per pulse, 228 pulse per second at 35ml/min)
   * @retval None
   */
 void app_steps_pulse(unsigned int steps)
@@ -201,19 +201,21 @@ void app_steps_pulse(unsigned int steps)
   if(steps==0)
   {
     tmc2226_rdb_info.pulse_count=0;
-    __HAL_TIM_SET_COUNTER(&htim24,0);
     tmc2226_rdb_info.run=0;
     tmc2226_stop(); 
   }
   else 
   {  
-    if(steps<CONTINUOUS_STEPS_COUNT)
-    {  
-      tmc2226_rdb_info.run=0;
-      u_sys_param.sys_config_param.RDB_use_timeS+=tmc2226_rdb_info.pulse_count;
-      tmc2226_stop();
-    } 
-    else u_sys_param.sys_config_param.RDB_use_timeS++;//1s
+    if(tmc2226_rdb_info.run!=0)
+    {
+      if(steps<CONTINUOUS_STEPS_COUNT)
+      {  
+        tmc2226_rdb_info.run=0;
+        tmc2226_rdb_info.pulse_count=0;
+        tmc2226_stop();
+      } 
+      u_sys_param.sys_config_param.RDB_use_timeS++;//1s
+    }    
   }     
  }
  /**
@@ -242,13 +244,11 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel,unsigned int st
     if(steps==CONTINUOUS_STEPS_COUNT)
     {
       //steps=tmc2226_rdb_info.rdb_speed(8000/35)); //1s pulse count
-      tmc2226_rdb_info.pulse_count = 1;
-      __HAL_TIM_SetAutoreload(&htim24,(tmc2226_rdb_info.rdb_speed*228));    
+      tmc2226_rdb_info.pulse_count = 1;     
     }
     else
     {
-      tmc2226_rdb_info.pulse_count = (steps>>2)/(tmc2226_rdb_info.rdb_speed*228); //s  
-      __HAL_TIM_SetAutoreload(&htim24,(steps>>2));         
+      tmc2226_rdb_info.pulse_count = (steps>>2)/(tmc2226_rdb_info.rdb_speed*228); //s count,4 steps per pulse, 228 pulse per second at 35ml/min
     }  
     tem2226_step_pwm(tmc2226_rdb_info.rdb_speed);
 		tmc2226_en(1);
@@ -263,15 +263,10 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel,unsigned int st
   */
   void  tmc2226_stop(void)
   {    
-    HAL_TIM_PWM_Stop(&htim4,TIM_CHANNEL_3);    
+    HAL_TIM_PWM_Stop(&htim16,TIM_CHANNEL_1);    
     tmc2226_en(0);  
     if(tmc2226_rdb_info.run!=0)
-    {//soft stop
-      if(tmc2226_rdb_info.pulse_count!=1)
-      {
-        tmc2226_rdb_info.pulse_count=(__HAL_TIM_GET_COUNTER(&htim24))/(tmc2226_rdb_info.rdb_speed*228);
-        u_sys_param.sys_config_param.RDB_use_timeS+=tmc2226_rdb_info.pulse_count;        
-      }     
+    {//soft stop         
       tmc2226_rdb_info.pulse_count=0;
       tmc2226_rdb_info.run=0;  
     }  
@@ -285,8 +280,7 @@ void tmc2226_start(unsigned char dir,unsigned short int spdLevel,unsigned int st
  void app_tmc2226_speed_set(unsigned char spdLevel)
  {
     if(spdLevel==0)
-    {
-      __HAL_TIM_SET_COUNTER(&htim24,0);
+    {      
       tmc2226_stop();
     }
     else 

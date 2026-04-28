@@ -63,10 +63,9 @@ extern UART_HandleTypeDef hlpuart1;
 extern UART_HandleTypeDef huart5;
 extern UART_HandleTypeDef huart1;
 extern TIM_HandleTypeDef htim2;
-extern TIM_HandleTypeDef htim16;
+extern TIM_HandleTypeDef htim7;
 extern TIM_HandleTypeDef htim17;
 extern TIM_HandleTypeDef htim23;
-extern TIM_HandleTypeDef htim24;
 extern TIM_HandleTypeDef htim6;
 
 /* USER CODE BEGIN EV */
@@ -300,6 +299,20 @@ void TIM6_DAC_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles TIM7 global interrupt.
+  */
+void TIM7_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM7_IRQn 0 */
+
+  /* USER CODE END TIM7_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim7);
+  /* USER CODE BEGIN TIM7_IRQn 1 */
+
+  /* USER CODE END TIM7_IRQn 1 */
+}
+
+/**
   * @brief This function handles DMA2 stream0 global interrupt.
   */
 void DMA2_Stream0_IRQHandler(void)
@@ -311,20 +324,6 @@ void DMA2_Stream0_IRQHandler(void)
   /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
 
   /* USER CODE END DMA2_Stream0_IRQn 1 */
-}
-
-/**
-  * @brief This function handles TIM16 global interrupt.
-  */
-void TIM16_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM16_IRQn 0 */
-
-  /* USER CODE END TIM16_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim16);
-  /* USER CODE BEGIN TIM16_IRQn 1 */
-
-  /* USER CODE END TIM16_IRQn 1 */
 }
 
 /**
@@ -367,20 +366,6 @@ void TIM23_IRQHandler(void)
   /* USER CODE BEGIN TIM23_IRQn 1 */
 
   /* USER CODE END TIM23_IRQn 1 */
-}
-
-/**
-  * @brief This function handles TIM24 global interrupt.
-  */
-void TIM24_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM24_IRQn 0 */
-
-  /* USER CODE END TIM24_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim24);
-  /* USER CODE BEGIN TIM24_IRQn 1 */
-
-  /* USER CODE END TIM24_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

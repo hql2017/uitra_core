@@ -218,7 +218,7 @@ void Error_Handler(void);
 #define MAX_AIR_PUMP_PRESSURE  190.0f//280.00f
 
 //water pump 治疗水压间接检测kPa,相对值
-#define MIN_TREATMENT_WATER_PRESSURE  2.0f//100f
+#define MIN_TREATMENT_WATER_PRESSURE  3.0f//100f
 #define MAX_TREATMENT_WATER_PRESSURE  45.0f//140kPaf
 
 //300.00f

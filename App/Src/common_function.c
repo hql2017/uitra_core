@@ -71,7 +71,26 @@ double kalman_filter_update(KalmanFilter* kf, double measurement) {
     return kf->estimate;
 }
 
-
+/****
+  * @brief 找出最大值
+  * @param dataBuff
+  * @note   
+  * @retval Max value
+  */
+ unsigned  short int match_max(unsigned  short int *dataBuff,unsigned  short int length )
+ {
+	unsigned  short int maxValue,i;	
+	if(length<1) return 0;	
+	maxValue=0;	
+	for(i=0;i<length;i++)
+	{		
+		if(maxValue<dataBuff[i])
+		{
+			maxValue = dataBuff[i];	
+		}			
+	}	
+	return maxValue;
+} 
 
 
 
@@ -82,7 +101,7 @@ double kalman_filter_update(KalmanFilter* kf, double measurement) {
     DWT->CTRL|=DWT_CTRL_CYCCNTENA_Msk;
 }       
 
- void delay_us(volatile uint32_t nus)
+ void delay_us(volatile unsigned int nus)
 {   
     volatile uint32_t start=DWT->CYCCNT,tcnt = 0;        //刚进入时的计数器值   
     volatile uint32_t ticks=nus*(SystemCoreClock/1000000);//nus需要的节拍数 

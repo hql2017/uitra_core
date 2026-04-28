@@ -200,20 +200,21 @@ unsigned short int fan_get_set_spd(unsigned char fanNumber)
   * @retval 
   *****************************************************************************/
  void cacul_fan_freq(unsigned int timeMs)
-{
-	unsigned char ret_freq;
+{	
 	if(fanParam.fan_pulse_count[1]>200)
 	{
 		fanParam.fanFreq[1]=200;
 	}
 	else fanParam.fanFreq[1]=fanParam.fan_pulse_count[1];//*1000/timeMs;
+	#if 0
 	if(fanParam.fan_pulse_count[0]>200)
 	{
 		fanParam.fanFreq[0]=200;
 	}
 	else fanParam.fanFreq[0]=fanParam.fan_pulse_count[0];//*1000/timeMs;
-	fanParam.fan_pulse_count[1]=0;//clear
 	fanParam.fan_pulse_count[0]=0;//clear
+	#endif 
+	fanParam.fan_pulse_count[1]=0;//clear
 }
 /************************************************************************//**
   * @brief 微调
@@ -267,7 +268,7 @@ void fan_spd_pid(unsigned char runFlag,unsigned int P)
 		}
 		if(fanParam.fan_speed[Index]>240+fanParam.fan_set_speed[Index])
 		{
-			if(fanParam.fan_duty_count[Index]>8)fanParam.fan_duty_count[Index]-=8;
+			if(fanParam.fan_duty_count[Index]>8)fanParam.fan_duty_count[Index]-=4;
 			app_fan_pwm_set(fanParam.fan_duty_count[Index],runFlag);
 		}
 		else 
@@ -290,7 +291,7 @@ void fan_spd_pid(unsigned char runFlag,unsigned int P)
 		{
 			if(fanParam.fan_duty_count[Index]<384)
 			{
-				fanParam.fan_duty_count[Index]+=8;
+				fanParam.fan_duty_count[Index]+=4;
 			}
 			app_fan_pwm_set(fanParam.fan_duty_count[Index],runFlag);
 		}
@@ -316,7 +317,7 @@ static void get_fan_spd_calcu(unsigned int timeMs)
 	{ 
 		fanParam.fan_speed[1]=30*fanParam.fanFreq[1];//get_fan_freq(1,1000);	//spd=count_freq*30;
 		fan_spd_pid(1,timeMs);
-		//DEBUG_PRINTF("fan_spd1=%d duty=%d\r\n",fanParam.fan_speed[1],__HAL_TIM_GET_COMPARE(&htim8,TIM_CHANNEL_2));		
+		//DEBUG_PRINTF("fan_spd1=%d duty=%d\r\n",fanParam.fan_speed[1],__HAL_TIM_GET_COMPARE(&htim8,TIM_CHANNEL_2)>>2);		
 	}
 	/*
 	if(fanNum2!=0)
@@ -384,8 +385,8 @@ void fan_start(unsigned char fanNum)
 	if(fanParam.runflag==0)
 	{
 		app_fan_feed_count(0);  
-		HAL_TIMEx_PWMN_Start(&htim8,TIM_CHANNEL_2); 	
-		HAL_TIM_Base_Start_IT(&htim23);	
+		HAL_TIMEx_PWMN_Start(&htim8,TIM_CHANNEL_2); 
+		HAL_TIM_Base_Start_IT(&htim23);   
 	}
 	fanParam.runflag=1;
 }
