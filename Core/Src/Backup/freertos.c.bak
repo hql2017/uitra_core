@@ -770,6 +770,8 @@ void auxTask02(void *argument)
       app_fan_manage(led_tick);		      
 			HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
       app_sram_status_monitor(); 
+      DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure);
+      
 		}	    
 		/**********************RGB****************************/		
 		/**********************RGB****************************/		

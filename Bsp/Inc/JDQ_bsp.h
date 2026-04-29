@@ -37,7 +37,7 @@ void app_jdq_bus_power_on_off(unsigned char flag);
 void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent);
 
 void jdq_reley_charge(unsigned char onOff);
-void jdq_reley_charge_ready(unsigned char onOff);
+void jdq_reley_internal_load(unsigned char onOff);
 
 unsigned short int  app_get_jdq_rs485_bus_statu(void);
 unsigned char  app_jdq_rs485_check_gwb3200_rec_package(void);
@@ -48,6 +48,12 @@ unsigned char  app_jdq_gwb_pwr_flag(void);
 
 #define JDG_RELEY_ENABLE  1
 #define JDG_RELEY_DISABLE 0
+
+#define JDG_EX_CONNECT_TO_160V                  JDG_RELEY_ENABLE
+#define JDG_EX_CONNECT_INTERNAL_LOAD            JDG_RELEY_DISABLE
+
+#define JDG_INTERNAL_LOAD_CONNECT_TO_GND         JDG_RELEY_DISABLE
+#define JDG_INTERNAL_LOAD_CONNECT_TO_160V        JDG_RELEY_ENABLE
 
 #define JDQ_RS485_FRAME_MAX_DELAY_MS 500
 #define JDQ_RS485_FRAME_MIN_MS 100
@@ -63,7 +69,7 @@ unsigned char  app_jdq_gwb_pwr_flag(void);
 #define JDQ_MIN_CONTROL_PULSE_US_WIDTH  10//100
 
 #ifndef JDQ_PWR_GWB_3200W
-    #define  JDQ_PWR_GWB_3200W 
+#define  JDQ_PWR_GWB_3200W 
 #endif  
 
 #define  JDQ_GWB_3200W_RS485_BD_ADDR  0x99//广播地址，不返回报文

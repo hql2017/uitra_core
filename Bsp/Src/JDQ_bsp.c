@@ -62,7 +62,7 @@ static float laser_target_energe_list[40]={
 	unsigned char emergencyErrorFlag;//严重
 	unsigned char generationErrorFlag;//一般
 
-}jdq_sts_reg_struct;
+}__attribute__ ((packed)) jdq_sts_reg_struct;
 
 static jdq_sts_reg_struct jdq_sts_reg;
 #else
@@ -195,25 +195,28 @@ uint8_t ads1110_read_mv( float *adc_mv)
 /**
  * @brief jdq_reley_charge 
  * @param  void
- * @note   init,常闭，充电继电器开关
+ * @note   init,常闭，接内部放电负载
+ * 				JDG_RELEY_DISABLE(0)-接入内部放电负载
+ *              JDG_RELEY_ENABLE(1) -电源直通外部负载
  * @retval None
  */
 void jdq_reley_charge(unsigned char onOff)
 {
-	if(onOff==0) HAL_GPIO_WritePin(JDQ_STAND_GPIO_Port, JDQ_STAND_Pin, GPIO_PIN_RESET);
+	if(onOff==JDG_RELEY_DISABLE) HAL_GPIO_WritePin(JDQ_STAND_GPIO_Port, JDQ_STAND_Pin, GPIO_PIN_RESET);
 	else HAL_GPIO_WritePin(JDQ_STAND_GPIO_Port, JDQ_STAND_Pin, GPIO_PIN_SET); 
 }
 /**
- * @brief jdq_reley_charge_ready 
+ * @brief jdq_reley_internal_load内部负载
  * @param  void
- * @note   init，常闭,放点负载
- * 
+ * @note   init，常闭,放电负载接地
+ *               JDG_RELEY_DISABLE(0)-负载接地
+ *               JDG_RELEY_ENABLE(1) -负载接入电源（限流充电）
  * @retval None
  */
-void jdq_reley_charge_ready(unsigned char onOff)
+void jdq_reley_internal_load(unsigned char onOff)
 {
-	if(onOff==JDG_RELEY_DISABLE) HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_SET);
-	else HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_RESET); 
+	if(onOff==JDG_RELEY_DISABLE) HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_RESET);
+	else HAL_GPIO_WritePin(JDQ_READY_GPIO_Port, JDQ_READY_Pin, GPIO_PIN_SET); 
 }
 
 /**
@@ -225,11 +228,11 @@ void jdq_reley_charge_ready(unsigned char onOff)
 void jdq_init(void)
 {
 	//spi only send
-	app_jdq_ads1110_init();//电压反馈	
+	app_jdq_ads1110_init();
 	JDQ_LDAC_DISABLE; 	
-	jdq_reley_charge_ready(0);//负载断开
-	HAL_Delay(500);		
-	jdq_reley_charge(1);//	
+	jdq_reley_charge(JDG_EX_CONNECT_INTERNAL_LOAD);
+	HAL_Delay(500);	
+	jdq_reley_internal_load(JDG_INTERNAL_LOAD_CONNECT_TO_GND);
 	HAL_Delay(500);	
 	JDQ_RS485_RX;
 }
@@ -1098,9 +1101,9 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
   *****************************************************************************/
  void app_jdq_current_limit_charge(void)
  {	
-	jdq_reley_charge_ready(0);
+	jdq_reley_internal_load(JDG_INTERNAL_LOAD_CONNECT_TO_160V);
 	HAL_Delay(1);
-	jdq_reley_charge(1);		
+	jdq_reley_charge(JDG_EX_CONNECT_INTERNAL_LOAD);		
  }
  
 /***************************************************************************//**

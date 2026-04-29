@@ -53,7 +53,7 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, ADS1118_CS_out_Pin|RF24_SDN_out_Pin|PTC_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOE, ADS1118_CS_out_Pin|RF24_SDN_out_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, PWR_SYS_ON_Pin|EEROM_W_EN_out_Pin|S31FL3193_SDB_out_Pin, GPIO_PIN_SET);
@@ -62,19 +62,20 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, MCU_SYS_health_LED_Pin|RF24_SP6_CS_out_Pin|HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LCD_12V_ON_GPIO_Port, LCD_12V_ON_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOE, LCD_12V_ON_Pin|TMC2226_EN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, RS485_DIR_out_Pin|TMC2226_DIR_out_Pin|JDQ_STAND_Pin|JDQ_READY_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, RS485_DIR_out_Pin|TMC2226_DIR_out_Pin|PTC_EN_Pin|JDQ_STAND_Pin
+                          |JDQ_READY_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, H_AIR_PUMP_PWR_EN_Pin|TMC2226_EN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(H_AIR_PUMP_PWR_EN_GPIO_Port, H_AIR_PUMP_PWR_EN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, DAC_LD_Pin|DAC_CS_Pin|circulating_water_pump_EN_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : ADS1118_CS_out_Pin RF24_SDN_out_Pin LCD_12V_ON_Pin PTC_EN_Pin */
-  GPIO_InitStruct.Pin = ADS1118_CS_out_Pin|RF24_SDN_out_Pin|LCD_12V_ON_Pin|PTC_EN_Pin;
+  /*Configure GPIO pins : ADS1118_CS_out_Pin RF24_SDN_out_Pin LCD_12V_ON_Pin TMC2226_EN_Pin */
+  GPIO_InitStruct.Pin = ADS1118_CS_out_Pin|RF24_SDN_out_Pin|LCD_12V_ON_Pin|TMC2226_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -113,9 +114,9 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : RS485_DIR_out_Pin TMC2226_DIR_out_Pin H_AIR_PUMP_PWR_EN_Pin TMC2226_EN_Pin
+  /*Configure GPIO pins : RS485_DIR_out_Pin TMC2226_DIR_out_Pin H_AIR_PUMP_PWR_EN_Pin PTC_EN_Pin
                            JDQ_STAND_Pin JDQ_READY_Pin */
-  GPIO_InitStruct.Pin = RS485_DIR_out_Pin|TMC2226_DIR_out_Pin|H_AIR_PUMP_PWR_EN_Pin|TMC2226_EN_Pin
+  GPIO_InitStruct.Pin = RS485_DIR_out_Pin|TMC2226_DIR_out_Pin|H_AIR_PUMP_PWR_EN_Pin|PTC_EN_Pin
                           |JDQ_STAND_Pin|JDQ_READY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;

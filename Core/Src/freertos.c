@@ -154,7 +154,7 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 296 * 4,
+  .stack_size = 360 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for myTask02 */
@@ -770,7 +770,7 @@ void auxTask02(void *argument)
       app_fan_manage(led_tick);		      
 			HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
       app_sram_status_monitor(); 
-      DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure);
+     // DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure);
       
 		}	    
 		/**********************RGB****************************/		
@@ -955,16 +955,16 @@ void laserWorkTask04(void *argument)
           timeout+=JDQ_RS485_FRAME_MIN_MS;
           if(timeout>LASER_JDQ_CHARGE_TIMEOUT_MS) break;
         }while(app_jdq_gwb_pwr_flag()!=0);  
-        jdq_reley_charge(JDG_RELEY_DISABLE);//
+        jdq_reley_charge(JDG_EX_CONNECT_INTERNAL_LOAD);//
+        osDelay(JDQ_RS485_FRAME_MIN_MS);
         if(app_jdq_gwb_pwr_flag()==0) 
         {
-          osDelay(JDQ_RS485_FRAME_MIN_MS);
-          jdq_reley_charge_ready(JDG_RELEY_ENABLE);
           DEBUG_PRINTF("gwb3200 close ok %f,release voltage\r\n",app_jdq_voltage_monitor());
         }    
         else{
           DEBUG_PRINTF("gwb3200 close timeout !\r\n");          
-        }           
+        } 
+        jdq_reley_internal_load(JDG_INTERNAL_LOAD_CONNECT_TO_GND);          
         sGenSta.laser_run_B0_pro_hot_status=0;	  
         rgbMessage = RGB_G_STANDBY;
         osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);
@@ -1107,7 +1107,7 @@ void laserWorkTask04(void *argument)
             {               
               app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback);  
              // float ene_moni_cali= u_sys_param.sys_config_param.laser_pulse_width_us*0.00088+laser_ctr_param.laserEnerge*0.00009-0.0065; 
-              float ene_average_p= (e_feedback*0.00125)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power
+              float ene_average_p= (e_feedback*0.00105)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power
                
               sEnvParam.laser_1064_energy=ene_average_p/laser_ctr_param.laserFreq;
               DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV pulseCount=%d rdb=%d 980=%d\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback,u_sys_param.sys_config_param.laser_pulse_count,u_sys_param.sys_config_param.RDB_use_timeS,u_sys_param.sys_config_param.laser_use_timeS);              
@@ -1240,7 +1240,7 @@ void hmiAppTask06(void *argument)
   {   
     while(u_sys_param.sys_config_param.synchronousFlag!=3)   
     {
-      if(HAL_GetTick()>18000)
+      if(HAL_GetTick()>17000)
       {
         syncTimeOutS++;
         DEBUG_PRINTF(" synchronous req=%d\r\n",syncTimeOutS);
@@ -1424,9 +1424,9 @@ void laserProhotTask09(void *argument)
       outVoltage = app_jdq_voltage_monitor();  
       if(outVoltage>local_f+5.0) 
       { // release voltage
-        jdq_reley_charge(JDG_RELEY_DISABLE);
+        jdq_reley_charge(JDG_EX_CONNECT_INTERNAL_LOAD);
         osDelay(JDQ_RS485_FRAME_MIN_MS);		
-        jdq_reley_charge_ready(JDG_RELEY_ENABLE);       
+        jdq_reley_internal_load( JDG_INTERNAL_LOAD_CONNECT_TO_GND);       
       }
       timeout=0;
       do
@@ -1436,9 +1436,10 @@ void laserProhotTask09(void *argument)
         outVoltage = app_jdq_voltage_monitor();  
       }while (outVoltage>local_f+5.0&&timeout<LASER_JDQ_CHARGE_TIMEOUT_MS);
       //limit charge current
-      jdq_reley_charge_ready(JDG_RELEY_DISABLE);
+      
+      jdq_reley_charge(JDG_EX_CONNECT_INTERNAL_LOAD);	
       osDelay(JDQ_RS485_FRAME_MIN_MS);
-      jdq_reley_charge(JDG_RELEY_ENABLE);	
+      jdq_reley_internal_load(JDG_INTERNAL_LOAD_CONNECT_TO_160V);
       osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
       u_g3200w_ctr_tx_message.msg.cmdCode=GWB_3200_REG_RUN_STOP;
       u_g3200w_ctr_tx_message.msg.cmdLen=1;
@@ -1478,6 +1479,7 @@ void laserProhotTask09(void *argument)
         timeout+=JDQ_RS485_FRAME_MAX_DELAY_MS;
         l_jdq_set_voltage= app_jdq_get_set_vbus()*0.01; 
         outVoltage = app_jdq_voltage_monitor();
+        if(outVoltage>60.0) jdq_reley_charge(JDG_EX_CONNECT_TO_160V);	
         if(timeout>LASER_JDQ_CHARGE_TIMEOUT_MS) 
         {          
           DEBUG_PRINTF("charge time out fail! exit prohot\r\n");    
@@ -1536,10 +1538,11 @@ void laserProhotTask09(void *argument)
           DEBUG_PRINTF("GWB3200W reley off fail!resend once\r\n");
           osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
           osMessageQueuePut(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_tx_message.data,NULL,0);
-        } 
-        jdq_reley_charge(JDG_RELEY_DISABLE);
+        }       
+        jdq_reley_internal_load(JDG_INTERNAL_LOAD_CONNECT_TO_GND);
         osDelay(JDQ_RS485_FRAME_MIN_MS);		
-        jdq_reley_charge_ready(JDG_RELEY_ENABLE);         
+        jdq_reley_charge(JDG_EX_CONNECT_INTERNAL_LOAD);
+                 
       }
      
     }		
@@ -2435,12 +2438,14 @@ unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int
  * @return 
 *******************************************************************************/
  void app_jdq_restart(void)
- {	  	
-	 jdq_reley_charge_ready(JDG_RELEY_DISABLE);//负载断开
-	 jdq_reley_charge(JDG_RELEY_DISABLE);//
-	 osDelay(500);		
-	 jdq_reley_charge(JDG_RELEY_ENABLE);//	
-   osDelay(1000);		 	
+ {	  
+	 jdq_reley_charge(JDG_EX_CONNECT_INTERNAL_LOAD);//
+	 osDelay(10);	
+   jdq_reley_internal_load(JDG_INTERNAL_LOAD_CONNECT_TO_GND);	
+   osDelay(50);	
+	 jdq_reley_charge(JDG_EX_CONNECT_TO_160V);//	
+   osDelay(1000);		
+
  }
  #ifdef JDQ_PWR_GWB_3200W
  /***************************************************************************//**
