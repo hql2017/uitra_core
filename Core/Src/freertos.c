@@ -1570,6 +1570,7 @@ void ge2117ManageTask10(void *argument)
   
   /* Infinite loop */
   uint32_t local_time100mS,g_timeout,local_timeS;
+  unsigned char local_water_preapare_flag=0;
   local_time100mS = 0;  
   local_timeS=0;//
   //float k0_cool_temprature;
@@ -1578,9 +1579,10 @@ void ge2117ManageTask10(void *argument)
   for(;;)
   {  
     osDelay(100);   
-    if(laser_ctr_param.cleanCtr==0) 
+    if(laser_ctr_param.air_water_prepare_ctr!=local_water_preapare_flag) 
     {
-      app_treatment_water_prepare(&laser_ctr_param.air_water_prepare_ctr,100);
+      local_water_preapare_flag=laser_ctr_param.air_water_prepare_ctr;
+      app_treatment_water_prepare(&local_water_preapare_flag,100);
     } 
     float temp_t_f = Get_pt_tempture();
     sEnvParam.eth_k1_temprature = temp_t_f;
@@ -1700,14 +1702,8 @@ void LaserWorkTimerCallback01(void *argument)
 /* cleanWaterCallback02 function */
 void cleanWaterCallback02(void *argument)
 {
-  /* USER CODE BEGIN cleanWaterCallback02 */
-  osTimerStop(cleanTimer02Handle);  
-  if(laser_ctr_param.cleanCtr!=0)
-  {    
-    laser_ctr_param.cleanCtr = 0; 
-  } 
-  tmc2226_stop(); 
-  osTimerDelete(cleanTimer02Handle);       
+  /* USER CODE BEGIN cleanWaterCallback02 */ 
+  tmc2226_stop();
   /* USER CODE END cleanWaterCallback02 */
 }
 
@@ -1715,13 +1711,7 @@ void cleanWaterCallback02(void *argument)
 void tmcMaxRunTimesCallback03(void *argument)
 {
   /* USER CODE BEGIN tmcMaxRunTimesCallback03 */
-
-  tmc2226_stop();
-  if(laser_ctr_param.air_water_prepare_ctr != 0)  
-  {
-    laser_ctr_param.air_water_prepare_ctr=0;
-  }  
- 
+  tmc2226_stop(); 
   /* USER CODE END tmcMaxRunTimesCallback03 */
 }
 
@@ -2211,26 +2201,15 @@ void app_laser_preapare_semo(void)
   *****************************************************************************/
  void app_treatment_water_prepare(unsigned char *ctrflag,unsigned int runtimeMs)
  {
-  static unsigned char local_tmc_flag;    
   if(*ctrflag!=0)
   {
-    if(local_tmc_flag==0)
-    {
-      tmc2226_start(TMC_WATER_OUT_DIR_VALUE,3,CONTINUOUS_STEPS_COUNT); 
-      osTimerStart(tmcMaxRunTimer03Handle,20*SYS_1_MINUTES_TICK);
-      local_tmc_flag = 1;
-    }    
+    tmc2226_start(TMC_WATER_OUT_DIR_VALUE,3,CONTINUOUS_STEPS_COUNT); 
+    osTimerStart(tmcMaxRunTimer03Handle,20*SYS_1_MINUTES_TICK);    
   }
   else 
-  {
-    if(local_tmc_flag!=0)
-    { 
-      osTimerStop(tmcMaxRunTimer03Handle);      
-      tmc2226_start(!TMC_WATER_OUT_DIR_VALUE,3,CONTINUOUS_STEPS_COUNT); 
-      osDelay(300);
-      tmc2226_stop();          
-      local_tmc_flag = 0;      
-    }    
+  {   
+    osTimerStop(tmcMaxRunTimer03Handle); 
+    tmc2226_stop();   
   }
 }
   /************************************************************************//**
@@ -2254,9 +2233,7 @@ void app_laser_preapare_semo(void)
     {      
      
         osTimerStop(cleanTimer02Handle);
-        tmc2226_stop();                
-        osTimerDelete(cleanTimer02Handle);
-      
+        tmc2226_stop();       
     }   
  }
 /***************************************************************************//**

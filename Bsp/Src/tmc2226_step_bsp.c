@@ -117,11 +117,11 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
     tmc2226_rdb_info.run=en;
     if(en==0)  
     {     
-      HAL_GPIO_WritePin ( TMC2226_EN_GPIO_Port , TMC2226_EN_Pin , GPIO_PIN_SET );    
+      HAL_GPIO_WritePin ( TMC2226_EN_GPIO_Port , TMC2226_EN_Pin , GPIO_PIN_RESET );    
     } 
     else 
     {
-      HAL_GPIO_WritePin ( TMC2226_EN_GPIO_Port , TMC2226_EN_Pin , GPIO_PIN_RESET );   
+      HAL_GPIO_WritePin ( TMC2226_EN_GPIO_Port , TMC2226_EN_Pin , GPIO_PIN_SET);   
     }  
   }
  /**

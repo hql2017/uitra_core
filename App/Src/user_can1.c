@@ -312,8 +312,7 @@ void HMI_Parse_Data(unsigned char  *data, unsigned int  length)
 			{
 				u_sys_param.sys_config_param.e_cali[dw].power_cali=data[8]|(data[9]<<8);
 			}
-			laser_ctr_param.laserEnerge=(data[6]|(data[7]<<8));					
-								
+			laser_ctr_param.laserEnerge=(data[6]|(data[7]<<8));	
 			app_hmi_cmd_ack(hmi_code);
 			break;
 		case HMI_CODE_CLEAN_AND_DISINFECTION_TIME:
