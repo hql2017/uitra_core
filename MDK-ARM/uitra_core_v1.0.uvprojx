@@ -712,6 +712,16 @@
               <FileType>5</FileType>
               <FilePath>.\Readme.txt</FilePath>
             </File>
+            <File>
+              <FileName>lwrb.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Middlewares\lwrb\lwrb\src\lwrb\lwrb.c</FilePath>
+            </File>
+            <File>
+              <FileName>lwrb_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Middlewares\lwrb\lwrb\src\lwrb\lwrb_ex.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

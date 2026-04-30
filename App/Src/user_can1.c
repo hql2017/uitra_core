@@ -65,8 +65,8 @@ void app_hmi_report_status(sys_genaration_status *sys_status)
 	}
 	else send_buff_jt=(sys_status->laser_param_B456_jt_status%KEY_NO_CONNECT);	
 	can_tx_data[7]=sys_status->laser_param_B01_energe_status|sys_status->laser_param_B23_air_pump_pressure_status<<2|send_buff_jt<<4|sys_status->laser_param_B7_ykls_status<<7;//sys_status->laser_param_B456_jt_status<<4;
-	can_tx_data[8]=0xFF;//sys_status->genaration_io_status&0xFF;
-	can_tx_data[9]=0xFF;//(sys_status->genaration_io_status>>8)&0xFF;
+	can_tx_data[8]=sys_status->genaration_io_status&0xFF;
+	can_tx_data[9]=((sys_status->genaration_io_status>>8)&0xFF);
 	can_tx_data[10]=u_sys_param.sys_config_param.laser_pulse_count&0xFF;
 	can_tx_data[11]=(u_sys_param.sys_config_param.laser_pulse_count>>8)&0xFF;
 	can_tx_data[12]=(u_sys_param.sys_config_param.laser_pulse_count>>16)&0xFF;

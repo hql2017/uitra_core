@@ -124,9 +124,9 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pins : circulating_water_pump_status_in_Pin RF24_IRQ_in_Pin TMC2226_index_in_Pin TMC2226_ERROR_out_Pin
-                           EMERGENCY_LASER_STOP_STATUS_in_Pin Hyperbaria_OFF_Signal_Pin treatment_water_high_pressure_off_status_in_Pin */
+                           Hyperbaria_OFF_Signal_Pin EMERGENCY_LASER_STOP_STATUS_in_Pin treatment_water_high_pressure_off_status_in_Pin */
   GPIO_InitStruct.Pin = circulating_water_pump_status_in_Pin|RF24_IRQ_in_Pin|TMC2226_index_in_Pin|TMC2226_ERROR_out_Pin
-                          |EMERGENCY_LASER_STOP_STATUS_in_Pin|Hyperbaria_OFF_Signal_Pin|treatment_water_high_pressure_off_status_in_Pin;
+                          |Hyperbaria_OFF_Signal_Pin|EMERGENCY_LASER_STOP_STATUS_in_Pin|treatment_water_high_pressure_off_status_in_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
@@ -592,12 +592,19 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
     #endif        
   }
   else if(IoNum==In8_water_circle_ok)//水循环状态
-  {//低ok有效
-    if(HAL_GPIO_ReadPin(water_cycle_ok_GPIO_Port,water_cycle_ok_Pin)==GPIO_PIN_SET)//&&water_c>1.001&&water_c<7.200)
+  {//低ok有效     
+    if(HAL_GPIO_ReadPin(water_cycle_ok_GPIO_Port,water_cycle_ok_Pin)==GPIO_PIN_RESET)//&&water_c>1.001&&water_c<7.200)
     {
       err=SUCCESS;
     }   
-  }  
+  } 
+  else if(IoNum==In9_emergency_ok)//紧急开关
+  {//低正常，高停止    
+    if(HAL_GPIO_ReadPin(EMERGENCY_LASER_STOP_STATUS_in_GPIO_Port,EMERGENCY_LASER_STOP_STATUS_in_Pin)==GPIO_PIN_RESET)
+    {
+      err=SUCCESS;
+    }   
+  }   
   return err;  
  }
 

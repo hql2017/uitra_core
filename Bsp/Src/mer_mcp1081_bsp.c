@@ -1,59 +1,51 @@
 /*
  * mer_mcp1081_bsp.c
  *
- *  Created on: Apr 10, 2025
+ *  Created on: Jan 01, 2026
  *      Author: Hql2017
  */
 #include "main.h"
 #include "mer_mcp1081_bsp.h" 
-#include "usart.h" 
+#include "usart.h"
 #include <stdio.h>
+#include  "lwrb.h"
 
-#define MAX_USART1_BUFF_LENTH 64
-static unsigned char USART1_TX_BUFF[MAX_USART1_BUFF_LENTH]={0};
-static unsigned char USART1_RX_BUFF[MAX_USART1_BUFF_LENTH]={0};
-typedef struct{
-	uint16_t mer_sampling_value;//采集平均次数
-	uint16_t mer_deph_value;//液挡位
-	uint16_t mer_calibration_value;//calibrati
-	uint16_t no_reverse_val;//保留
-	int16_t mer_temprature;
-	uint16_t mer_c0_value;
-	uint16_t mer_c1_value;
-	uint16_t mer_c2_value;
-	uint16_t mer_c3_value;
-	uint16_t mer_c4_value;
-	uint16_t mer_c5_value;
-	uint16_t mer_c6_value;
-	uint16_t mer_c_freq_value;
-	uint16_t mer_c_fq0_value;
-	uint16_t mer_c_fq1_value;
-	uint16_t mer_c_fq2_value;
-	uint16_t mer_c_fq3_value;
-	uint16_t mer_c_fq4_value;
-	uint16_t mer_c_fq5_value;
-	uint16_t mer_c_fq6_value;
-	uint16_t mer_i_ch10_value;
-	uint16_t mer_i_ch0_value;
-	uint16_t mer_i_ch1_value;
-	uint16_t mer_i_ch2_value;
-	uint16_t mer_i_ch3_value;
-	uint16_t mer_i_ch4_value;
-	uint16_t mer_i_ch5_value;
-	uint16_t mer_i_ch6_value;
-}mer_reg_local_value;//sieof==28
+//暂定用调试串口hlpuart1
+
+
+#define MAX_LWRB_MCP61_QUEUE_LEN 64
+static unsigned char lwrb_mcp_rx_buff[MAX_LWRB_MCP61_QUEUE_LEN+1]={0};  // 
+static unsigned char mcp61_app_data[MAX_LWRB_MCP61_QUEUE_LEN+1]={0};  // 
+static unsigned char  uart_mcp_rx_byte;  // 
+static lwrb_t  u_mcp_lwrb;//
+static unsigned char mcp61_send_buff[MAX_LWRB_MCP61_QUEUE_LEN]={0};  // 
+
 typedef struct {
 	unsigned char idle;//0空闲：1正处于应带侦听端口
 	unsigned char frame_length;// 侦听长度
 	unsigned char frame_err;// 数据报错
 	unsigned char frame_bus_timeOut;// 等待超时
 }mer_mcp_modbus_status;
-static mer_mcp_modbus_status  mer_run_sta; 
-//static mer_reg_local_value  mer_reg_value;
+static mer_mcp_modbus_status  mcp_run_sta; 
 
-static uint16_t  mer_reg_value[MER_MAX_REG_NUM]={0};
+typedef struct {	
+   unsigned char addr;  
+   unsigned char code;//code
+   unsigned char dataLen;//data Len
+   unsigned char *data;//data
+   unsigned char crcL;// 校验
+   unsigned char crcH;// 校验
+}__attribute__ ((packed)) MCP61_APP_PACKAGE;//应用数据解析
+MCP61_APP_PACKAGE *mcp_app_package;
+
 #ifdef LLS_MCP61
-static uint16_t  mcp61_reg_value=0;
+typedef struct {	
+	unsigned short int  c_value1000pf;  
+	unsigned short int alertFlag;
+	unsigned short int vbemv;//温度相关	
+ }__attribute__ ((packed)) MCP61_STATUIS;//状态数据
+ MCP61_STATUIS mcp_sta;
+
 static uint16_t  mcp61_min_capacitance=0;//
 static uint16_t  mcp61_max_capacitance=0;
 static uint16_t  mcp61_water_depth=0;//0~10;百分比10个等级
@@ -66,7 +58,6 @@ typedef struct{
 	float capacitanceValue;//pF（0~100pF）
 }LLM_REC_DATA;
 static LLM_REC_DATA llm_rec_data;
-
 #endif
  /***************************************************************************//**
  * @brief MODBUS/CRC-16
@@ -74,7 +65,7 @@ static LLM_REC_DATA llm_rec_data;
  * @note 多项式0xA001 
  * @return 返回crc16结果
 *******************************************************************************/
-static uint16_t crc16_modbus(const  uint8_t *data, uint16_t len)
+static uint16_t mcp61_crc16_modbus(const  uint8_t *data, uint16_t len)
 {  
 	uint16_t crc = 0xFFFF;  // 初始值
 	uint16_t polynomial=0xA001;
@@ -97,17 +88,26 @@ static uint16_t crc16_modbus(const  uint8_t *data, uint16_t len)
 	}
 	return  crc;
 }  
+
+ /***************************************************************************//**
+ * @brief app_mcp61_uart_receive
+ * @param 
+ * @note 液位模块接收数据
+ * @return 
+*******************************************************************************/
+void app_mcp61_uart_receive( void )
+{
+	lwrb_write(&u_mcp_lwrb, &uart_mcp_rx_byte, 1);//
+	HAL_UART_Receive_IT(&hlpuart1,&uart_mcp_rx_byte,1);	
+}
   /***************************************************************************//**
  * @brief 液位传感器，从机应答帧处理
  * @param listenReg侦听端口，datalen，侦听数据长度
- * @note 
+ * @note   
  * @return 
 *******************************************************************************/
-
-void app_mer_receive_data_handle(void)
-{
-	uint16_t crcValue,regStart,regNum;
-	uint8_t readDataLen;	
+void app_mecp61_receive_data_handle(unsigned char code,unsigned char *data,unsigned char len)
+{	
 	#ifdef LLM
 		uint8_t i;
 		uint32_t valueH,valuePo;
@@ -170,66 +170,17 @@ void app_mer_receive_data_handle(void)
 			mer_run_sta.frame_bus_timeOut=0;
 			mer_run_sta.frame_err=0;		
 		}
-		
-	#else 
-	if(USART1_RX_BUFF[0]==MER_SLAVE_ADD)
-	{		
-		if(USART1_RX_BUFF[1]==MER_SINGLE_WRITE_CODE)//code，写回应,固定8字节，只写单个寄存器
-		{   
-			regStart=(USART1_RX_BUFF[2]<<8)|USART1_RX_BUFF[3];
-			crcValue=(USART1_RX_BUFF[6]>>8)| (USART1_RX_BUFF[7]<<8);
-			if(crcValue==crc16_modbus(USART1_RX_BUFF, 6))
-			{	 
-				DEBUG_PRINTF("regWriteOk\r\n");
-				mer_run_sta.idle=0;
-				mer_run_sta.frame_length = 0;
-				mer_run_sta.frame_bus_timeOut=0;
-				mer_run_sta.frame_err=0;
-			}
-			else mer_run_sta.frame_err=1;
-		}
-		else 
-		{			
-			#ifdef LLS_MCP61
-			regStart=MCP61_REG_SINGGLE_C_VALUE;			
-			readDataLen=USART1_RX_BUFF[2];
-			crcValue=USART1_RX_BUFF[readDataLen+3]| (USART1_RX_BUFF[readDataLen+4]<<8);
-			if(crcValue==crc16_modbus(USART1_RX_BUFF, readDataLen+3))
-			{
-				
-				 if(mer_run_sta.frame_err==1)
-				{
-					mcp61_min_capacitance=	USART1_RX_BUFF[3]<<8|USART1_RX_BUFF[4];
-					DEBUG_PRINTF(" cali min=%04x",mcp61_min_capacitance);	
-					mer_run_sta.frame_err=0;	
-				}
-				else if(mer_run_sta.frame_err==2)
-				{
-					mcp61_max_capacitance=	USART1_RX_BUFF[3]<<8|USART1_RX_BUFF[4];
-					DEBUG_PRINTF(" cali max=%04x",mcp61_max_capacitance);	
-					mer_run_sta.frame_err=0;
-				}
-				else 
-				{
-					mcp61_reg_value =	USART1_RX_BUFF[3]<<8|USART1_RX_BUFF[4];
-					//DEBUG_PRINTF("  mcp61C=%04x =%.3f",mcp61_reg_value ,mcp61_reg_value*0.001);		
-				}		
-				mer_run_sta.idle=0;
-				mer_run_sta.frame_length =0;		
-				mer_run_sta.frame_bus_timeOut=0;			
-			}
-			
-			#else 
-				regStart=mer_run_sta.idle-MER_REG_SMAMLING_SPD;			
-				readDataLen=USART1_RX_BUFF[2];				
-				crcValue=USART1_RX_BUFF[readDataLen+3]| (USART1_RX_BUFF[readDataLen+4]<<8);			
+		#if 1
+		regStart=mer_run_sta.idle-MER_REG_SMAMLING_SPD;			
+				readDataLen=UART5_RX_BUFF[2];				
+				crcValue=UART5_RX_BUFF[readDataLen+3]| (UART5_RX_BUFF[readDataLen+4]<<8);			
 				if(crcValue==crc16_modbus(USART1_RX_BUFF, readDataLen+3))
 				{ 
 					regNum=readDataLen>>1;	
 					//DEBUG_PRINTF("regRead:");
 					for(uint8_t i=0;i<regNum;i++)
 					{
-						mer_reg_value[regStart+i]=USART1_RX_BUFF[3+2*i]<<8|USART1_RX_BUFF[4+2*i];						
+						mer_reg_value[regStart+i]=UART5_RX_BUFF[3+2*i]<<8|UART5_RX_BUFF[4+2*i];						
 						//DEBUG_PRINTF("  %04x",mer_reg_value[regStart+i]);	
 					}
 					//DEBUG_PRINTF(" regend\r\n");
@@ -239,11 +190,114 @@ void app_mer_receive_data_handle(void)
 					mer_run_sta.frame_bus_timeOut=0;			
 				}
 				else mer_run_sta.frame_err=1;
-			#endif	
+		#endif 
+	#else 
+	if(code==MER_SINGLE_WRITE_CODE)//code，写回应,固定8字节，只写单个寄存器
+	{   
+		unsigned short int ack=data[2]<<8|data[3];
+		if(mcp_run_sta.idle==(data[0]<<8|data[1])&&ack!=0)
+		{
+			DEBUG_PRINTF("reg%04x WriteOk\r\n",mcp_run_sta.idle);
+			mcp_run_sta.idle=0;
+			mcp_run_sta.frame_length = 0;
+			mcp_run_sta.frame_bus_timeOut=0;
+			mcp_run_sta.frame_err=0;
 		}
-	}	
+		else 
+		{
+			DEBUG_PRINTF("reg%04x Write fail\r\n",mcp_run_sta.idle);
+			mcp_run_sta.idle=0;
+			mcp_run_sta.frame_length = 0;
+			mcp_run_sta.frame_bus_timeOut=0;
+			mcp_run_sta.frame_err=1;		
+		}
+	}
+	else //read
+	{	
+		mcp_sta.c_value1000pf =	data[0]<<8|data[1];
+		mcp_sta.alertFlag=data[2]<<8|data[3];
+		mcp_sta.vbemv=data[4]<<8|data[5];
+		//DEBUG_PRINTF("  mcp61C=%04x =%.3f",mcp61_reg_value ,mcp61_reg_value*0.001);	
+		mcp_run_sta.idle=0;
+		mcp_run_sta.frame_length =0;		
+		mcp_run_sta.frame_bus_timeOut=0;		
+	}
+		
 	#endif
 	
+}
+
+/***************************************************************************//**
+ * @brief app_mcp61_package_check
+ * @param 
+ * @note  20ms轮询
+ * @return 
+*******************************************************************************/
+unsigned short int app_mcp61_package_check(void) 
+{
+	static unsigned int peekLen = 8, skipLen = 0;
+    unsigned char packLen = 0;
+    unsigned int readLen = lwrb_peek(&u_mcp_lwrb, skipLen, mcp61_app_data, peekLen);
+    if(readLen>5)
+	{	
+		#if 0       
+		DEBUG_PRINTF("uart5_rec:\r\n");
+		for(unsigned int i=0;i<peekLen;i++)
+		{
+		DEBUG_PRINTF(" %02x",mcp61_app_data[skipLen+i]);
+		}
+		DEBUG_PRINTF(" Len=%d\r\n",peekLen); 
+		#endif	
+        while (skipLen < readLen) {
+            if (mcp61_app_data[skipLen] == MER_SLAVE_ADD) 
+			{
+                unsigned char code = mcp61_app_data[skipLen + 1];
+                if (code == MER_REDA_CODE) 
+				{
+                    packLen = mcp61_app_data[skipLen + 2] + 5;
+                    if (packLen > readLen) 
+					{
+                        peekLen = packLen;
+                        break;
+                    } 
+					else 
+					{
+                        uint16_t crcValue = (mcp61_app_data[skipLen + packLen - 1] << 8) | mcp61_app_data[skipLen + packLen - 2];
+                        if (crcValue == mcp61_crc16_modbus(&mcp61_app_data[skipLen], packLen - 2)) {
+							peekLen = packLen;
+                            app_mecp61_receive_data_handle(code, &mcp61_app_data[skipLen + 3], mcp61_app_data[skipLen + 2]);
+                        }
+                        skipLen += packLen;
+                        break;
+                    }
+                } 
+				else if (code == MER_SINGLE_WRITE_CODE) 
+				{
+                    packLen = 8;
+                    if (packLen > readLen) 
+					{
+                        peekLen = packLen;
+                        break;
+                    } 
+					else 
+					{
+                        uint16_t crcValue = (mcp61_app_data[skipLen + packLen - 1] << 8) | mcp61_app_data[skipLen + packLen - 2];
+                        if (crcValue == mcp61_crc16_modbus(&mcp61_app_data[skipLen], packLen - 2)) {
+							peekLen = packLen;
+                            app_mecp61_receive_data_handle(code, &mcp61_app_data[skipLen + 2], 4);
+                        }
+                        skipLen += packLen;
+                        break;
+                    }
+                }
+            }
+            skipLen++;
+        }
+        lwrb_skip(&u_mcp_lwrb, skipLen);
+        skipLen = 0;
+    }
+
+    return packLen;
 }
   /***************************************************************************//**
  * @brief 进入侦听状态
@@ -251,15 +305,15 @@ void app_mer_receive_data_handle(void)
  * @note 
  * @return 
 *******************************************************************************/
-void app_mer_lisen(uint16_t listenReg,uint16_t dataLen)
+void app_mcp61_lisen(uint16_t listenReg,uint16_t dataLen)
 {	
-	mer_run_sta.idle=listenReg;
-	mer_run_sta.frame_length =dataLen;
-	mer_run_sta.frame_bus_timeOut=0;	
+	mcp_run_sta.idle=listenReg;
+	mcp_run_sta.frame_length =dataLen;
+	mcp_run_sta.frame_bus_timeOut=0;	
 	#ifdef LLS_MCP61
-	mer_run_sta.frame_err=0;// mcp61 用来指示是否校准状态0，正常；1校准空载；2校准满载	
-	#endif
-	HAL_UART_Receive_IT(&huart1,USART1_RX_BUFF, dataLen);//切换进入侦听状态	
+	mcp_run_sta.frame_err=0;// mcp61 用来指示是否校准状态0，正常；1校准空载；2校准满载	
+	#endif	
+	HAL_UART_Receive_IT(&hlpuart1,&uart_mcp_rx_byte,1);
 }
   /***************************************************************************//**
  * @brief 获取总线侦听状态
@@ -267,111 +321,20 @@ void app_mer_lisen(uint16_t listenReg,uint16_t dataLen)
  * @note 
  * @return 侦听状态，0空闲 !0等待应答帧
 *******************************************************************************/
-uint16_t app_get_mer_lisen_status(void)
+uint16_t app_get_mcp61_lisen_status(void)
 {			
-	return mer_run_sta.idle;
+	return mcp_run_sta.idle;
 }
-/***************************************************************************//**
- * @brief 问询帧
- * @param regStart 寄存器起始；
- * @note  只允许写单个寄存器
- * @return 返回操作状态，如果成功等待从机应答
-*******************************************************************************/
-HAL_StatusTypeDef app_mer_write_req_frame(uint16_t regStart,uint16_t data)
-{ 
-	HAL_StatusTypeDef err=HAL_OK;
-	USART1_TX_BUFF[0]=MER_SLAVE_ADD;
-	if(mer_run_sta.idle!=0) 
-	{
-		mer_run_sta.frame_bus_timeOut++;
-		if(mer_run_sta.frame_bus_timeOut>2)//超过3次未回复
-		{
-			mer_run_sta.idle=0;
-			mer_run_sta.frame_bus_timeOut=0;
-		}
-		return HAL_BUSY;
-	}
-	if(regStart<MER_REG_SMAMLING_SPD||regStart>MER_REG_I_CH6_VA)
-	{	
-		mer_run_sta.idle=0;
-		return HAL_ERROR;		
-	}
-	USART1_TX_BUFF[1]=MER_SINGLE_WRITE_CODE;
-	USART1_TX_BUFF[2]=(regStart>>8)&0xFF;
-	USART1_TX_BUFF[3]=regStart&0xFF;		
-	USART1_TX_BUFF[4]=(data>>8)&0xFF;
-	USART1_TX_BUFF[5]=data&0xFF;  
-	USART1_TX_BUFF[6]=crc16_modbus(USART1_TX_BUFF,6)&0xFF;
-	USART1_TX_BUFF[7]=(crc16_modbus(USART1_TX_BUFF,6)>>8)&0xFF;
-	err = HAL_UART_Transmit(&huart1,USART1_TX_BUFF, 8, 100);	
-	if(err==HAL_OK) app_mer_lisen(regStart,8);
-	else mer_run_sta.idle=0;
-	return err;
-}
-/***************************************************************************//**
- * @brief 问询帧
- * @param regStart 寄存器起始；regOffset寄存器偏移量>=1
- * @note 
- * @return 返回操作状态，如果成功等待从机应答
-*******************************************************************************/
-HAL_StatusTypeDef app_mer_read_req_frame(uint16_t regStart,uint16_t regOffset)
-{ 
-	HAL_StatusTypeDef err=HAL_OK;
-	USART1_TX_BUFF[0]=MER_SLAVE_ADD;
-	if(mer_run_sta.idle!=0) 
-	{
-		mer_run_sta.frame_bus_timeOut++;
-		if(mer_run_sta.frame_bus_timeOut>2)
-		{
-			mer_run_sta.idle = 0;
-			mer_run_sta.frame_bus_timeOut = 0;			
-		} 
-		return HAL_BUSY;
-	}
-	if(regStart<MER_REG_SMAMLING_SPD||regStart>MER_REG_I_CH6_VA)
-	{	
-		mer_run_sta.idle=0;
-		return HAL_ERROR;		
-	}
-	if(regOffset>MER_MAX_READ_READNUM)
-	{
-		regOffset=MER_MAX_READ_READNUM;
-	}   
-	USART1_TX_BUFF[1]=MER_REDA_CODE;
-	USART1_TX_BUFF[2]=(regStart>>8)&0xFF;
-	USART1_TX_BUFF[3]=regStart&0xFF;	
-	USART1_TX_BUFF[4]=(regOffset>>8)&0xFF;
-	USART1_TX_BUFF[5]=regOffset&0xFF;
-	USART1_TX_BUFF[6]=crc16_modbus(USART1_TX_BUFF,6)&0xFF;
-	USART1_TX_BUFF[7]=(crc16_modbus(USART1_TX_BUFF,6)>>8)&0xFF;
-	err = HAL_UART_Transmit(&huart1,USART1_TX_BUFF, 8, 100);	
-	if(err==HAL_OK) app_mer_lisen(regStart,regOffset*2+5);
-	else mer_run_sta.idle=0;
-	return err;
-}
-
 /***************************************************************************//**
  * @brief 初始化
  * @param 
  * @note 
  * @return 返回操作状态，如果成功等待从机应答
 *******************************************************************************/
-void app_mer_init(void)
-{ 
-	HAL_StatusTypeDef err=HAL_OK;
-	err=app_mer_write_req_frame(MER_REG_CALIBRATION,1);//校准
-}
-/***************************************************************************//**
- * @brief 获取设备ID
- * @param 
- * @note 用来确认通信正常
- * @return 返回ID
-*******************************************************************************/
-uint16_t  app_mer_get_ID(void)
-{ 
-	uint16_t ret;
-	ret=mer_reg_value[2];
-	return ret;
+void app_mcp61_init(void)
+{
+	lwrb_init(&u_mcp_lwrb,lwrb_mcp_rx_buff,MAX_LWRB_MCP61_QUEUE_LEN);
+	HAL_UART_Receive_IT(&hlpuart1,&uart_mcp_rx_byte,1);
 }
 #ifdef LLS_MCP61
 /***************************************************************************//**
@@ -383,43 +346,108 @@ uint16_t  app_mer_get_ID(void)
 float  app_mcp61_c_value(void)
 { 
 	float ret ;
-	ret=mcp61_reg_value*0.001;	//还原
+	ret=mcp_sta.c_value1000pf*0.001;	//还原
+
 	return ret;
 }
 /***************************************************************************//**
- * @brief 校准值
- * @param  min_max ，选择空载值和满载值
+ * @brief 空载校准指令
+ * @param  min_max ，无用
  * @note 
  * @return 返回无
 *******************************************************************************/
-void  app_mcp61_calibration(uint8_t min_max)
+HAL_StatusTypeDef  app_mcp61_calibration(uint8_t min_max)
 {
-	if(min_max==1)
+	HAL_StatusTypeDef err=HAL_OK;
+	mcp61_send_buff[0]=MER_SLAVE_ADD;
+	if(mcp_run_sta.idle!=0) 
 	{
-		mer_run_sta.frame_err=1;
+		mcp_run_sta.frame_bus_timeOut++;
+		if(mcp_run_sta.frame_bus_timeOut>2)//超过3次未回复
+		{
+			mcp_run_sta.idle=0;
+			mcp_run_sta.frame_bus_timeOut=0;
+		}
+		return HAL_BUSY;
 	}
-	else  if(min_max==2)
+	mcp61_send_buff[1]=MER_SINGLE_WRITE_CODE;
+	mcp61_send_buff[2]=(MCP61_REG_CALI_VALUE>>8)&0xFF;
+	mcp61_send_buff[3]=MCP61_REG_CALI_VALUE&0xFF;	
+	mcp61_send_buff[4]=0;
+	mcp61_send_buff[5]=1;
+	mcp61_send_buff[6]=mcp61_crc16_modbus(mcp61_send_buff,6)&0xFF;
+	mcp61_send_buff[7]=(mcp61_crc16_modbus(mcp61_send_buff,6)>>8)&0xFF;
+	err = HAL_UART_Transmit(&hlpuart1,mcp61_send_buff, 8, 100);	
+	if(err==HAL_OK) app_mcp61_lisen(MCP61_REG_CALI_VALUE+1,8);
+	else mcp_run_sta.idle=0;
+	return err;
+}
+
+/***************************************************************************//**
+ * @brief 设置报警高值
+ * @param  max_value，(扩大1000倍)
+ * @note 
+ * @return 返回无
+*******************************************************************************/
+HAL_StatusTypeDef  app_mcp61_set_alart_value_high(unsigned short int  high_value)
+{
+	HAL_StatusTypeDef err=HAL_OK;
+	mcp61_send_buff[0]=MER_SLAVE_ADD;
+	if(mcp_run_sta.idle!=0) 
 	{
-		mer_run_sta.frame_err=2;
+		mcp_run_sta.frame_bus_timeOut++;
+		if(mcp_run_sta.frame_bus_timeOut>2)//超过3次未回复
+		{
+			mcp_run_sta.idle=0;
+			mcp_run_sta.frame_bus_timeOut=0;
+		}
+		return HAL_BUSY;
 	}
-	app_mcp61_get_singgle_c_value_req();
+	mcp61_send_buff[1]=MER_SINGLE_WRITE_CODE;
+	mcp61_send_buff[2]=(MCP61_REG_ALART_SET_C_VALUE>>8)&0xFF;
+	mcp61_send_buff[3]=MCP61_REG_ALART_SET_C_VALUE&0xFF;	
+	mcp61_send_buff[4]=(high_value>>8)&0xFF;
+	mcp61_send_buff[5]=high_value&0xFF;
+	mcp61_send_buff[6]=mcp61_crc16_modbus(mcp61_send_buff,6)&0xFF;
+	mcp61_send_buff[7]=(mcp61_crc16_modbus(mcp61_send_buff,6)>>8)&0xFF;
+	err = HAL_UART_Transmit(&hlpuart1,mcp61_send_buff, 8, 100);	
+	if(err==HAL_OK) app_mcp61_lisen(MCP61_REG_ALART_SET_C_VALUE,8);
+	else mcp_run_sta.idle=0;
+	return err;
+}
+/***************************************************************************//**
+ * @brief 设置解除报警值
+ * @param  min，水位低限(扩大1000倍)
+ * @note  >max 水量充足 <min 水量不足
+ * @return 返回无
+*******************************************************************************/
+HAL_StatusTypeDef  app_mcp61_set_alart_value_low(unsigned short int   low_value)
+{
+	HAL_StatusTypeDef err=HAL_OK;
+	mcp61_send_buff[0]=MER_SLAVE_ADD;
+	if(mcp_run_sta.idle!=0) 
+	{
+		mcp_run_sta.frame_bus_timeOut++;
+		if(mcp_run_sta.frame_bus_timeOut>2)//超过3次未回复
+		{
+			mcp_run_sta.idle=0;
+			mcp_run_sta.frame_bus_timeOut=0;
+		}
+		return HAL_BUSY;
+	}
+	mcp61_send_buff[1]=MER_SINGLE_WRITE_CODE;
+	mcp61_send_buff[2]=(MCP61_REG_ALART_CLEAR_C_VALUE>>8)&0xFF;
+	mcp61_send_buff[3]=MCP61_REG_ALART_CLEAR_C_VALUE&0xFF;	
+	mcp61_send_buff[4]=(low_value>>8)&0xFF;
+	mcp61_send_buff[5]=low_value&0xFF;;
+	mcp61_send_buff[6]=mcp61_crc16_modbus(mcp61_send_buff,6)&0xFF;
+	mcp61_send_buff[7]=(mcp61_crc16_modbus(mcp61_send_buff,6)>>8)&0xFF;
+	err = HAL_UART_Transmit(&hlpuart1,mcp61_send_buff, 8, 100);	
+	if(err==HAL_OK) app_mcp61_lisen(MCP61_REG_ALART_CLEAR_C_VALUE,8);
+	else mcp_run_sta.idle=0;
+	return err;
 }
 #endif
-/***************************************************************************//**
- * @brief 数据输出
- * @param 
- * @note 
- * @return 返回操作状态，如果成功等待从机应答
-*******************************************************************************/
-void app_mer_prin(void)
-{ 
-	//DEBUG_PRINTF("mer: smp=%d  depth=%d id=%d cali=%d\r\n",mer_reg_value[0],mer_reg_value[1],mer_reg_value[2],mer_reg_value[3]	);
-	//DEBUG_PRINTF("c: T=%.1f c0=%.2f c1=%.2f c2=%.2f c3=%.2f c4=%.2f c5=%.2f c6=%.2f\r\n",mer_reg_value[4]*0.10,mer_reg_value[5]*0.001,\
-		mer_reg_value[6]*0.001,mer_reg_value[7]*0.001,mer_reg_value[8]*0.001,mer_reg_value[9]*0.001	,mer_reg_value[10]*0.001,mer_reg_value[11]*0.001);
-	//DEBUG_PRINTF("ct:ct=%.2f  ct0=%.2f ct1=%.2f ct2=%.2f ct3=%.2f ct4=%.2f ct5=%.2f ct6=%.2f\r\n",mer_reg_value[21]*0.10,mer_reg_value[22]*0.001,\
-		mer_reg_value[23]*0.001,mer_reg_value[24]*0.001,mer_reg_value[25]*0.001,mer_reg_value[26]*0.001	,mer_reg_value[27]*0.001,mer_reg_value[28]*0.001);
-	//深度计算
-}
 /***************************************************************************//**
  * @brief 获取mcp61单通道模块电容值
  * @param 
@@ -431,156 +459,37 @@ uint16_t  app_mcp61_get_singgle_c_value_req(void)
 	uint16_t ret;
 	#ifdef LLS_MCP61	
 	HAL_StatusTypeDef err=HAL_OK;
-	USART1_TX_BUFF[0]=MER_SLAVE_ADD;
-	if(mer_run_sta.idle!=0) 
+	mcp61_send_buff[0]=MER_SLAVE_ADD;
+	if(mcp_run_sta.idle!=0) 
 	{
-		mer_run_sta.frame_bus_timeOut++;
-		if(mer_run_sta.frame_bus_timeOut>2)
+		mcp_run_sta.frame_bus_timeOut++;
+		if(mcp_run_sta.frame_bus_timeOut>2)
 		{
-			mer_run_sta.idle=0;
-			mer_run_sta.frame_bus_timeOut=0;
+			mcp_run_sta.idle=0;
+			mcp_run_sta.frame_bus_timeOut=0;
 		}
-		return HAL_BUSY;
+		//return HAL_BUSY;
 	}	
-	USART1_TX_BUFF[1]=MER_REDA_CODE;
-	USART1_TX_BUFF[2]=(MCP61_REG_SINGGLE_C_VALUE>>8)&0xFF;
-	USART1_TX_BUFF[3]=MCP61_REG_SINGGLE_C_VALUE&0xFF;		
-	USART1_TX_BUFF[4]=0;
-	USART1_TX_BUFF[5]=1;  
-	USART1_TX_BUFF[6]=crc16_modbus(USART1_TX_BUFF,6)&0xFF;
-	USART1_TX_BUFF[7]=(crc16_modbus(USART1_TX_BUFF,6)>>8)&0xFF;
-	err = HAL_UART_Transmit(&huart1,USART1_TX_BUFF, 8, 100);	
-	if(err==HAL_OK) app_mer_lisen(MCP61_REG_SINGGLE_C_VALUE,8);
-	else mer_run_sta.idle=0;	
+	mcp61_send_buff[1]=MER_REDA_CODE;
+	mcp61_send_buff[2]=(MCP61_REG_SINGGLE_C_VALUE>>8)&0xFF;
+	mcp61_send_buff[3]=MCP61_REG_SINGGLE_C_VALUE&0xFF;		
+	mcp61_send_buff[4]=0;
+	mcp61_send_buff[5]=3;  
+	mcp61_send_buff[6]=mcp61_crc16_modbus(mcp61_send_buff,6)&0xFF;
+	mcp61_send_buff[7]=(mcp61_crc16_modbus(mcp61_send_buff,6)>>8)&0xFF;
+	#if 0       
+	DEBUG_PRINTF("uart5_send 8:\r\n");
+	for(unsigned int i=0;i<8;i++)
+	{
+		DEBUG_PRINTF(" %02x",mcp61_send_buff[i]);
+	}
+	DEBUG_PRINTF("\r\n");
+	#endif		
+	err = HAL_UART_Transmit(&hlpuart1,mcp61_send_buff, 8, 100);	
+	if(err==HAL_OK) app_mcp61_lisen(MCP61_REG_SINGGLE_C_VALUE,11);
+	else mcp_run_sta.idle = 0;	
 	#endif
 	return ret;
 }
-#ifdef LLM
-//***************************LLM液位计**********************************************/
-void LLM_UART_Init(uint32_t BaudRate)
-{
-	huart1.Instance = UART5;
-	huart1.Init.BaudRate = BaudRate;
-	huart1.Init.WordLength = UART_WORDLENGTH_8B;
-	huart1.Init.StopBits = UART_STOPBITS_1;
-	huart1.Init.Parity = UART_PARITY_NONE;
-	huart1.Init.Mode = UART_MODE_TX_RX;
-	huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-	huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-	huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-	huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-	if (HAL_UART_Init(&huart1) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	if (HAL_UARTEx_DisableFifoMode(&huart1) != HAL_OK)
-	{
-		Error_Handler();
-	}	  
-  	app_mer_lisen(0x0A,LLM_PACKAGE_LENGTH);
-}
-/***************************************************************************//**
- * @brief 获取数据值
- * @param 
- * @note  该模块1秒间隔返回固定长度格式数据 包含，参考温度(f摄氏度);频率(mHz)；电容值（pF）
- * @return 返回ID
-*******************************************************************************/
-
-HAL_StatusTypeDef  app_fresh_llm_data(float *value)
-{
-	HAL_StatusTypeDef ret=HAL_OK;
-	
-	if(mer_run_sta.idle==0)
-	{
-		*value=llm_rec_data.capacitanceValue;//上一次采集值			
-		mer_run_sta.frame_bus_timeOut=0;
-		app_mer_lisen(LLM_PACKAGE_HEAD,LLM_PACKAGE_LENGTH); 
-	}
-	else 	
-	{	
-		mer_run_sta.frame_bus_timeOut++;
-		if(mer_run_sta.frame_bus_timeOut>2)	//3s
-		{
-			mer_run_sta.frame_bus_timeOut=0;
-			*value=0;//err
-			app_mer_lisen(LLM_PACKAGE_HEAD,LLM_PACKAGE_LENGTH);
-		}		
-		else *value	= llm_rec_data.capacitanceValue;
-	}	
-	return ret;
-}
-/***************************************************************************//**
- * @brief 记录当前值为空载校准值
- * @param 
- * @note  该模块1秒间隔返回固定长度格式数据 包含，参考温度(f摄氏度);频率(mHz)；电容值（pF）
- * @return 返回ID
-*******************************************************************************/
-
-void  app_llm_min_calib_value_record(unsigned char min_max ,float value)
-{
-	uint8_t i;
-	float temp;
-	if(min_max==1)
-	{
-		llm_rec_data.min_max_capacitanceValue[0]=value;
-		temp=(llm_rec_data.min_max_capacitanceValue[9]-llm_rec_data.min_max_capacitanceValue[0])/9;
-        for(i=0;i<10;i++)
-		{
-			llm_rec_data.min_max_capacitanceValue[i]=llm_rec_data.min_max_capacitanceValue[0]+temp*i;
-		}
-		
-	}
-	else if(min_max==2)
-	{
-		llm_rec_data.min_max_capacitanceValue[9]=value;
-		temp=(llm_rec_data.min_max_capacitanceValue[9]-llm_rec_data.min_max_capacitanceValue[0])/9;
-        for(i=0;i<10;i++)
-		{
-			llm_rec_data.min_max_capacitanceValue[i]=llm_rec_data.min_max_capacitanceValue[0]+temp*i;
-		}
-	}
-	else 
-	{
-		llm_rec_data.capacitanceValue=value;		
-	}
-}
-/***************************************************************************//**
- * @brief 获取治疗水液位深度
- * @param 
- * @note  深度等级百分比;
- * @return 返回深度值 
-*******************************************************************************/
-unsigned char  app_get_llm_depth(void)
-{
-	unsigned char depth,i;
-	float temp1;
-	if(llm_rec_data.min_max_capacitanceValue[0]<llm_rec_data.min_max_capacitanceValue[9])
-	{
-		depth=0;
-	}
-	else
-	{
-		for(i=0;i<9;i++)
-		{
-			if(llm_rec_data.capacitanceValue>=llm_rec_data.min_max_capacitanceValue[i]&&llm_rec_data.capacitanceValue<llm_rec_data.min_max_capacitanceValue[i+1])
-			{
-				depth=i*10;
-				break;
-			}
-		}		
-		if(llm_rec_data.capacitanceValue<=llm_rec_data.min_max_capacitanceValue[0]) depth=0;
-		if(llm_rec_data.capacitanceValue>=llm_rec_data.min_max_capacitanceValue[9]) depth=100;
-	} 
-  	return depth;
-}
-#endif
 //***************************clm液位计**********************************************/
+

@@ -167,10 +167,10 @@ void Error_Handler(void);
 #define S31FL3193_IIC5_SCL_GPIO_Port GPIOC
 #define S31FL3193_SDB_out_Pin GPIO_PIN_12
 #define S31FL3193_SDB_out_GPIO_Port GPIOC
-#define EMERGENCY_LASER_STOP_STATUS_in_Pin GPIO_PIN_0
-#define EMERGENCY_LASER_STOP_STATUS_in_GPIO_Port GPIOD
-#define Hyperbaria_OFF_Signal_Pin GPIO_PIN_1
+#define Hyperbaria_OFF_Signal_Pin GPIO_PIN_0
 #define Hyperbaria_OFF_Signal_GPIO_Port GPIOD
+#define EMERGENCY_LASER_STOP_STATUS_in_Pin GPIO_PIN_1
+#define EMERGENCY_LASER_STOP_STATUS_in_GPIO_Port GPIOD
 #define H_AIR_PUMP_PWR_EN_Pin GPIO_PIN_2
 #define H_AIR_PUMP_PWR_EN_GPIO_Port GPIOD
 #define treatment_water_high_pressure_off_status_in_Pin GPIO_PIN_3
@@ -423,7 +423,7 @@ typedef struct{
   unsigned char water_air_prepare_status;         //bit14水雾准备,0异常；1正常
   unsigned char clean_status;                     //bit15清洗消毒状态,0异常；1正常
 */
- }sys_genaration_status;
+ }__attribute__((packed)) sys_genaration_status;
  extern  sys_genaration_status sGenSta;
 
 /* USER CODE END Private defines */

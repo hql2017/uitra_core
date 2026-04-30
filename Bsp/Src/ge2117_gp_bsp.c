@@ -417,7 +417,7 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 			}	
 			if(geWksta.workStaus==0)
 			{
-				if(compareTemp>MAX_TEMPRATURE_LASER&&geWksta.ge_seriel_err==0&&sGenSta.laser_run_B0_pro_hot_status!=0)
+				if(compareTemp>MAX_TEMPRATURE_LASER&&geWksta.ge_seriel_err==0)
 				{
 					//DEBUG_PRINTF("gestart\r\n");
 					geWksta.wkTimeOut=0;
