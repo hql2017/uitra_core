@@ -460,13 +460,16 @@ unsigned char  PWM_RGB[512]=
     0x07,0x06,0x05,0x04,0x03,0x02,0x01,0x00
 };
 #if 1
+static unsigned char i_err_count=0;
 uint8_t I2C_WriteByte(int DeviceAddress, int WriteAddress, int SendByte)
 {
-	HAL_StatusTypeDef err; 	
-	err=HAL_I2C_Mem_Write(&hi2c5,Addr_GND_GND,(uint16_t)WriteAddress,I2C_MEMADD_SIZE_8BIT,(uint8_t*)&SendByte,1,IS3_I2C_TIMEOUT);	
+	HAL_StatusTypeDef err=HAL_OK; 	
+	if(i_err_count<3) err=HAL_I2C_Mem_Write(&hi2c5,Addr_GND_GND,(uint16_t)WriteAddress,I2C_MEMADD_SIZE_8BIT,(uint8_t*)&SendByte,1,IS3_I2C_TIMEOUT);	
 	#if 1
   if(err!=HAL_OK)
   {
+    i_err_count++;
+    if(i_err_count>2) i_err_count=3;
     DEBUG_PRINTF("ISI i2c5 comunication Error!!\r\n");
   }
   #endif

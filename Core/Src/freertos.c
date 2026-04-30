@@ -724,6 +724,7 @@ void StartDefaultTask(void *argument)
     { 
       HAL_Delay(50);
       timeout+=50; 
+      app_get_adc_value(AD1_WATER_PRESSER_INDEX,&sEnvParam.treatment_water_pressure);
       if(timeout>5000)
       {
         DEBUG_PRINTF("treatment water load fail \r\n");          
@@ -770,7 +771,8 @@ void auxTask02(void *argument)
       app_fan_manage(led_tick);		      
 			HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
       app_sram_status_monitor(); 
-     // DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure);
+      //DEBUG_PRINTF("w_pre=%.1f air_p=%.1f iBus=%.1fmA\r\n",sEnvParam.treatment_water_pressure,sEnvParam.air_pump_pressure,sEnvParam.iBus);
+      //DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure);
       
 		}	    
 		/**********************RGB****************************/		
@@ -1198,7 +1200,9 @@ void fastAuxTask05(void *argument)
     app_get_adc_value(AD1_OCP_Ibus_INDEX,&sEnvParam.iBus);		
     app_get_adc_value(AD1_24V_VBUS_INDEX,&sEnvParam.vBus);     
     /***********气泵管理*******************/
-		app_get_adc_value(AD1_AIR_PRESSER_INDEX,&sEnvParam.air_pump_pressure);	
+		//app_get_adc_value(AD1_AIR_PRESSER_INDEX,&sEnvParam.air_pump_pressure);//本硬件版本IO口有误暂时无用
+    sEnvParam.air_pump_pressure=sEnvParam.treatment_water_pressure;//本硬件版本IO口有误暂时无用
+    app_get_adc_value(AD1_AIR_PRESSER_INDEX,&sEnvParam.treatment_water_pressure);	
 		app_air_pump_manage(laser_ctr_param.airPressureLevel);    
 		/***********aux genaration状态检查*******************/
 

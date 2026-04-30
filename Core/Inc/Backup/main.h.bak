@@ -175,8 +175,8 @@ void Error_Handler(void);
 #define H_AIR_PUMP_PWR_EN_GPIO_Port GPIOD
 #define treatment_water_high_pressure_off_status_in_Pin GPIO_PIN_3
 #define treatment_water_high_pressure_off_status_in_GPIO_Port GPIOD
-#define TMC2226_EN_Pin GPIO_PIN_4
-#define TMC2226_EN_GPIO_Port GPIOD
+#define PTC_EN_Pin GPIO_PIN_4
+#define PTC_EN_GPIO_Port GPIOD
 #define JDQ_STAND_Pin GPIO_PIN_5
 #define JDQ_STAND_GPIO_Port GPIOD
 #define JDQ_READY_Pin GPIO_PIN_6
@@ -197,8 +197,8 @@ void Error_Handler(void);
 #define TMC_STEP_TIM16CH1_PWM_out_GPIO_Port GPIOB
 #define circulating_water_pump_EN_Pin GPIO_PIN_9
 #define circulating_water_pump_EN_GPIO_Port GPIOB
-#define PTC_EN_Pin GPIO_PIN_0
-#define PTC_EN_GPIO_Port GPIOE
+#define TMC2226_EN_Pin GPIO_PIN_0
+#define TMC2226_EN_GPIO_Port GPIOE
 #define ADS1118_DRDY_in_Pin GPIO_PIN_1
 #define ADS1118_DRDY_in_GPIO_Port GPIOE
 
