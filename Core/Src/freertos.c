@@ -154,19 +154,19 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 360 * 4,
+  .stack_size = 328 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for myTask02 */
 osThreadId_t myTask02Handle;
 const osThreadAttr_t myTask02_attributes = {
   .name = "myTask02",
-  .stack_size = 296 * 4,
+  .stack_size = 312 * 4,
   .priority = (osPriority_t) osPriorityNormal4,
 };
 /* Definitions for myTask03 */
 osThreadId_t myTask03Handle;
-uint32_t myTask03Buffer[ 128 ];
+uint32_t myTask03Buffer[ 160 ];
 osStaticThreadDef_t myTask03ControlBlock;
 const osThreadAttr_t myTask03_attributes = {
   .name = "myTask03",
@@ -187,7 +187,7 @@ const osThreadAttr_t myTask04_attributes = {
 osThreadId_t myTask05Handle;
 const osThreadAttr_t myTask05_attributes = {
   .name = "myTask05",
-  .stack_size = 224 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal5,
 };
 /* Definitions for myTask06 */
@@ -222,7 +222,7 @@ const osThreadAttr_t myTask09_attributes = {
 osThreadId_t myTask10Handle;
 const osThreadAttr_t myTask10_attributes = {
   .name = "myTask10",
-  .stack_size = 176 * 4,
+  .stack_size = 196 * 4,
   .priority = (osPriority_t) osPriorityNormal4,
 };
 /* Definitions for myTask11 */
@@ -708,8 +708,7 @@ void StartDefaultTask(void *argument)
     {
       load_sta=3;
       DEBUG_PRINTF("laser jdq  load fail \r\n");      
-    } 
-  
+    }   
   #endif   
     app_laser_pulse_start(LASER_PULSE_STOP, LASER_PULSE_STOP,LASER_PULSE_STOP);
     load_sta=0;
@@ -1024,7 +1023,7 @@ void laserWorkTask04(void *argument)
               }
              else  e_T=+0.06*(24.0-sEnvParam.eth_k1_temprature);//0.90
             }          
-            else // if( sEnvParam.eth_k1_temprature>=24.0)
+            else // if(sEnvParam.eth_k1_temprature>=24.0)
             {   
               if( sEnvParam.eth_k1_temprature>30)
               {
@@ -1108,7 +1107,7 @@ void laserWorkTask04(void *argument)
             {               
               app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback);  
              // float ene_moni_cali= u_sys_param.sys_config_param.laser_pulse_width_us*0.00088+laser_ctr_param.laserEnerge*0.00009-0.0065; 
-              float ene_average_p= (e_feedback*0.00105)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power
+              float ene_average_p= (e_feedback*0.00125)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power
                
               sEnvParam.laser_1064_energy=ene_average_p/laser_ctr_param.laserFreq;
               DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV pulseCount=%d rdb=%d 980=%d\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback,u_sys_param.sys_config_param.laser_pulse_count,u_sys_param.sys_config_param.RDB_use_timeS,u_sys_param.sys_config_param.laser_use_timeS);              
@@ -1161,8 +1160,8 @@ void laserWorkTask04(void *argument)
             osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);
             DEBUG_PRINTF("stop 1064 stop\r\n");          
             sGenSta.laser_param_B456_jt_status = recKeyMessage;
-          }                      
-        }  
+          } 
+        }
       } 
                 
     }     
@@ -1424,25 +1423,24 @@ void laserProhotTask09(void *argument)
     if(local_proHotCtr!=0)	
     {	 
       outVoltage = app_jdq_voltage_monitor();  
+      //limit charge current     
+      jdq_reley_charge(JDG_EX_CONNECT_INTERNAL_LOAD);
       if(outVoltage>local_f+5.0) 
-      { // release voltage
-        jdq_reley_charge(JDG_EX_CONNECT_INTERNAL_LOAD);
+      { // release voltage       
         osDelay(JDQ_RS485_FRAME_MIN_MS);		
         jdq_reley_internal_load( JDG_INTERNAL_LOAD_CONNECT_TO_GND);       
-      }
+      }         
       timeout=0;
       do
       {  
         osDelay(JDQ_RS485_FRAME_MIN_MS);
         timeout+=JDQ_RS485_FRAME_MIN_MS;            
         outVoltage = app_jdq_voltage_monitor();  
-      }while (outVoltage>local_f+5.0&&timeout<LASER_JDQ_CHARGE_TIMEOUT_MS);
-      //limit charge current
-      
-      jdq_reley_charge(JDG_EX_CONNECT_INTERNAL_LOAD);	
+        if(outVoltage<local_f+5.0) break;        
+      }while (timeout<LASER_JDQ_CHARGE_TIMEOUT_MS);     
       osDelay(JDQ_RS485_FRAME_MIN_MS);
       jdq_reley_internal_load(JDG_INTERNAL_LOAD_CONNECT_TO_160V);
-      osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
+      osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS);
       u_g3200w_ctr_tx_message.msg.cmdCode=GWB_3200_REG_RUN_STOP;
       u_g3200w_ctr_tx_message.msg.cmdLen=1;
       u_g3200w_ctr_tx_message.msg.buff[0]=1;
@@ -1452,7 +1450,29 @@ void laserProhotTask09(void *argument)
         DEBUG_PRINTF("GWB3200W reley on fail!resend once\r\n");
         osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
         osMessageQueuePut(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_tx_message.data,NULL,0);
-      }       
+      }  
+      timeout=0;
+      do
+      {  //等待重启        
+        osDelay(JDQ_RS485_FRAME_MIN_MS);
+        timeout+=JDQ_RS485_FRAME_MIN_MS;   
+        if(timeout>(LASER_JDQ_CHARGE_TIMEOUT_MS>>2)) 
+        {
+          DEBUG_PRINTF("GWB3200W reley on timeout restart!\r\n");
+          u_g3200w_ctr_tx_message.msg.cmdCode=GWB_3200_REG_RUN_STOP;
+          u_g3200w_ctr_tx_message.msg.cmdLen=1;
+          u_g3200w_ctr_tx_message.msg.buff[0]=1;
+          gwb_ctr_tx_status= osMessageQueuePut(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_tx_message.data,NULL,JDQ_RS485_FRAME_MIN_MS);
+          if(gwb_ctr_tx_status!=osOK)     
+          {
+            DEBUG_PRINTF("GWB3200W reley on fail!resend once\r\n");
+            osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
+            osMessageQueuePut(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_tx_message.data,NULL,0);
+          } 
+          break;
+        }       
+      }while(app_jdq_gwb_pwr_flag()==0);  
+      osDelay(2*JDQ_RS485_FRAME_MIN_MS);    
       u_g3200w_ctr_tx_message.msg.cmdCode=GWB_3200_REG_SET_VOLTAGE_CURRENT;
       u_g3200w_ctr_tx_message.msg.cmdLen=4;
       temp_int = (unsigned short int)(local_f*100);
@@ -1471,27 +1491,26 @@ void laserProhotTask09(void *argument)
         DEBUG_PRINTF("GWB3200W set vol and current fail!resend once\r\n");
         osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
         osMessageQueuePut(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_tx_message.data,NULL,0);
-      }   
-      //charge
-      osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
+      }//charge
+      osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS);       
       timeout = 0;
       do
       {
         HAL_Delay(JDQ_RS485_FRAME_MAX_DELAY_MS);         
-        timeout+=JDQ_RS485_FRAME_MAX_DELAY_MS;
-        l_jdq_set_voltage= app_jdq_get_set_vbus()*0.01; 
+        timeout+=JDQ_RS485_FRAME_MAX_DELAY_MS;       
         outVoltage = app_jdq_voltage_monitor();
-        if(outVoltage>60.0) jdq_reley_charge(JDG_EX_CONNECT_TO_160V);	
+        l_jdq_set_voltage = app_jdq_get_set_vbus()*0.01; 
+        if(outVoltage>50.0) jdq_reley_charge(JDG_EX_CONNECT_TO_160V);	
         if(timeout>LASER_JDQ_CHARGE_TIMEOUT_MS) 
         {          
           DEBUG_PRINTF("charge time out fail! exit prohot\r\n");    
           break;
-        }  
-        DEBUG_PRINTF("charge jdq V=%f set=%f \r\n",outVoltage,l_jdq_set_voltage);                
+        } 
+        DEBUG_PRINTF("charge jdq V=%f set=%f \r\n",outVoltage,l_jdq_set_voltage);        
       }while(outVoltage+5.0<local_f);//90% voltage
       if(l_jdq_set_voltage!=JDQ_PWR_GWB_3200W_ERROR_FLAG&&outVoltage+5.0>=local_f)
       {//charge ok set to current limit
-        u_g3200w_ctr_tx_message.msg.cmdCode=GWB_3200_REG_SET_VOLTAGE_CURRENT;
+        u_g3200w_ctr_tx_message.msg.cmdCode = GWB_3200_REG_SET_VOLTAGE_CURRENT;
         u_g3200w_ctr_tx_message.msg.cmdLen=4;
         temp_int = (unsigned short int)(local_f*100);
         u_g3200w_ctr_tx_message.msg.buff[0]=(temp_int>>8)&0xFF;
@@ -1501,14 +1520,14 @@ void laserProhotTask09(void *argument)
           temp_int = (unsigned short int)(LASER_JDQ_CURRENT_LIMIT_F*100);
         }
         else{
-            temp_int = (unsigned short int)((LASER_JDQ_CURRENT_LIMIT_F+0.6)*100);//high freq
+          temp_int = (unsigned short int)((LASER_JDQ_CURRENT_LIMIT_F+0.6)*100);//high freq
         } 
         u_g3200w_ctr_tx_message.msg.buff[2]=(temp_int>>8)&0xFF;
         u_g3200w_ctr_tx_message.msg.buff[3]=temp_int&0xFF;    
         gwb_ctr_tx_status= osMessageQueuePut(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_tx_message.data,NULL,JDQ_RS485_FRAME_MIN_MS);
         if(gwb_ctr_tx_status==osOK)     
         {
-          DEBUG_PRINTF("GWB3200W set vol=%.1fV cSet=%.1f \r\n",local_f,LASER_JDQ_CURRENT_LIMIT_F);
+          DEBUG_PRINTF("GWB3200W set vol=%.1fV cSet=%.1fA \r\n",local_f,LASER_JDQ_CURRENT_LIMIT_F);
         }
         else 
         {
@@ -1524,29 +1543,22 @@ void laserProhotTask09(void *argument)
       } 
       else
       {
-
         DEBUG_PRINTF("charge fail jdq—v%f %d \r\n",outVoltage,laser_Voltage); 
         sGenSta.laser_run_B0_pro_hot_status = 0; 
         u_g3200w_ctr_tx_message.msg.cmdCode=GWB_3200_REG_RUN_STOP;
         u_g3200w_ctr_tx_message.msg.cmdLen=1;
         u_g3200w_ctr_tx_message.msg.buff[0]=0;
         gwb_ctr_tx_status= osMessageQueuePut(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_tx_message.data,NULL,JDQ_RS485_FRAME_MIN_MS);
-        if(gwb_ctr_tx_status==osOK)     
-        {
-          DEBUG_PRINTF("GWB3200W reley off \r\n");
-        }
-        else 
+        if(gwb_ctr_tx_status!=osOK)            
         {
           DEBUG_PRINTF("GWB3200W reley off fail!resend once\r\n");
           osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
           osMessageQueuePut(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_tx_message.data,NULL,0);
         }       
         jdq_reley_internal_load(JDG_INTERNAL_LOAD_CONNECT_TO_GND);
-        osDelay(JDQ_RS485_FRAME_MIN_MS);		
-        jdq_reley_charge(JDG_EX_CONNECT_INTERNAL_LOAD);
-                 
+        osDelay(JDQ_RS485_FRAME_MIN_MS); 		
+        jdq_reley_charge(JDG_EX_CONNECT_INTERNAL_LOAD);                        
       }
-     
     }		
     else 
     {
@@ -1594,15 +1606,21 @@ void ge2117ManageTask10(void *argument)
       local_time100mS=0;
       if(sEnvParam.eth_k1_temprature>ERR_LOW_TEMPRATURE_LASER&&sEnvParam.eth_k1_temprature<ERR_HIGH_TEMPRATURE_LASER)
       {        
-        app_ge2117_gp_ctr(sEnvParam.eth_k1_temprature,local_timeS);             
-        app_circle_water_PTC_manage(sEnvParam.eth_k1_temprature,local_time100mS);           
+        app_ge2117_gp_ctr(sEnvParam.eth_k1_temprature,local_timeS);   
       }  
       else
       {      
-        app_ge2117_gp_ctr(u_sys_param.sys_config_param.cool_temprature_target*0.1,local_timeS);//stop
-        app_circle_water_PTC_manage(u_sys_param.sys_config_param.cool_temprature_target*0.1,local_time100mS);//stop          
+        app_ge2117_gp_ctr(u_sys_param.sys_config_param.cool_temprature_target*0.1,local_timeS);//stop                 
       }      		   
-    }     
+    } 
+    if(sEnvParam.eth_k1_temprature>ERR_LOW_TEMPRATURE_LASER&&sEnvParam.eth_k1_temprature<ERR_HIGH_TEMPRATURE_LASER)
+    {    
+      app_circle_water_PTC_manage(sEnvParam.eth_k1_temprature,local_time100mS);   
+    }  
+    else
+    {     
+      app_circle_water_PTC_manage(u_sys_param.sys_config_param.cool_temprature_target*0.1,local_time100mS);//stop          
+    }      		       
   }
   /* USER CODE END ge2117ManageTask10 */
 }
@@ -1652,9 +1670,13 @@ void jdqGWB3200wTask12(void *argument)
       jdq_geb_hearttimeout+=20;
       if(jdq_geb_hearttimeout>SYS_1_MINUTES_TICK)
       {
-        jdq_geb_hearttimeout=0;        
-        DEBUG_PRINTF("jdq disconnect! exit prohot\r\n");
-        osSemaphoreRelease(laserCloseSem05Handle);
+        jdq_geb_hearttimeout=0;  
+        app_jdq_clear_pwr_sta();      
+        DEBUG_PRINTF("jdq disconnect! \r\n");
+        if(sGenSta.laser_run_B0_pro_hot_status!=0) {
+          osSemaphoreRelease(laserCloseSem05Handle);
+          DEBUG_PRINTF("exit prohot\r\n");
+        }
       }
     }
     else jdq_geb_hearttimeout = 0;
@@ -1702,7 +1724,7 @@ void LaserWorkTimerCallback01(void *argument)
 /* cleanWaterCallback02 function */
 void cleanWaterCallback02(void *argument)
 {
-  /* USER CODE BEGIN cleanWaterCallback02 */ 
+  /* USER CODE BEGIN cleanWaterCallback02 */
   tmc2226_stop();
   /* USER CODE END cleanWaterCallback02 */
 }
@@ -2517,10 +2539,10 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(defaultTaskHandle);
   taskSize= defaultTask_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(defaultTaskHandle); 
-  //DEBUG_PRINTF("defaultTask s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("defaultTask s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
-    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory 1!\r\n");
     app_task_status_error_handle(&defaultTaskHandle );
   }
   sumtaskSize+=taskSize;
@@ -2528,10 +2550,10 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask02Handle);
   taskSize= myTask02_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask02Handle); 
-  //DEBUG_PRINTF("myTask02 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask02 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {      
-    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory2!\r\n");
     app_task_status_error_handle(&myTask02Handle);
   }
   sumtaskSize+=taskSize;
@@ -2539,10 +2561,10 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask03Handle);
   taskSize= myTask03_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask03Handle); 
-  //DEBUG_PRINTF("myTask03 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+ // DEBUG_PRINTF("myTask03 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
-    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory3!\r\n");
     app_task_status_error_handle( &myTask02Handle);
   }
   sumtaskSize+=taskSize;
@@ -2550,10 +2572,10 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask04Handle);
   taskSize= myTask04_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask04Handle); 
-  //DEBUG_PRINTF("myTask04 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask04 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
-    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory4!\r\n");
     app_task_status_error_handle( &myTask03Handle);
   }
   sumtaskSize+=taskSize;
@@ -2561,10 +2583,10 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask05Handle);
   taskSize= myTask05_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask04Handle); 
-  //DEBUG_PRINTF("myTask05 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask05 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
-    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory5!\r\n");
     app_task_status_error_handle( &myTask05Handle);
   }
   sumtaskSize+=taskSize;
@@ -2572,10 +2594,10 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask06Handle);
   taskSize= myTask06_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask06Handle); 
-  //DEBUG_PRINTF("myTask06 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask06 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
-    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory6!\r\n");
     app_task_status_error_handle( &myTask06Handle);
   }
   sumtaskSize+=taskSize;
@@ -2583,10 +2605,10 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask07Handle);
   taskSize= myTask07_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask07Handle); 
-  //DEBUG_PRINTF("myTask07 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+ // DEBUG_PRINTF("myTask07 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
-    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory7!\r\n");
     app_task_status_error_handle( &myTask07Handle);
   }
   sumtaskSize+=taskSize;
@@ -2594,10 +2616,10 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask08Handle);
   taskSize= myTask08_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask08Handle); 
-  //DEBUG_PRINTF("myTask08 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+ // DEBUG_PRINTF("myTask08 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
-    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory8!\r\n");
     app_task_status_error_handle( &myTask08Handle);
   }
   sumtaskSize+=taskSize;
@@ -2605,10 +2627,10 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask09Handle);
   taskSize= myTask09_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask09Handle); 
- //DEBUG_PRINTF("myTask09 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+ //DEBUG_PRINTF("myTask09 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
-    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory9!\r\n");
     app_task_status_error_handle( &myTask09Handle);
   }
   sumtaskSize+=taskSize;
@@ -2616,10 +2638,10 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask10Handle);
   taskSize= myTask10_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask10Handle); 
-  //DEBUG_PRINTF("myTask10 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask10 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
-    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory10!\r\n");
     app_task_status_error_handle( &myTask10Handle);
   }
   sumtaskSize+=taskSize;
@@ -2627,10 +2649,10 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
   taskState=osThreadGetState(myTask11Handle);
   taskSize= myTask11_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask11Handle); 
-  //DEBUG_PRINTF("myTask11 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSize-taskSpace);
+  //DEBUG_PRINTF("myTask11 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
-    if( taskSpace<50) DEBUG_PRINTF(" out of memory!\r\n");
+    if( taskSpace<50) DEBUG_PRINTF(" out of memory11!\r\n");
     app_task_status_error_handle( &myTask11Handle);
   }
   sumtaskSize+=taskSize;

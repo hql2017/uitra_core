@@ -45,6 +45,7 @@ void app_jdq_rs485_receive_data(void);
 unsigned char  app_jdq_rs485_check_gwb3200_rec_package(void);
 
 unsigned char  app_jdq_gwb_pwr_flag(void);
+void app_jdq_clear_pwr_sta(void);
 
 #define JDG_RELEY_ENABLE  1
 #define JDG_RELEY_DISABLE 0
@@ -88,7 +89,7 @@ unsigned char  app_jdq_gwb_pwr_flag(void);
 #define LASER_JDQ_VOLTAGE   150
 #define LASER_JDQ_CURRENT_LIMIT_F   1.9f
 #define LASER_JDQ_CURRENT_LIMIT     2
-#define LASER_JDQ_CHARGE_TIMEOUT_MS  12000//30000//60S
+#define LASER_JDQ_CHARGE_TIMEOUT_MS  10000//10S
 
 #ifndef  ADS1110_JDQ_USED
 #define  ADS1110_JDQ_USED 

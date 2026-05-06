@@ -395,7 +395,7 @@ void app_jdq_gwb3200_receive_handle(unsigned char *buff,unsigned char Len)
 			jdq_sts_reg.emergencyErrorFlag=buff[14];
 			jdq_sts_reg.generationErrorFlag=buff[15];			
 			break;
-			case GWB_3200_REG_RUN_STOP:
+		case GWB_3200_REG_RUN_STOP:
 			if(buff[4]==0x00)
 			{
 				jdq_sts_reg.pwr_status=1;
@@ -854,6 +854,17 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
  {
   return jdq_sts_reg.pwr_status;
  }
+     /************************************************************************//**
+  * @brief 清除电源状态
+  * @param 
+  * @note   
+  * @retval 
+  *****************************************************************************/
+ void app_jdq_clear_pwr_sta(void)
+ {
+	jdq_sts_reg.pwr_status=0;
+ }
+   
    /************************************************************************//**
   * @brief 读总电源电流设定值
   * @param  *voltage 电压设定, *current 电流设定
