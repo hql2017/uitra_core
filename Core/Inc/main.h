@@ -144,7 +144,6 @@ void Error_Handler(void);
 #define TMC2226_ERROR_out_GPIO_Port GPIOD
 #define FOOT_SWITCH_IN_Pin GPIO_PIN_15
 #define FOOT_SWITCH_IN_GPIO_Port GPIOD
-#define FOOT_SWITCH_IN_EXTI_IRQn EXTI15_10_IRQn
 #define KEY_PWR_SWITCH_Pin GPIO_PIN_6
 #define KEY_PWR_SWITCH_GPIO_Port GPIOC
 #define HV_ONE_PULSE_out_Pin GPIO_PIN_7

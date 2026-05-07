@@ -1092,8 +1092,7 @@ void laserWorkTask04(void *argument)
               if(fisrt_pulse_cali<DAC_MIN_VOLTAGE_F) fisrt_pulse_cali=DAC_MIN_VOLTAGE_F;       
               AD5541A_SetVoltage(fisrt_pulse_cali, 4.096); 
               fisrt_pulse_cali=0; 
-            }
-            
+            }            
             if(u_sys_param.sys_config_param.beep!=0)
             {
               if(sGenSta.laser_run_B0_pro_hot_status!=0) 
@@ -1107,8 +1106,7 @@ void laserWorkTask04(void *argument)
             {               
               app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback);  
              // float ene_moni_cali= u_sys_param.sys_config_param.laser_pulse_width_us*0.00088+laser_ctr_param.laserEnerge*0.00009-0.0065; 
-              float ene_average_p= (e_feedback*0.00125)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power
-               
+              float ene_average_p= (e_feedback*0.00115)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power               
               sEnvParam.laser_1064_energy=ene_average_p/laser_ctr_param.laserFreq;
               DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV pulseCount=%d rdb=%d 980=%d\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback,u_sys_param.sys_config_param.laser_pulse_count,u_sys_param.sys_config_param.RDB_use_timeS,u_sys_param.sys_config_param.laser_use_timeS);              
               if(sEnvParam.laser_1064_energy>0&&laser_ctr_param.laserEnerge>0)
@@ -1117,7 +1115,7 @@ void laserWorkTask04(void *argument)
                 {
                   sGenSta.laser_param_B01_energe_status=2; //over load
                 }      
-                else sGenSta.laser_param_B01_energe_status=1;
+                else sGenSta.laser_param_B01_energe_status = 1;
               }
               else 
               {
@@ -1162,8 +1160,7 @@ void laserWorkTask04(void *argument)
             sGenSta.laser_param_B456_jt_status = recKeyMessage;
           } 
         }
-      } 
-                
+      }                 
     }     
     else
     {
@@ -1203,9 +1200,8 @@ void fastAuxTask05(void *argument)
     app_get_adc_value(AD1_AIR_PRESSER_INDEX,&sEnvParam.treatment_water_pressure);	
 		app_air_pump_manage(laser_ctr_param.airPressureLevel);    
 		/***********aux genaration状态检查*******************/
-
     #if 0
-    // sEnvParam.cool_water_depth=100;//mcp
+    //sEnvParam.cool_water_depth=100;//mcp
     sEnvParam.cool_water_depth= app_mcp61_c_value()*10;//real depth =0.1pf*10
     // 循环水位
     #else
@@ -1760,13 +1756,6 @@ void jdqHeart100msCallback04(void *argument)
   {
     app_fan_feed_count(1);
   }  
-  if(GPIO_Pin==LASER_PULSE_COUNT_in_Pin)
-  {   
-    if(laser_ctr_param.lowEnergeMode==0)
-    {
-      HAL_TIM_Base_Start_IT(&htim5);
-    }
-  }   
   #ifdef ONE_WIRE_BUS_JT_SLAVE 
   if(GPIO_Pin==FOOT_SWITCH_IN_Pin)
   {  

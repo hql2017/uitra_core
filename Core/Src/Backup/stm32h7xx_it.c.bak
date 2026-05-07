@@ -63,6 +63,7 @@ extern UART_HandleTypeDef hlpuart1;
 extern UART_HandleTypeDef huart5;
 extern UART_HandleTypeDef huart1;
 extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim5;
 extern TIM_HandleTypeDef htim7;
 extern TIM_HandleTypeDef htim17;
 extern TIM_HandleTypeDef htim23;
@@ -257,17 +258,17 @@ void USART1_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles EXTI line[15:10] interrupts.
+  * @brief This function handles TIM5 global interrupt.
   */
-void EXTI15_10_IRQHandler(void)
+void TIM5_IRQHandler(void)
 {
-  /* USER CODE BEGIN EXTI15_10_IRQn 0 */
+  /* USER CODE BEGIN TIM5_IRQn 0 */
 
-  /* USER CODE END EXTI15_10_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(FOOT_SWITCH_IN_Pin);
-  /* USER CODE BEGIN EXTI15_10_IRQn 1 */
+  /* USER CODE END TIM5_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim5);
+  /* USER CODE BEGIN TIM5_IRQn 1 */
 
-  /* USER CODE END EXTI15_10_IRQn 1 */
+  /* USER CODE END TIM5_IRQn 1 */
 }
 
 /**

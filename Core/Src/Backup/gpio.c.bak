@@ -131,18 +131,6 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : FOOT_SWITCH_IN_Pin */
-  GPIO_InitStruct.Pin = FOOT_SWITCH_IN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(FOOT_SWITCH_IN_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : LASER_PULSE_COUNT_in_Pin */
-  GPIO_InitStruct.Pin = LASER_PULSE_COUNT_in_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(LASER_PULSE_COUNT_in_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pins : DAC_LD_Pin DAC_CS_Pin circulating_water_pump_EN_Pin */
   GPIO_InitStruct.Pin = DAC_LD_Pin|DAC_CS_Pin|circulating_water_pump_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -156,9 +144,6 @@ void MX_GPIO_Init(void)
 
   HAL_NVIC_SetPriority(EXTI1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI1_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 

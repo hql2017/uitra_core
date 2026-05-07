@@ -928,14 +928,14 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
 	#endif		
  }
 //JDQ 继电器 逻辑 (LL HL  LH LL) (stand ,ready)
-//***************************laser pulse (100us~500us) timer3***************************************//
+//***************************laser pulse (100us~500us) timer2***************************************//
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	if(htim->Instance ==TIM2)
+	if(htim->Instance ==TIM5)
 	{
 		if(htim->Channel ==	HAL_TIM_ACTIVE_CHANNEL_1)
 		{  
-			HAL_GPIO_WritePin(GPIOC, HV_ONE_PULSE_out_Pin, GPIO_PIN_SET); 		
+			HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_SET); 		
 		 	pulse_adc_start(MAX_AD2_ENERGE_BUFF_LENGTH);
 		}
 	}
@@ -973,9 +973,9 @@ void app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVoltage
 	else if(energeVoltage>DAC_MAX_VOLTAGE_F) num100ns = 210;
 	else num100ns=(unsigned short int)(energeVoltage*20)+130;
 	//100~200us	 
-	if(pulse100ns<800) __HAL_TIM_SetAutoreload(&htim5,799-num100ns-lowVoltage100ns);//100us	
-	else if(pulse100ns>2000) __HAL_TIM_SetAutoreload(&htim5,1999-num100ns-lowVoltage100ns);//200us
-	else __HAL_TIM_SetAutoreload(&htim5,pulse100ns-1-num100ns-lowVoltage100ns);  
+	if(pulse100ns<800) __HAL_TIM_SetAutoreload(&htim2,799-num100ns-lowVoltage100ns);//100us	
+	else if(pulse100ns>2000) __HAL_TIM_SetAutoreload(&htim2,1999-num100ns-lowVoltage100ns);//200us
+	else __HAL_TIM_SetAutoreload(&htim2,pulse100ns-1-num100ns-lowVoltage100ns);  
 }
 /**
   * @brief app_laser_pulse_start 
@@ -1075,15 +1075,16 @@ static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)
 		//if( freq > 100 ) counter = 10000;//(1000000/100);
 		else if( freq < 1 )  counter = 1000000; //(1000000/1)
 		else counter=(1000000/freq);
-		__HAL_TIM_SetAutoreload(&htim2,counter-1);//1~100HZ	
-		__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_1,timeLoad-1);	
-		HAL_TIM_OC_Start_IT(&htim2,TIM_CHANNEL_1);	
-		HAL_TIM_Base_Start_IT(&htim2);	
+		__HAL_TIM_SetAutoreload(&htim5,counter-1);//1~100HZ	
+		__HAL_TIM_SetCompare(&htim5,TIM_CHANNEL_1,timeLoad-1);	
+		HAL_TIM_OC_Start_IT(&htim5,TIM_CHANNEL_1);	
+		HAL_TIM_Base_Start_IT(&htim5);	
 	}
 	else 
 	{		
-		HAL_TIM_OC_Stop_IT(&htim2,TIM_CHANNEL_1);
-		HAL_TIM_Base_Stop_IT(&htim2);	
+		HAL_TIM_OC_Stop_IT(&htim5,TIM_CHANNEL_1);
+		HAL_TIM_Base_Stop_IT(&htim5);	
+				
 	}	
  }
   /************************************************************************//**
