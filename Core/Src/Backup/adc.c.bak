@@ -591,7 +591,7 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
   {
     temp=(ad2vale*AD_VREF_VOLTAGE)>>16;  
     *vBuff= temp*1.0 ;//LASER064ADAD,  
-    ad2vale=0;//clear fresh
+   // ad2vale=0;//clear fresh
    #if 0
    DEBUG_PRINTF("laserAD=");
    for(int i=0;i<MAX_AD2_ENERGE_BUFF_LENGTH;i++)

@@ -288,8 +288,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
  void app_deflate_air_solenoid(FunctionalState flag)
  {//新气泵
     app_air_pump_switch(flag); 
- }
-  
+ }  
  //***************************IN IO*****************************************/
  /************************************************************************//**
   * @brief 遥控连锁
@@ -408,7 +407,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
         timeout[1] = 0;
         timeout[0] = 0;
         historyKey = KEY_NO_CONNECT;
-        owb_key_value     = KEY_LONG_RELEASE;// KEY_NO_CONNECT;//3;
+        owb_key_value = KEY_LONG_RELEASE;// KEY_NO_CONNECT;//3;
       }
       else owb_key_value=IO_KEY_IDLE;
     }			
