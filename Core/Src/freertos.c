@@ -1078,7 +1078,7 @@ void laserWorkTask04(void *argument)
             DEBUG_PRINTF("e=%dev=%.3f freq=%d timeU=%d\r\n",laser_ctr_param.laserEnerge,local_f,laser_ctr_param.laserFreq,u_sys_param.sys_config_param.laser_pulse_width_us); 
             if(local_f>DAC_MAX_VOLTAGE_F) local_f = DAC_MAX_VOLTAGE_F;//4.0           
             if(local_f<DAC_MIN_VOLTAGE_F) local_f = DAC_MIN_VOLTAGE_F;//4.0
-            if(local_f<1.85) laser_ctr_param.lowEnergeMode=1;
+            if(local_f<1.8) laser_ctr_param.lowEnergeMode=1;
             else laser_ctr_param.lowEnergeMode=0;  
             fisrt_pulse_cali= local_f*0.6+DAC_MIN_VOLTAGE_F*0.4;   
             AD5541A_SetVoltage(fisrt_pulse_cali,4.096);   //首脉冲减半

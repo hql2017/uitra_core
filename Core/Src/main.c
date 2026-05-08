@@ -325,8 +325,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     u_sys_param.sys_config_param.laser_pulse_count++;
     HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET); 
   }
-  if (htim->Instance == TIM2) 
-  {    
+  if(htim->Instance == TIM2) 
+  {       	
     HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET);
   }  
   if(htim->Instance == TIM23)
