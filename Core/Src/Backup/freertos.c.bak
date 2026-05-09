@@ -1071,7 +1071,7 @@ void laserWorkTask04(void *argument)
               }
               else  local_f-=(2500-u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali)*0.0001;//
             }    
-            #if 1
+            #if 0
             //test
             local_f= laser_ctr_param.ledLightLevel*0.025+DAC_MIN_VOLTAGE_F;             
             #endif       

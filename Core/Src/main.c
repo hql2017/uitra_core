@@ -144,7 +144,6 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM23_Init();
   MX_TIM7_Init();
-  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
   DWT_Init(); 
   char verBuff[19]={0};
@@ -319,15 +318,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 1 */
   if(htim->Instance == TIM17) {
      owb_tim_callback(30);     
-  }
-	 if (htim->Instance == TIM5) 
-  {  
-    u_sys_param.sys_config_param.laser_pulse_count++;
-    HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET); 
-  }
+  }	
   if(htim->Instance == TIM2) 
-  {       	
-    HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET);
+  {    
+    u_sys_param.sys_config_param.laser_pulse_count++;  
+    pulse_adc_start(MAX_AD2_ENERGE_BUFF_LENGTH) 	;
+    HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_SET);
   }  
   if(htim->Instance == TIM23)
   {
