@@ -503,9 +503,14 @@ void filter_ad1(void)
       levelIdx = (levelIdx + 1) & 0xFF; /* keep wrapping but idx uses &0x07 */
       sum = 0;
       for(i = 0; i < 8; i++)
-      {     
-        if(ad2hle[i]==0) sum += ad2hle[0];
-        else sum += ad2hle[i];       
+      {   
+        if(ad2hle[i]==0)
+        {
+          sum += ad2hle[0];
+        }
+        else {
+          sum += ad2hle[i];  
+        }     
       } 
       ad2vale = (unsigned short int)(sum >> 3);   
       #endif 

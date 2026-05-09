@@ -347,6 +347,7 @@ void app_sram_status_monitor( void );
 #ifdef ONE_WIRE_BUS_SLAVE
 unsigned int  app_owb_key_scan(unsigned short int timeMs);
 #endif
+float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -969,81 +970,35 @@ void laserWorkTask04(void *argument)
         rgbMessage = RGB_G_STANDBY;
         osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);
         osEventFlagsClear(laserEvent02Handle,EVENTS_LASER_PREPARE_OK_ALL_BITS_MASK);
-      }         
+      } 
+      if(laser_ctr_param.timerEnableFlag==0||laser_ctr_param.timerCtr==0)
+      {
+        sGenSta.laser_run_B5_timer_status=0;
+      }        
       if(statusJT==osOK)          
       {                 
-        if(recKeyMessage==key_jt_long_press&&sGenSta.laser_run_B5_timer_status==0)
+        if(recKeyMessage==key_jt_long_press&&sGenSta.laser_run_B5_timer_status==0&&sGenSta.laser_run_B0_pro_hot_status!=0)
         {  
-          if(osTimerIsRunning(laserWorkTimer01Handle)==pdFALSE)
-          {
-            if(pLaserConfig->proCali==0)  
-            {
-              if(laser_ctr_param.timerEnableFlag==0)
-              {
-                sGenSta.laser_run_B5_timer_status=0;
-              }
-              else
-              {             
-                if(sGenSta.laser_run_B5_timer_status==0&&laser_ctr_param.timerCtr!=0)
-                {
-                  if(laser_ctr_param.timerCtr>180)laser_ctr_param.timerCtr=180; 
-                  osTimerStart(laserWorkTimer01Handle,laser_ctr_param.timerCtr*SYS_1_SECOND_TICKS);
-                } 
-              }   
-            }
-            else 
-            {
-              if(sGenSta.laser_run_B5_timer_status==0&&laser_ctr_param.timerEnableFlag!=0)
-              {
-                osTimerStart(laserWorkTimer01Handle,180*SYS_1_SECOND_TICKS);
-              }
-            }
-          }   
           if(sGenSta.laser_run_B1_laser_out_status==0)
-          {               
-            if(laser_ctr_param.laserEnerge> ENERGE_MAX_VALUE) laser_ctr_param.laserEnerge=ENERGE_MAX_VALUE;
-            if(laser_ctr_param.laserEnerge< ENERGE_MIN_VALUE) laser_ctr_param.laserEnerge=ENERGE_MIN_VALUE;
-            if(u_sys_param.sys_config_param.laser_pulse_width_us<100) u_sys_param.sys_config_param.laser_pulse_width_us=100;
-            if(u_sys_param.sys_config_param.laser_pulse_width_us>230) u_sys_param.sys_config_param.laser_pulse_width_us=230;            
-           //temprature
-            float freq_e=1.0;
-            float  e_pulse=0;//脉宽补偿
-            float  e_T=0;  //温度补偿
-            #if 1
-            if(laser_ctr_param.laserFreq>50) freq_e=0.924-laser_ctr_param.laserFreq*0.0003;
-            else if(laser_ctr_param.laserFreq>30) freq_e=0.949-laser_ctr_param.laserFreq*0.0005;
-            else  if(laser_ctr_param.laserFreq>10) freq_e=1-laser_ctr_param.laserFreq*0.0017;
-            else  if(laser_ctr_param.laserFreq>=5) freq_e=1.050-0.005*laser_ctr_param.laserFreq;
-            else freq_e=1.090-0.009*laser_ctr_param.laserFreq;    
-            if(sEnvParam.eth_k1_temprature<24.0) 
-            {
-              if(laser_ctr_param.laserEnerge<25)   
-              {
-                e_T=+0.10*(24.0-sEnvParam.eth_k1_temprature);//0.90
-              }
-             else  e_T=+0.06*(24.0-sEnvParam.eth_k1_temprature);//0.90
-            }          
-            else // if(sEnvParam.eth_k1_temprature>=24.0)
-            {   
-              if( sEnvParam.eth_k1_temprature>30)
-              {
-                e_T=-0.06;//1.08
-              }
-              else 
-              {
-                e_T=-0.01*(sEnvParam.eth_k1_temprature-24.0);
-              } 
-            } 
-            #endif
-            e_pulse=(200-u_sys_param.sys_config_param.laser_pulse_width_us)*(0.00035); 
-            if(laser_ctr_param.laserEnerge<=15)
-            {
-              local_f=1.35+((laser_ctr_param.laserEnerge)*freq_e*(1.30+e_pulse+e_T)/u_sys_param.sys_config_param.laser_pulse_width_us);
+          {  
+            unsigned short int timerCtr=0;
+            if(pLaserConfig->proCali==0) {  
+              if(laser_ctr_param.timerCtr>180) laser_ctr_param.timerCtr=180; 
+              timerCtr=laser_ctr_param.timerCtr;
             }
-            else 
-            {  
-              local_f=1.40+((laser_ctr_param.laserEnerge)*freq_e*(1.30+e_pulse+e_T)/u_sys_param.sys_config_param.laser_pulse_width_us);
-            } 
+            else  {
+              timerCtr=180;
+            }
+            if(laser_ctr_param.timerEnableFlag!=0)
+            {
+                 DEBUG_PRINTF("tim sta\r\n");
+              osTimerStart(laserWorkTimer01Handle,timerCtr*SYS_1_SECOND_TICKS);
+            }           
+            local_f=  app_energe_vdac(laser_ctr_param.laserEnerge,u_sys_param.sys_config_param.laser_pulse_width_us);
+            #if 0
+            //test
+            local_f= laser_ctr_param.ledLightLevel*0.025+DAC_MIN_VOLTAGE_F;             
+            #endif
             if(pLaserConfig->proCali==0&&laser_ctr_param.ctrTestMode==0)
             {               
               if(pLaserConfig->treatmentWaterLevel!=0)
@@ -1063,21 +1018,8 @@ void laserWorkTask04(void *argument)
             {
               laser_ctr_param.laserFreq=10;
             }
-            if(laser_ctr_param.laserEnerge>4)
-            {
-              if(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali>2500)
-              {
-               local_f+=(u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali-2500)*0.0001;//
-              }
-              else  local_f-=(2500-u_sys_param.sys_config_param.e_cali[(laser_ctr_param.laserEnerge/5)-1].energe_cali)*0.0001;//
-            }    
-            #if 0
-            //test
-            local_f= laser_ctr_param.ledLightLevel*0.025+DAC_MIN_VOLTAGE_F;             
-            #endif       
             DEBUG_PRINTF("e=%dev=%.3f freq=%d timeU=%d\r\n",laser_ctr_param.laserEnerge,local_f,laser_ctr_param.laserFreq,u_sys_param.sys_config_param.laser_pulse_width_us); 
-            if(local_f>DAC_MAX_VOLTAGE_F) local_f = DAC_MAX_VOLTAGE_F;//4.0           
-            if(local_f<DAC_MIN_VOLTAGE_F) local_f = DAC_MIN_VOLTAGE_F;//4.0
+            
             if(local_f<1.8) laser_ctr_param.lowEnergeMode=1;
             else laser_ctr_param.lowEnergeMode=0;  
             fisrt_pulse_cali= local_f*0.6+DAC_MIN_VOLTAGE_F*0.4;   
@@ -1141,11 +1083,15 @@ void laserWorkTask04(void *argument)
           if(sGenSta.laser_run_B5_timer_status!=0&&recKeyMessage!=key_jt_long_press&&osTimerIsRunning(laserWorkTimer01Handle)==pdFALSE)
           {  
             sGenSta.laser_run_B5_timer_status=0; 
-          }        
-          if(sGenSta.laser_run_B5_timer_status==0&&osTimerIsRunning(laserWorkTimer01Handle)==pdTRUE)
-          {
-            osTimerStop(laserWorkTimer01Handle);           
-          }
+          }  
+          else {
+            if(recKeyMessage!=key_jt_long_press&&sGenSta.laser_run_B5_timer_status!=0) 
+            {
+              sGenSta.laser_run_B5_timer_status=0;
+              DEBUG_PRINTF("tim stop\r\n");
+              osTimerStop(laserWorkTimer01Handle); 
+            }
+          }   
           if(sGenSta.laser_run_B1_laser_out_status!=0)
           {            
             app_laser_pulse_start(LASER_PULSE_STOP,LASER_PULSE_STOP,LASER_PULSE_STOP); 
@@ -1716,7 +1662,7 @@ void LaserWorkTimerCallback01(void *argument)
 {
   /* USER CODE BEGIN LaserWorkTimerCallback01 */
   uint16_t send_music_num = MUSIC_SHORT_PROMT;
-  //if(sGenSta.laser_run_B0_pro_hot_status!=0) osMessageQueuePut(musicQueue03Handle,&send_music_num,0,0);
+  if(sGenSta.laser_run_B0_pro_hot_status!=0) osMessageQueuePut(musicQueue03Handle,&send_music_num,0,0);
   sGenSta.laser_run_B5_timer_status=1;
   /* USER CODE END LaserWorkTimerCallback01 */
 }
@@ -2463,6 +2409,71 @@ void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
 	}
 }
 #endif
+ /***************************************************************************//**
+ * @brief 能量与电压计算
+ * @param energe
+ * @note 
+ * @return 目标Vdac值
+*******************************************************************************/
+float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs)
+{
+  float retVdac;
+  if(energe> ENERGE_MAX_VALUE) energe=ENERGE_MAX_VALUE;
+  if(energe< ENERGE_MIN_VALUE) energe=ENERGE_MIN_VALUE;
+  if(pulseWidthUs<100) pulseWidthUs=100;
+  if(pulseWidthUs>230) pulseWidthUs=230;            
+ //temprature
+  float freq_e=1.0;
+  float  e_pulse=0;//脉宽补偿
+  float  e_T=0;  //温度补偿
+  #if 1
+  if(laser_ctr_param.laserFreq>50) freq_e=0.924-laser_ctr_param.laserFreq*0.0003;
+  else if(laser_ctr_param.laserFreq>30) freq_e=0.949-laser_ctr_param.laserFreq*0.0005;
+  else  if(laser_ctr_param.laserFreq>10) freq_e=1-laser_ctr_param.laserFreq*0.0017;
+  else  if(laser_ctr_param.laserFreq>=5) freq_e=1.050-0.005*laser_ctr_param.laserFreq;
+  else freq_e=1.090-0.009*laser_ctr_param.laserFreq;    
+  if(sEnvParam.eth_k1_temprature<24.0) 
+  {
+    if(energe<25)   
+    {
+      e_T=+0.10*(24.0-sEnvParam.eth_k1_temprature);//0.90
+    }
+   else  e_T=+0.06*(24.0-sEnvParam.eth_k1_temprature);//0.90
+  }          
+  else // if(sEnvParam.eth_k1_temprature>=24.0)
+  {   
+    if( sEnvParam.eth_k1_temprature>30)
+    {
+      e_T=-0.06;//1.08
+    }
+    else 
+    {
+      e_T=-0.01*(sEnvParam.eth_k1_temprature-24.0);
+    } 
+  } 
+  #endif
+  e_pulse=(200-pulseWidthUs)*(0.00035); 
+  if(energe<=15)
+  {
+    retVdac=1.35+((energe)*freq_e*(1.30+e_pulse+e_T)/pulseWidthUs);
+  }
+  else 
+  {  
+    retVdac=1.40+((energe)*freq_e*(1.30+e_pulse+e_T)/pulseWidthUs);
+  } 
+  //校准参数
+  if(energe>4)
+  {
+    if(u_sys_param.sys_config_param.e_cali[(energe/5)-1].energe_cali>2500)
+    {
+      retVdac+=(u_sys_param.sys_config_param.e_cali[(energe/5)-1].energe_cali-2500)*0.0001;//
+    }
+    else  retVdac-=(2500-u_sys_param.sys_config_param.e_cali[(energe/5)-1].energe_cali)*0.0001;//
+  }    
+  if(retVdac>DAC_MAX_VOLTAGE_F) retVdac = DAC_MAX_VOLTAGE_F;           
+  if(retVdac<DAC_MIN_VOLTAGE_F) retVdac = DAC_MIN_VOLTAGE_F;
+  return retVdac;
+}
  /************************************************************************//**
   * @brief 任务状态异常
   * @param 
