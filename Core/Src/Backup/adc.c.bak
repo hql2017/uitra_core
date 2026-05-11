@@ -160,8 +160,8 @@ void MX_ADC2_Init(void)
   hadc2.Init.ContinuousConvMode = ENABLE;
   hadc2.Init.NbrOfConversion = 1;
   hadc2.Init.DiscontinuousConvMode = DISABLE;
-  hadc2.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T2_TRGO;
-  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc2.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DMA_ONESHOT;
   hadc2.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   hadc2.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
@@ -503,9 +503,14 @@ void filter_ad1(void)
       levelIdx = (levelIdx + 1) & 0xFF; /* keep wrapping but idx uses &0x07 */
       sum = 0;
       for(i = 0; i < 8; i++)
-      {     
-        if(ad2hle[i]==0) sum += ad2hle[0];
-        else sum += ad2hle[i];       
+      {   
+        if(ad2hle[i]==0)
+        {
+          sum += ad2hle[0];
+        }
+        else {
+          sum += ad2hle[i];  
+        }     
       } 
       ad2vale = (unsigned short int)(sum >> 3);   
       #endif 

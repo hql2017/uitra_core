@@ -929,7 +929,7 @@ void app_jdq_bus_vol_current_set(float powerVolotage,float  powerCurrent)
  }
 //JDQ 继电器 逻辑 (LL HL  LH LL) (stand ,ready)
 //***************************laser pulse (100us~500us) timer2***************************************//
-static unsigned int  pulse_trigger_100ns=0,pulse_compa_value;
+static unsigned int  pulse_trigger_100ns=0;
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim->Instance ==TIM2)
@@ -937,7 +937,8 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 		if(htim->Channel ==	HAL_TIM_ACTIVE_CHANNEL_2)
 		{  
 			//DEBUG_PRINTF("tim2 oc=%d\r\n",__HAL_TIM_GetCounter(&htim2));
-			HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET); 	
+			pulse_adc_start(MAX_AD2_ENERGE_BUFF_LENGTH);
+			HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_SET); 	
 		}
 	}
 }
@@ -947,23 +948,27 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	{
 		if(htim->Channel ==	HAL_TIM_ACTIVE_CHANNEL_1)
 		{  
-			unsigned int captureVale=__HAL_TIM_GetCounter(&htim2);
-			unsigned int compaVale=__HAL_TIM_GetCompare(&htim2,TIM_CHANNEL_2);
+			//HAL_TIM_Base_Start_IT(&htim5);	
+			#if 1
+			unsigned int captureVale=__HAL_TIM_GetCounter(&htim2);			
 			unsigned int tmeCli100ns;
-			DEBUG_PRINTF("tim2 ic=%d\r\n",__HAL_TIM_GetCounter(&htim2));
-			if(pulse_trigger_100ns>captureVale+10)
+			if(pulse_trigger_100ns+10<captureVale)
 			{
-				tmeCli100ns=pulse_trigger_100ns-captureVale;
-				tmeCli100ns=tmeCli100ns>>1;
+				unsigned int compaVale=__HAL_TIM_GetCompare(&htim2,TIM_CHANNEL_2);
+				tmeCli100ns=captureVale-pulse_trigger_100ns;
+				tmeCli100ns=tmeCli100ns>>1;							
+				if(tmeCli100ns>20) tmeCli100ns=20;		
 				__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,compaVale-tmeCli100ns-1); 
 			}
-			else if(pulse_trigger_100ns+10<captureVale)
+			else if(pulse_trigger_100ns>10+captureVale)
 			{
-				tmeCli100ns=captureVale-pulse_trigger_100ns;
-				tmeCli100ns=tmeCli100ns>>1;			
-				__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,compaVale+tmeCli100ns-1);  
+				unsigned int compaVale2=__HAL_TIM_GetCompare(&htim2,TIM_CHANNEL_2);			
+				tmeCli100ns=pulse_trigger_100ns-captureVale;				
+				tmeCli100ns=tmeCli100ns>>1;	
+				if(tmeCli100ns>20) tmeCli100ns=20;					
+				__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,compaVale2+tmeCli100ns-1);  
 			}
-			 
+			#endif
 		}
 	}
 }
@@ -973,13 +978,13 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
  * @note  100~200us
  * @return 
 *******************************************************************************/
-//(1.5V~4.0V)(0.1us)
-//static unsigned short int  jdq_pulse_cali_time01Us[26]={\
-	218,222,226,230,234,238,252,256,250,254,\
-	258,262,266,270,274,278,282,286,290,\
-	294,298,302,306,310,314,320,\
-};
 #if 0
+static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)  
+	350,269,204,169,150,138,128,106,93,84,\
+	73,71, 69,67,65,64,62,60,58,\
+	56,54,52,50,48,46,45,44
+};
+//(1.5V~4.0V)(0.1us)
 static unsigned short int  jdq_pulse_cali_time01Us[27]={//(1.4V~4.0V)(0.1us)//T+9
 	196,200,204,208,212, 216,220,224,228,\
 	232,236,240,\
@@ -989,128 +994,101 @@ static unsigned short int  jdq_pulse_cali_time01Us[27]={//(1.4V~4.0V)(0.1us)//T+
 #else 
 //20260508测试数据,to 50% MaxCurrent timeus（0.1us）
 //比较信号到50% to 50% MaxCurrent timeus（0.1us）
-//<1.9V 不稳定，不用此功能，>2.8V 开关管饱和，输出功率与Vdac线性相关
+//<1.8V(触发阈值震荡不稳定，不用此功能），>2.8V 开关管饱和，输出功率与Vdac线性相关
 //关断延迟24us
-static float  jdq_pulse_cali_time01Us[28]={//(1.4V~4.1V)(0.1us)//
+static float  jdq_pulse_cali_timeUs[28]={//(1.4V~4.1V)(0.1us)//
 	-16.0,-16.0,-16.0,-16.0,-7.0,-3.0, 0,\
 	3.0,4.0,4.0,4.0,5.0,5.0,\
 	6.0,6.0,6.0,6.0,6.0,6.0,6.0,\
 	6.0,6.0,6.0,6.0,6.0,6.0,6.0,6.0
 };
-#endif
-//利用输入捕获动态调整脉宽
-short int  app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVoltage)
-{	  
-	//MAX pulse width 200us, min pulse width 100ns
-	 short int num100ns;
-	float timeCali=0;
-	if(timeCali<1.8) timeCali=-16.0;
-	else if(timeCali<2.0)
-	{
-		timeCali=(energeVoltage-2.0)*35;	
-	} 
-	else if(timeCali>2.8) timeCali = 6.0;
-	else timeCali=(energeVoltage-2.0)*7.5;
-	num100ns=(timeCali*10);	
-	if(num100ns<100) num100ns=100;
-	else if(num100ns>2000) num100ns=2000;	
-	
-	return num100ns;
-	//100~200us	 
-	 //__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,num100ns-1); //MAX pulse	 
-	 //HAL_TIM_Base_Start_IT(&htim2);		
-}
-
-#if 0
-static unsigned short int  jdq_pulse_pro_timeUs[27]={//(1.4,1.5V~4.0V)  
-	350,269,204,169,150,138,128,106,93,84,\
-	73,71, 69,67,65,64,62,60,58,\
-	56,54,52,50,48,46,45,44
-};
-#else 
 //20260507测试数据,to 50% MaxCurrent timeus（0.1us）
 static float  jdq_pulse_pro_timeUs[28]={//(1.4,1.5V~4.10V)  
 	370,227,170.5,	139,118.5,\
-	97.5,89,79,	72.5,66.5,\
-	60,//Vdac=2.4
-	55.5,
-	53,
-	48.5,
-	46,
-	44,
-	41,//Vdac=3.0
-	39,
-	37,
-	35,
-	33,
-	31,
-	29,
-	27,
-	25,
-	23,
-	21,//Vdac=4.0
+	97.5,89,79,	72.5,66.5,60,//Vdac=2.4
+	55.5,53,48.5,46,44,41,//Vdac=3.0
+	39,37,35,33,31,29,27,25,23,21,//Vdac=4.0
 	19,
 };
 #endif
+void   app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVoltage)
+{	  
+	//MAX pulse width 200us, min pulse width 100ns
+	unsigned  int timeLoad100ns;
+	unsigned short int num = (unsigned short int)(energeVoltage*10)-14;
+	if(num>26) num=26;	
+	float evcali=(energeVoltage-num*0.1-1.4);
+	float timeus=(jdq_pulse_pro_timeUs[num]-jdq_pulse_pro_timeUs[num+1])*evcali*10.0;
+	timeLoad100ns=(unsigned short int)(( jdq_pulse_pro_timeUs[num]-timeus)*10)+pulse100ns;
+	#if 1
+	//利用输入捕获动态调整脉宽
+	if(energeVoltage<1.8)
+	{
+		HAL_TIM_IC_Stop_IT(&htim2,TIM_CHANNEL_1);
+	} 	
+	else 
+	{		
+		float timeCaliUs=0;
+		if(energeVoltage<1.8) timeCaliUs=0;
+		else if(energeVoltage<2.0)
+		{
+			timeCaliUs=(energeVoltage-2.0)*35;	
+		} 
+		else if(energeVoltage<2.8)timeCaliUs=(energeVoltage-2.0)*7.5;			
+		else if(energeVoltage<3.9) timeCaliUs=(energeVoltage-2.8)*1.5+6;
+		else timeCaliUs = 8.5;
+		unsigned  int tim5AutoLoad100ns=(timeLoad100ns-240);//
+		if(timeCaliUs<0)
+		{
+			pulse_trigger_100ns=pulse100ns-240-((unsigned  int)fabs(timeCaliUs*10));//预估触发时间
+			tim5AutoLoad100ns=pulse100ns-240-((unsigned  int)fabs(timeCaliUs*10));//
+		}
+		else 		{
+			pulse_trigger_100ns=pulse100ns-240+((unsigned  int)fabs(timeCaliUs*10));
+			tim5AutoLoad100ns=pulse100ns-240+((unsigned  int)fabs(timeCaliUs*10));//
+		} 		
+		HAL_TIM_IC_Start_IT(&htim2,TIM_CHANNEL_1);
+		timeLoad100ns+=20;
+	} 
+	#else 
+	HAL_TIM_IC_Stop_IT(&htim2,TIM_CHANNEL_1);
+	#endif
+	if( timeLoad100ns > JDQ_MAX_CONTROL_PULSE_US_WIDTH*10)  timeLoad100ns = JDQ_MAX_CONTROL_PULSE_US_WIDTH*10;//check pulse timeUs0
+	if( timeLoad100ns <JDQ_MIN_CONTROL_PULSE_US_WIDTH*10 )  timeLoad100ns = JDQ_MIN_CONTROL_PULSE_US_WIDTH*10;//check pulse timeUs		
+	//100~200us	 
+	 __HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,timeLoad100ns-1); //MAX pulse	
+}
+
 /**
   * @brief app_laser_pulse_start 
   * @param  time100ns=0.1us;
   * @note  timeUs: laser pulse  100us~200us ；
   * 	   frq:pulse frequency 10mHz(单个计数0.1us);
-  *  	   energeVoltage:DAC 1.5V~4.09V
+  *  	   energeVoltage:DAC 1.4V~4.09V
   * @retval None
   */
  void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq,float energeVoltage)
  { 
 	unsigned  int counter;	
-	unsigned short int timeLoad;
+	unsigned short int timeLoad100ns;
 	if(timeUs!=0&&freq!=0)	
 	{
-		//check param
-		// Ttrig=94/ev,
-		// up to halfMaxCurrent=13us;
+		HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET); 	
 		// close down to halfMaxCurrent=24us;
-		float ev=energeVoltage;
-		float evcali;
-		uint16_t timeus;		
+		float ev=energeVoltage;	
 		if(ev>DAC_MAX_VOLTAGE_F) ev=DAC_MAX_VOLTAGE_F;
 		if(ev<DAC_MIN_VOLTAGE_F) ev=DAC_MIN_VOLTAGE_F;	
 		if( freq > 60 ) counter = 166667;//(10000000/60);	
 		else if( freq < 1 )  counter = 10000000; //(10000000/1)
-		else counter=(10000000/freq);		
-		unsigned short int num = (unsigned short int)(ev*10)-14;	
-		evcali=(ev-num*0.1-1.4);
-		timeus=(unsigned short int) ((jdq_pulse_pro_timeUs[num]-jdq_pulse_pro_timeUs[num+1])*evcali*10);
-		timeLoad=(unsigned short int) jdq_pulse_pro_timeUs[num]+timeUs-timeus;
-		
-		#if 0
-		if(energeVoltage<1.8)
-		{
-			HAL_TIM_IC_Stop_IT(&htim2,TIM_CHANNEL_1);
-		} 	
-		else 
-		{		
-			short int pulscali=	app_laser_pulse_width_set(timeUs*10,ev);			
-			if(pulscali<0)
-			{
-				pulse_trigger_100ns=abs(-pulscali)+(jdq_pulse_pro_timeUs[num]*10+240);//预估触发时间
-			}
-			else pulse_trigger_100ns=(jdq_pulse_pro_timeUs[num]*10+240)-abs(-pulscali);//预估触发时间
-			HAL_TIM_IC_Start_IT(&htim2,TIM_CHANNEL_1);
-		} 
-		#else 
-		HAL_TIM_IC_Stop_IT(&htim2,TIM_CHANNEL_1);
-		#endif
-		if( timeLoad > JDQ_MAX_CONTROL_PULSE_US_WIDTH)  timeLoad = JDQ_MAX_CONTROL_PULSE_US_WIDTH;//check pulse timeUs
-		if( timeLoad <JDQ_MIN_CONTROL_PULSE_US_WIDTH )  timeLoad = JDQ_MIN_CONTROL_PULSE_US_WIDTH;//check pulse timeUs		
-	
+		else counter=(10000000/freq);	
 		__HAL_TIM_SetAutoreload(&htim2,counter-1);//1~100HZ	
-		__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,timeLoad*10-1);	
-		HAL_TIM_OC_Start_IT(&htim2,TIM_CHANNEL_2);			
+		app_laser_pulse_width_set(timeUs*10,ev);
 		HAL_TIM_Base_Start_IT(&htim2);	
+		HAL_TIM_OC_Start_IT(&htim2,TIM_CHANNEL_2);
 	}
 	else 
 	{	
+		HAL_TIM_Base_Stop_IT(&htim5);	
 		HAL_TIM_Base_Stop_IT(&htim2);	
 		HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET); 				
 	}	
