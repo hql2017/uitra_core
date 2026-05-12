@@ -936,7 +936,7 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		if(htim->Channel ==	HAL_TIM_ACTIVE_CHANNEL_2)
 		{  
-			//DEBUG_PRINTF("tim2 oc=%d\r\n",__HAL_TIM_GetCounter(&htim2));
+			DEBUG_PRINTF("tim2 oc=%d\r\n",__HAL_TIM_GetCounter(&htim2));
 			pulse_adc_start(MAX_AD2_ENERGE_BUFF_LENGTH);
 			HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_SET); 	
 		}
@@ -1019,12 +1019,12 @@ void   app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVolta
 	if(num>26) num=26;	
 	float evcali=(energeVoltage-num*0.1-1.4);
 	float timeus=(jdq_pulse_pro_timeUs[num]-jdq_pulse_pro_timeUs[num+1])*evcali*10.0;
-	timeLoad100ns=(unsigned short int)(( jdq_pulse_pro_timeUs[num]-timeus)*10)+pulse100ns;
+	timeLoad100ns=(unsigned  int)(( jdq_pulse_pro_timeUs[num]-timeus)*10)+pulse100ns;
 	#if 1
 	//利用输入捕获动态调整脉宽
 	if(energeVoltage<1.8)
 	{
-		HAL_TIM_IC_Stop_IT(&htim2,TIM_CHANNEL_1);
+		__HAL_TIM_DISABLE_IT(&htim2, TIM_IT_CC1);//enable IC channel 1
 	} 	
 	else 
 	{		
@@ -1040,25 +1040,26 @@ void   app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVolta
 		unsigned  int tim5AutoLoad100ns=(timeLoad100ns-240);//
 		if(timeCaliUs<0)
 		{
-			pulse_trigger_100ns=pulse100ns-240-((unsigned  int)fabs(timeCaliUs*10));//预估触发时间
-			tim5AutoLoad100ns=pulse100ns-240-((unsigned  int)fabs(timeCaliUs*10));//
+			pulse_trigger_100ns=pulse100ns-240-((unsigned int)fabs(timeCaliUs*10));//预估触发时间
+			tim5AutoLoad100ns=pulse100ns-240-((unsigned int)fabs(timeCaliUs*10));
 		}
-		else 		{
-			pulse_trigger_100ns=pulse100ns-240+((unsigned  int)fabs(timeCaliUs*10));
-			tim5AutoLoad100ns=pulse100ns-240+((unsigned  int)fabs(timeCaliUs*10));//
-		} 		
-		HAL_TIM_IC_Start_IT(&htim2,TIM_CHANNEL_1);
-		timeLoad100ns+=20;
+		else {									
+			pulse_trigger_100ns=pulse100ns-240+((unsigned int)fabs(timeCaliUs*10));			
+			tim5AutoLoad100ns=pulse100ns-240+((unsigned int)fabs(timeCaliUs*10));
+		} 	
+		__HAL_TIM_ENABLE_IT(&htim2, TIM_IT_CC1);//enable IC channel 1
+		timeLoad100ns+=15;
 	} 
 	#else 
-	HAL_TIM_IC_Stop_IT(&htim2,TIM_CHANNEL_1);
+	__HAL_TIM_DISABLE_IT(&htim2, TIM_IT_CC1);//enable IC channel 1
 	#endif
 	if( timeLoad100ns > JDQ_MAX_CONTROL_PULSE_US_WIDTH*10)  timeLoad100ns = JDQ_MAX_CONTROL_PULSE_US_WIDTH*10;//check pulse timeUs0
 	if( timeLoad100ns <JDQ_MIN_CONTROL_PULSE_US_WIDTH*10 )  timeLoad100ns = JDQ_MIN_CONTROL_PULSE_US_WIDTH*10;//check pulse timeUs		
-	//100~200us	 
-	 __HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,timeLoad100ns-1); //MAX pulse	
+	//100~200us	
+	__HAL_TIM_DISABLE_OCxPRELOAD(&htim2, TIM_CHANNEL_2);
+	__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,timeLoad100ns-1); //MAX pulse
+	__HAL_TIM_ENABLE_OCxPRELOAD(&htim2, TIM_CHANNEL_2);
 }
-
 /**
   * @brief app_laser_pulse_start 
   * @param  time100ns=0.1us;
@@ -1069,8 +1070,7 @@ void   app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVolta
   */
  void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq,float energeVoltage)
  { 
-	unsigned  int counter;	
-	unsigned short int timeLoad100ns;
+	unsigned  int counter;		
 	if(timeUs!=0&&freq!=0)	
 	{
 		HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET); 	
@@ -1080,16 +1080,18 @@ void   app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVolta
 		if(ev<DAC_MIN_VOLTAGE_F) ev=DAC_MIN_VOLTAGE_F;	
 		if( freq > 60 ) counter = 166667;//(10000000/60);	
 		else if( freq < 1 )  counter = 10000000; //(10000000/1)
-		else counter=(10000000/freq);	
-		__HAL_TIM_SetAutoreload(&htim2,counter-1);//1~100HZ	
-		app_laser_pulse_width_set(timeUs*10,ev);
-		HAL_TIM_Base_Start_IT(&htim2);	
-		HAL_TIM_OC_Start_IT(&htim2,TIM_CHANNEL_2);
+		else counter = (10000000/freq);	
+		__HAL_TIM_SetAutoreload(&htim2,counter-1);//1~100HZ					
+		app_laser_pulse_width_set(timeUs*10,ev);	
+		/* Enable the TIM Update interrupt */
+		__HAL_TIM_ENABLE_IT(&htim2, TIM_IT_UPDATE);		
+		HAL_TIM_OC_Start_IT(&htim2,TIM_CHANNEL_2);	
+		HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET); 						
 	}
 	else 
 	{	
-		HAL_TIM_Base_Stop_IT(&htim5);	
-		HAL_TIM_Base_Stop_IT(&htim2);	
+		HAL_TIM_OC_Stop_IT(&htim2,TIM_CHANNEL_2);
+		__HAL_TIM_DISABLE_IT(&htim2, TIM_IT_CC1);//disable IC channel 1
 		HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET); 				
 	}	
  }

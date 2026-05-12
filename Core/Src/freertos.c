@@ -950,7 +950,7 @@ void laserWorkTask04(void *argument)
           osDelay(JDQ_RS485_FRAME_MIN_MS);
           osMessageQueuePut(jdqGwb3200CtrMessageQueue04Handle,g_ctr_tx_msg.data,NULL,0);
         }    
-        timeout=0;  
+        timeout = 0;  
         do
         {
           osDelay(JDQ_RS485_FRAME_MIN_MS);
@@ -1012,9 +1012,9 @@ void laserWorkTask04(void *argument)
           DEBUG_PRINTF("e=%dev=%.3f freq=%d timeU=%d\r\n",laser_ctr_param.laserEnerge,local_f,laser_ctr_param.laserFreq,u_sys_param.sys_config_param.laser_pulse_width_us); 
           if(local_f<1.8) laser_ctr_param.lowEnergeMode=1;
           else laser_ctr_param.lowEnergeMode=0;  
-          fisrt_pulse_cali= local_f*0.4+DAC_MIN_VOLTAGE_F*0.6;   
-          AD5541A_SetVoltage(fisrt_pulse_cali,4.096);   //首脉冲减半
-          fisrt_pulse_cali = local_f;     
+          fisrt_pulse_cali=local_f;// local_f*0.4+DAC_MIN_VOLTAGE_F*0.6;   
+          AD5541A_SetVoltage(fisrt_pulse_cali,4.096); //首脉冲减半
+          fisrt_pulse_cali =0;// local_f;     
           sGenSta.laser_run_B1_laser_out_status=1; 
           rgbMessage = RGB_LASER_WORK_STATUS;
           osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);                    
@@ -1022,6 +1022,7 @@ void laserWorkTask04(void *argument)
         }  
         else 
         {
+          #if 0
           if(sGenSta.laser_run_B1_laser_out_status!=0&&fisrt_pulse_cali!=0) // genera
           {
             if(fisrt_pulse_cali>DAC_MAX_VOLTAGE_F) fisrt_pulse_cali=DAC_MAX_VOLTAGE_F;
@@ -1029,6 +1030,7 @@ void laserWorkTask04(void *argument)
             AD5541A_SetVoltage(fisrt_pulse_cali, 4.096); 
             fisrt_pulse_cali=0; 
           }  
+          #endif
           #if 1// energe moniter        
           if (sGenSta.laser_run_B1_laser_out_status!=0&&statusJT==osOK) // cali
           {   
@@ -2439,8 +2441,9 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
       e_T=-0.01*(sEnvParam.eth_k1_temprature-24.0);
     } 
   } 
+    e_pulse=(200-pulseWidthUs)*(0.00035); 
   #endif
-  e_pulse=(200-pulseWidthUs)*(0.00035); 
+  
   if(energe<=15)
   {
     retVdac=1.35+((energe)*freq_e*(1.30+e_pulse+e_T)/pulseWidthUs);
@@ -2457,7 +2460,7 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
       retVdac+=(u_sys_param.sys_config_param.e_cali[(energe/5)-1].energe_cali-2500)*0.0001;//
     }
     else  retVdac-=(2500-u_sys_param.sys_config_param.e_cali[(energe/5)-1].energe_cali)*0.0001;//
-  }   
+  }     
   if(retVdac>DAC_MAX_VOLTAGE_F) retVdac = DAC_MAX_VOLTAGE_F;           
   if(retVdac<DAC_MIN_VOLTAGE_F) retVdac = DAC_MIN_VOLTAGE_F;  
   return retVdac;
