@@ -501,11 +501,13 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_THREADS */
 
   /* Create the event(s) */
+
   /* creation of auxStatusEvent01 */
   auxStatusEvent01Handle = osEventFlagsNew(&auxStatusEvent01_attributes);
 
   /* creation of laserEvent02 */
   laserEvent02Handle = osEventFlagsNew(&laserEvent02_attributes);
+
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
@@ -515,7 +517,9 @@ void MX_FREERTOS_Init(void) {
 
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
-  * @brief  Function implementing the defaultTask thread.
+  * @brief  Function imp
+  * 
+  * lementing the defaultTask thread.
   * @param  argument: Not used
   *     typedef struct { 
       unsigned char systemParamFlag;                        //系统参数，0未加载；1待机；2开启；3异常；
@@ -1418,7 +1422,7 @@ void laserProhotTask09(void *argument)
       timeout = 0;
       do
       {
-        HAL_Delay(JDQ_RS485_FRAME_MAX_DELAY_MS);         
+        osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS);         
         timeout+=JDQ_RS485_FRAME_MAX_DELAY_MS;       
         outVoltage = app_jdq_voltage_monitor();
         l_jdq_set_voltage = app_jdq_get_set_vbus()*0.01; 

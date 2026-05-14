@@ -936,7 +936,7 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		if(htim->Channel ==	HAL_TIM_ACTIVE_CHANNEL_2)
 		{  
-			DEBUG_PRINTF("tim2 oc=%d\r\n",__HAL_TIM_GetCounter(&htim2));
+			//DEBUG_PRINTF("tim2 oc=%d\r\n",__HAL_TIM_GetCounter(&htim2));
 			pulse_adc_start(MAX_AD2_ENERGE_BUFF_LENGTH);
 			HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_SET); 	
 		}
@@ -948,7 +948,8 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	{
 		if(htim->Channel ==	HAL_TIM_ACTIVE_CHANNEL_1)
 		{  
-			//HAL_TIM_Base_Start_IT(&htim5);	
+			//HAL_TIM_Base_Start_IT(&htim5);
+			//	
 			#if 1
 			unsigned int captureVale=__HAL_TIM_GetCounter(&htim2);			
 			unsigned int tmeCli100ns;
@@ -1048,7 +1049,7 @@ void   app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVolta
 			tim5AutoLoad100ns=pulse100ns-240+((unsigned int)fabs(timeCaliUs*10));
 		} 	
 		__HAL_TIM_ENABLE_IT(&htim2, TIM_IT_CC1);//enable IC channel 1
-		timeLoad100ns+=15;
+		timeLoad100ns+=15;//margin time 1.5us
 	} 
 	#else 
 	__HAL_TIM_DISABLE_IT(&htim2, TIM_IT_CC1);//enable IC channel 1
@@ -1056,9 +1057,9 @@ void   app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVolta
 	if( timeLoad100ns > JDQ_MAX_CONTROL_PULSE_US_WIDTH*10)  timeLoad100ns = JDQ_MAX_CONTROL_PULSE_US_WIDTH*10;//check pulse timeUs0
 	if( timeLoad100ns <JDQ_MIN_CONTROL_PULSE_US_WIDTH*10 )  timeLoad100ns = JDQ_MIN_CONTROL_PULSE_US_WIDTH*10;//check pulse timeUs		
 	//100~200us	
-	__HAL_TIM_DISABLE_OCxPRELOAD(&htim2, TIM_CHANNEL_2);
+	__HAL_TIM_DISABLE_OCxPRELOAD(&htim2, TIM_CHANNEL_2);//fresh 
 	__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,timeLoad100ns-1); //MAX pulse
-	__HAL_TIM_ENABLE_OCxPRELOAD(&htim2, TIM_CHANNEL_2);
+	__HAL_TIM_ENABLE_OCxPRELOAD(&htim2, TIM_CHANNEL_2);//wait next update event
 }
 /**
   * @brief app_laser_pulse_start 

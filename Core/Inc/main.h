@@ -244,7 +244,7 @@ void Error_Handler(void);
 #define ONE_WIRE_BUS_JT_SLAVE 
 #endif
 
-#ifdef IWDG_USED
+#ifndef IWDG_USED
 #define IWDG_USED  
 #endif
 
