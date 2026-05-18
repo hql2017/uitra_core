@@ -501,13 +501,11 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_THREADS */
 
   /* Create the event(s) */
-
   /* creation of auxStatusEvent01 */
   auxStatusEvent01Handle = osEventFlagsNew(&auxStatusEvent01_attributes);
 
   /* creation of laserEvent02 */
   laserEvent02Handle = osEventFlagsNew(&laserEvent02_attributes);
-
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
@@ -545,8 +543,9 @@ void StartDefaultTask(void *argument)
   uint32_t timeout;
   uint8_t load_sta;
   float treatmentWaterC; 
+  app_air_pump_switch( DISABLE); 
   app_mcu_power_switch(ENABLE);    
-  app_lcd_power_12V_switch(ENABLE);   
+  app_lcd_power_12V_switch(ENABLE);    
   for(;;)
   {  
     //load 
@@ -777,8 +776,7 @@ void auxTask02(void *argument)
       app_sram_status_monitor(); 
       //DEBUG_PRINTF("sta_code=%08x k1=%.1f\r\n",sGenSta.genaration_io_status,sEnvParam.eth_k1_temprature);
       //DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure); 
-		}	    
-		/**********************RGB****************************/		
+		}	  
 		/**********************RGB****************************/		
 		osStatus_t rgb_s=osMessageQueueGet(rgbQueue02Handle,&rgbRun,0,5);	 
     switch(rgbRun)
@@ -1536,7 +1534,7 @@ void ge2117ManageTask10(void *argument)
       }  
       else
       {      
-        app_ge2117_gp_ctr(u_sys_param.sys_config_param.cool_temprature_target*0.1,local_timeS);//stop                 
+        app_ge2117_gp_ctr(u_sys_param.sys_config_param.cool_temprature_target*0.1,local_timeS);            
       }      		   
     } 
     if(sEnvParam.eth_k1_temprature>ERR_LOW_TEMPRATURE_LASER&&sEnvParam.eth_k1_temprature<ERR_HIGH_TEMPRATURE_LASER)
@@ -1806,6 +1804,7 @@ void app_sys_genaration_status_manage(void)
   }
   if(sEnvParam.iBus<MAX_IBUS_MA)//<10A
   {
+    
     osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_10_IBUS_BIT);    
   }
   else
@@ -2420,7 +2419,7 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
   float freq_e=1.0;
   float  e_pulse=0;//脉宽补偿
   float  e_T=0;  //温度补偿
-  #if 1
+  #if 0
   if(laser_ctr_param.laserFreq>50) freq_e=0.924-laser_ctr_param.laserFreq*0.0003;
   else if(laser_ctr_param.laserFreq>30) freq_e=0.949-laser_ctr_param.laserFreq*0.0005;
   else  if(laser_ctr_param.laserFreq>10) freq_e=1-laser_ctr_param.laserFreq*0.0017;
@@ -2446,8 +2445,7 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
     } 
   } 
     e_pulse=(200-pulseWidthUs)*(0.00035); 
-  #endif
-  
+  #endif  
   if(energe<=15)
   {
     retVdac=1.35+((energe)*freq_e*(1.30+e_pulse+e_T)/pulseWidthUs);
@@ -2503,7 +2501,7 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
         myTask06Handle = osThreadNew(hmiAppTask06, NULL, &myTask06_attributes);
       }
       else if(*thread_id==myTask07Handle)
-      {
+      {        
         myTask07Handle = osThreadNew(canReceiveTask07, NULL, &myTask07_attributes);
       }
       else if(*thread_id==myTask08Handle)

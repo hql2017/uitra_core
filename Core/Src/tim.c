@@ -754,7 +754,6 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
 
 void HAL_TIM_PWM_MspDeInit(TIM_HandleTypeDef* tim_pwmHandle)
 {
-
   if(tim_pwmHandle->Instance==TIM1)
   {
   /* USER CODE BEGIN TIM1_MspDeInit 0 */

@@ -399,7 +399,8 @@ void app_ge2117_gp_ctr_frame(void)
  * @note 循环水需要维持23~26摄氏度，25℃最佳，//操作指令间隔10s
  * @return 
 *******************************************************************************/
-void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
+void 
+app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 {	
 	float compareTemp;	
 	if(sysTimeS>geWksta.geTimeS)	

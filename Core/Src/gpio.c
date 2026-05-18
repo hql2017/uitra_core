@@ -167,13 +167,13 @@ void app_air_pump_switch( FunctionalState flag)
   if(flag==DISABLE)
   {  
     HAL_TIM_PWM_Stop(&htim3,TIM_CHANNEL_4);
-    HAL_GPIO_WritePin(H_AIR_PUMP_PWR_EN_GPIO_Port,H_AIR_PUMP_PWR_EN_Pin,GPIO_PIN_SET);//电源   
+    HAL_GPIO_WritePin(H_AIR_PUMP_PWR_EN_GPIO_Port,H_AIR_PUMP_PWR_EN_Pin,GPIO_PIN_RESET);//电源   
   } 
   else
   {
     HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_4);
-    HAL_GPIO_WritePin(H_AIR_PUMP_PWR_EN_GPIO_Port,H_AIR_PUMP_PWR_EN_Pin,GPIO_PIN_RESET);//电源
-  }  
+    HAL_GPIO_WritePin(H_AIR_PUMP_PWR_EN_GPIO_Port,H_AIR_PUMP_PWR_EN_Pin,GPIO_PIN_SET);//电源
+  }    
 }
   /************************************************************************//**
   * @brief  循环水泵开关（冷却液）
@@ -241,6 +241,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
         app_PTC_en_switch(ENABLE);
       }
   }
+  
   else 
   { 
     ptcRunTime++;
@@ -249,7 +250,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
       ptcRunTime=0;//
       if(compareTemp<=MIN_TEMPRATURE_LASER)  app_PTC_en_switch(ENABLE);
     }
-    if(compareTemp+3.0<MIN_TEMPRATURE_LASER)
+    if(compareTemp+2.0<MIN_TEMPRATURE_LASER)
     {
       if(ptcRunTime>17)//duty=%90)
       {     
@@ -257,9 +258,9 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
         app_PTC_en_switch(DISABLE);
       } 
     }
-    else if(compareTemp+1.5<MIN_TEMPRATURE_LASER)
+    else if(compareTemp+1.0<MIN_TEMPRATURE_LASER)
     {
-      if(ptcRunTime>5)//duty=%30)
+      if(ptcRunTime>9)//duty=%50)
       {               
         app_PTC_en_switch(DISABLE);
       } 

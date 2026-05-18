@@ -1058,7 +1058,7 @@ void   app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVolta
 	if( timeLoad100ns <JDQ_MIN_CONTROL_PULSE_US_WIDTH*10 )  timeLoad100ns = JDQ_MIN_CONTROL_PULSE_US_WIDTH*10;//check pulse timeUs		
 	//100~200us	
 	__HAL_TIM_DISABLE_OCxPRELOAD(&htim2, TIM_CHANNEL_2);//fresh 
-	__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,timeLoad100ns-1); //MAX pulse
+	__HAL_TIM_SetCompare(&htim2,TIM_CHANNEL_2,timeLoad100ns-1); //MAX pulse 500us
 	__HAL_TIM_ENABLE_OCxPRELOAD(&htim2, TIM_CHANNEL_2);//wait next update event
 }
 /**

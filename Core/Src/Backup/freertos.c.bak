@@ -515,7 +515,9 @@ void MX_FREERTOS_Init(void) {
 
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
-  * @brief  Function implementing the defaultTask thread.
+  * @brief  Function imp
+  * 
+  * lementing the defaultTask thread.
   * @param  argument: Not used
   *     typedef struct { 
       unsigned char systemParamFlag;                        //系统参数，0未加载；1待机；2开启；3异常；
@@ -950,7 +952,7 @@ void laserWorkTask04(void *argument)
           osDelay(JDQ_RS485_FRAME_MIN_MS);
           osMessageQueuePut(jdqGwb3200CtrMessageQueue04Handle,g_ctr_tx_msg.data,NULL,0);
         }    
-        timeout=0;  
+        timeout = 0;  
         do
         {
           osDelay(JDQ_RS485_FRAME_MIN_MS);
@@ -1022,6 +1024,7 @@ void laserWorkTask04(void *argument)
         }  
         else 
         {
+          #if 0
           if(sGenSta.laser_run_B1_laser_out_status!=0&&fisrt_pulse_cali!=0) // genera
           {
             if(fisrt_pulse_cali>DAC_MAX_VOLTAGE_F) fisrt_pulse_cali=DAC_MAX_VOLTAGE_F;
@@ -1029,6 +1032,7 @@ void laserWorkTask04(void *argument)
             AD5541A_SetVoltage(fisrt_pulse_cali, 4.096); 
             fisrt_pulse_cali=0; 
           }  
+          #endif
           #if 1// energe moniter        
           if (sGenSta.laser_run_B1_laser_out_status!=0&&statusJT==osOK) // cali
           {   
@@ -1416,7 +1420,7 @@ void laserProhotTask09(void *argument)
       timeout = 0;
       do
       {
-        HAL_Delay(JDQ_RS485_FRAME_MAX_DELAY_MS);         
+        osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS);         
         timeout+=JDQ_RS485_FRAME_MAX_DELAY_MS;       
         outVoltage = app_jdq_voltage_monitor();
         l_jdq_set_voltage = app_jdq_get_set_vbus()*0.01; 
@@ -1530,7 +1534,7 @@ void ge2117ManageTask10(void *argument)
       }  
       else
       {      
-        app_ge2117_gp_ctr(u_sys_param.sys_config_param.cool_temprature_target*0.1,local_timeS);//stop                 
+        app_ge2117_gp_ctr(u_sys_param.sys_config_param.cool_temprature_target*0.1,local_timeS);            
       }      		   
     } 
     if(sEnvParam.eth_k1_temprature>ERR_LOW_TEMPRATURE_LASER&&sEnvParam.eth_k1_temprature<ERR_HIGH_TEMPRATURE_LASER)
@@ -2439,8 +2443,9 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
       e_T=-0.01*(sEnvParam.eth_k1_temprature-24.0);
     } 
   } 
+    e_pulse=(200-pulseWidthUs)*(0.00035); 
   #endif
-  e_pulse=(200-pulseWidthUs)*(0.00035); 
+  
   if(energe<=15)
   {
     retVdac=1.35+((energe)*freq_e*(1.30+e_pulse+e_T)/pulseWidthUs);
