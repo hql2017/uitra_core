@@ -1,0 +1,7 @@
+-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -c
+-fno-rtti -funsigned-char -fshort-enums -fshort-wchar
+-gdwarf-4 -O3 -ffunction-sections -Wno-packed -Wno-missing-variable-declarations -Wno-missing-prototypes -Wno-missing-noreturn -Wno-sign-conversion -Wno-nonportable-include-path -Wno-reserved-id-macro -Wno-unused-macros -Wno-documentation-unknown-command -Wno-documentation -Wno-license-management -Wno-parentheses-equality -Wno-reserved-identifier -I ../Core/Inc -I ../Drivers/STM32H7xx_HAL_Driver/Inc -I ../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy -I ../Middlewares/Third_Party/FreeRTOS/Source/include -I ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F -I ../Drivers/CMSIS/Device/ST/STM32H7xx/Include -I ../Drivers/CMSIS/Include -I ../Bsp/Src -I ../Bsp/Inc -I ../App/Src -I ../App/Inc -I ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 -I ../Middlewares -I ../Middlewares/lwrb -I ../Middlewares/lwrb/lwrb -I ../Middlewares/lwrb/lwrb/src/lwrb -I ../Middlewares/lwrb/lwrb/src/include -I ../Middlewares/lwrb/lwrb/src/include/lwrb -I ../Middlewares/RTT
+-I./RTE/_uitra_core_v1.0
+-I"C:/Program Files/Keil_v5/ARM/Packs/ARM/CMSIS/6.1.0/CMSIS/Core/Include"
+-D__UVISION_VERSION="541" -DSTM32H723xx -D_RTE_ -DUSE_PWR_LDO_SUPPLY -DUSE_HAL_DRIVER -DSTM32H723xx
+-o uitra_core_v1.0/task_menu.o -MMD "../App/Src/task_menu.c"

@@ -1043,6 +1043,31 @@ void laserWorkTask04(void *argument)
             DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV pulseCount=%d rdb=%d 980=%d\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback,u_sys_param.sys_config_param.laser_pulse_count,u_sys_param.sys_config_param.RDB_use_timeS,u_sys_param.sys_config_param.laser_use_timeS);              
             if(sEnvParam.laser_1064_energy>0&&laser_ctr_param.laserEnerge>0)
             {   
+								#if 0
+							//动态调整
+							if(sEnvParam.laser_1064_energy>5+laser_ctr_param.laserEnerge||sEnvParam.laser_1064_energy+5<laser_ctr_param.laserEnerge)
+							{
+							  if(sEnvParam.laser_1064_energy>5+laser_ctr_param.laserEnerge)
+								{
+									fisrt_pulse_cali+=0.05;
+									local_f-=	fisrt_pulse_cali;	
+								}
+								else if(sEnvParam.laser_1064_energy+5<laser_ctr_param.laserEnerge)
+								{
+									fisrt_pulse_cali+=0.05;	
+									local_f+=	fisrt_pulse_cali;						
+							
+								}
+								if(sGenSta.laser_run_B1_laser_out_status!=0&&fisrt_pulse_cali!=0) // genera
+								{
+									if(fisrt_pulse_cali>DAC_MAX_VOLTAGE_F) fisrt_pulse_cali=DAC_MAX_VOLTAGE_F;
+									if(fisrt_pulse_cali<DAC_MIN_VOLTAGE_F) fisrt_pulse_cali=DAC_MIN_VOLTAGE_F;       
+									AD5541A_SetVoltage(local_f, 4.096); 
+									fisrt_pulse_cali=0; 
+								} 
+								
+							}
+							#endif
               if(sEnvParam.laser_1064_energy>laser_ctr_param.laserEnerge*1.30)   
               {
                 sGenSta.laser_param_B01_energe_status=1;//2; //over load

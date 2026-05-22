@@ -483,16 +483,16 @@ void filter_ad1(void)
       unsigned short int i = 0,j=0;
       static unsigned char levelIdx = 0; 
       //90%计算峰值;//50%计算脉宽和功率;
-      unsigned short int max_half_value=match_max(ad2Buff,pulse_ad_count)>>1;//50%; 
-      // Vmax;
-      for(i = 0; i < pulse_ad_count; i++)
-      {
-        if(ad2Buff[i]>max_half_value)
-        {  
-          j++;
-          sum += ad2Buff[i];
-        }             
-      } 
+      unsigned short int max_value=match_max((unsigned short int *)ad2Buff,pulse_ad_count);
+    unsigned short int max_half_value=(unsigned short int)(max_value>>1);//50%;     
+    for(i = 0; i < pulse_ad_count; i++)
+    {
+      if(ad2Buff[i]>max_half_value&&ad2Buff[i]<max_value)//去掉最高值
+      {  
+        j++;
+        sum += ad2Buff[i];
+      }             
+    } 
       /* store running levels in a circular 8-slot buffer */
       const unsigned char idx = levelIdx & 0x07;
       if (j > 1) {
