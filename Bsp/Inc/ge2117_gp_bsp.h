@@ -11,6 +11,14 @@
 #include <stdint.h>
 #include "main.h"
 
+/*压缩机型号：6MS020ZBB41
+*额定转速：4500rpm
+*额定功率：140W
+*/
+//控制器:GE2117
+#define  GE2117_MAX_SPD      4500//max5400
+
+
 #define GE2117_PACKAGE_HEAD    0xAA 
 #define GE2117_PACKAGE_END     0x55  
 #define GE2117_PACKAGE_LENGTH   16

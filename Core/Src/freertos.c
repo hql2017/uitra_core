@@ -1829,7 +1829,6 @@ void app_sys_genaration_status_manage(void)
   }
   if(sEnvParam.iBus<MAX_IBUS_MA)//<10A
   {
-    
     osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_10_IBUS_BIT);    
   }
   else
@@ -1845,10 +1844,8 @@ void app_sys_genaration_status_manage(void)
     osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_11_VBUS_BIT);
   } 
   if(sEnvParam.eth_k1_temprature>ERR_LOW_TEMPRATURE_LASER&&sEnvParam.eth_k1_temprature<ERR_HIGH_TEMPRATURE_LASER)
-  {  
-  
-    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_12_K1_TEMPRATURE_BIT);   
-    
+  {    
+    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_12_K1_TEMPRATURE_BIT);  
   }  
   else
   {   

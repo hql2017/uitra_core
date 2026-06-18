@@ -395,7 +395,7 @@ static  unsigned short int adBuff[MAX_AD_BUFF_LENGTH];
 static  unsigned short int advalue[5];
 static  unsigned short int ad2Buff[MAX_AD2_ENERGE_BUFF_LENGTH];
 static  unsigned short int ad2vale,ad2hle[8];
-//static KalmanFilter kalmAd2;
+static KalmanFilter kalmEnergeAd;
 
 extern TIM_HandleTypeDef htim6;//hal tick timer
 
@@ -403,7 +403,7 @@ void app_start_multi_channel_adc(void)
 {    
 	tim_triger_ad(&htim6);//low power 
   HAL_ADC_Start_DMA(&hadc1,(unsigned int*)adBuff,MAX_AD_BUFF_LENGTH);  //5*32   
- // kalman_filter_init(&kalmAd2, 0, 0.1);
+  kalman_filter_init(&kalmEnergeAd, 0, 0.1);
 }
 /**
   * @brief pulse_adc_start
@@ -500,6 +500,8 @@ void filter_ad1(void)
       } else {
         ad2hle[idx] = (unsigned short int)sum;
       }
+			ad2vale=(uint16_t) kalman_filter_update(&kalmEnergeAd, ad2hle[idx]); 
+			ad2hle[idx]=ad2vale;//滤波结果覆盖原始值,保持水平缓慢变化,避免突变;
       levelIdx = (levelIdx + 1) & 0xFF; /* keep wrapping but idx uses &0x07 */
       sum = 0;
       for(i = 0; i < 8; i++)
