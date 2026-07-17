@@ -128,24 +128,18 @@ void GZP6816D_get_cal(float *preKpa,float *enTemprature) //The function of readi
 /*****************************api**********************************************/
 /***************************************************************************//**
  * @brief 环境气压状态监测
- * @param sysTick,系统时间
+ * @param heartTick,心跳时间时间
  * @note 
  * @return 
 *******************************************************************************/
-unsigned char  app_gzp6816d_listen(unsigned int sysTick,float *envirPresure,float *envirTemprature)
+unsigned char  app_gzp6816d_listen(unsigned int heartTick,float *envirPresure,float *envirTemprature)
 {	
-  unsigned char  status=0;
-  static unsigned int localTick=0;
-  if(sysTick>=localTick+500)
-  {
-    localTick=sysTick;
-    status=GZP6816D_IsBusy();			
-    if(status==0)	
-    {      
-      GZP6816D_get_cal(envirPresure,envirTemprature);       
-    }    
-    GZP6816D_start_sampling();
-  } 
-  else localTick=sysTick;
+  unsigned char  status=0;  
+  status=GZP6816D_IsBusy();			
+  if(status==0)	
+  {      
+    GZP6816D_get_cal(envirPresure,envirTemprature);       
+  }    
+  GZP6816D_start_sampling(); 
   return status;
 }

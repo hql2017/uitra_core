@@ -248,9 +248,6 @@ void Error_Handler(void);
 #define IWDG_USED  
 #endif
 
-
-
-
 #ifndef DEBUG_MSG_UART 
 #define DEBUG_MSG_UART  /*use printf*/
 #ifdef USE_RTT_DEBUG

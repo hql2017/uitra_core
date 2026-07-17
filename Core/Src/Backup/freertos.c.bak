@@ -222,7 +222,7 @@ const osThreadAttr_t myTask09_attributes = {
 osThreadId_t myTask10Handle;
 const osThreadAttr_t myTask10_attributes = {
   .name = "myTask10",
-  .stack_size = 196 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal4,
 };
 /* Definitions for myTask11 */
@@ -309,6 +309,11 @@ const osSemaphoreAttr_t hmiCanBusIdleSem06_attributes = {
 osSemaphoreId_t jdqHeart100msBinarySem05Handle;
 const osSemaphoreAttr_t jdqHeart100msBinarySem05_attributes = {
   .name = "jdqHeart100msBinarySem05"
+};
+/* Definitions for aux1SHeartBinarySem06 */
+osSemaphoreId_t aux1SHeartBinarySem06Handle;
+const osSemaphoreAttr_t aux1SHeartBinarySem06_attributes = {
+  .name = "aux1SHeartBinarySem06"
 };
 /* Definitions for auxStatusEvent01 */
 osEventFlagsId_t auxStatusEvent01Handle;
@@ -420,6 +425,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of jdqHeart100msBinarySem05 */
   jdqHeart100msBinarySem05Handle = osSemaphoreNew(1, 0, &jdqHeart100msBinarySem05_attributes);
+
+  /* creation of aux1SHeartBinarySem06 */
+  aux1SHeartBinarySem06Handle = osSemaphoreNew(1, 0, &aux1SHeartBinarySem06_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
@@ -769,15 +777,15 @@ void auxTask02(void *argument)
   for(;;)
   {
 		if(osKernelGetTickCount()>led_tick+1000)
-		{          
+		{     
+      /***********环境气压、温度监测*******************/ 	 
+      unsigned char  status=app_gzp6816d_listen(osKernelGetTickCount(),&sEnvParam.air_gzp_enviroment_pressure_kpa,&sEnvParam.enviroment_temprature);    
+      if(status!=0) sEnvParam.air_gzp_enviroment_pressure_kpa =95.0;//error        
 			led_tick=osKernelGetTickCount();	
       app_fan_manage(led_tick);		      
 			HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
       app_sram_status_monitor();
-      float teDisp=0.0; 
-      app_get_adc_value(AD3_MCU_TEMPRATURE_INDEX,&teDisp);
-      DEBUG_PRINTF("CPU t=%.1f\r\n",teDisp);
-
+     
       //DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure); 
 		}	  
 		/**********************RGB****************************/		
@@ -1141,10 +1149,7 @@ void fastAuxTask05(void *argument)
   float  recVoltage,recCurrent;  
    app_air_pump_switch(DISABLE);  
   for(;;)
-  {
-		/***********环境气压、温度监测*******************/ 	 
-    unsigned char  status=app_gzp6816d_listen(osKernelGetTickCount(),&sEnvParam.air_gzp_enviroment_pressure_kpa,&sEnvParam.enviroment_temprature);    
-    if(status!=0) sEnvParam.air_gzp_enviroment_pressure_kpa =95.0;//error   
+  {		
     /***********NTC,laser_energe,iBus,Vbus,vBus,air_pump_pressure气泵气压，参数*******************/     
     app_get_adc_value(AD1_NTC_INDEX,&sEnvParam.NTC_temprature);//蠕动泵，状态   
     app_get_adc_value(AD1_OCP_Ibus_INDEX,&sEnvParam.iBus);		

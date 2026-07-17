@@ -441,17 +441,19 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 					}
 					else 
 					{
-						if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)<2000)
+						if(cpu_temprature<60.0)						
 						{
-							fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
-						}	
-						else 
-						{
+							if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)<2000)
+							{
+								fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
+							}	
+						}
+						else {
 							if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)<3000)
 							{
 								fan_spd_set(FAN38_COMPRESSOR_NUM,3000);	
 							}	
-						}					
+						}	
 					}
 				}
 				//else if(<MIN_TEMPRATURE_LASER) ,交给ptc调整					

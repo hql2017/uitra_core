@@ -657,6 +657,12 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
          return 0.0f; 
      }
  
+
+     if(adc_raw < ts_cal1) {
+         return 30.0f; 
+     } else if(adc_raw > ts_cal2) {
+         return 110.0f; 
+     }
      /* 线性插值公式: T = ((ADC_meas - TS_CAL1) * (T2 - T1)) / (TS_CAL2 - TS_CAL1) + T1 */
      /* T1 = 30°C, T2 = 110°C */
      temperature = ((float)(adc_raw - ts_cal1) * (110.0f - 30.0f)) / ((float)(ts_cal2 - ts_cal1)) + 30.0f;
