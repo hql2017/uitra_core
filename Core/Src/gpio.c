@@ -236,12 +236,42 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
       if(compareTemp<MIN_TEMPRATURE_LASER)  
       {
         ptcRunTime=0;
-        fan_spd_set(FAN38_COMPRESSOR_NUM,1000);	        
+        if(sGenSta.laser_run_B0_pro_hot_status==0) 
+        {          
+          if(sEnvParam.enviroment_temprature>28.0)
+          {//给机箱散热
+            if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)!=2000)
+            {
+              fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
+            }
+          }
+          else 
+          { //queit
+            if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)>1000)  fan_spd_set(FAN38_COMPRESSOR_NUM,1000);
+          }
+        } 	
+        else
+        {//给机箱散热
+          if(sEnvParam.enviroment_temprature>30.0)
+          {
+            if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)<3000)
+            {
+              fan_spd_set(FAN38_COMPRESSOR_NUM,3000);	
+            }
+          }
+          else //if(sEnvParam.enviroment_temprature>27.0)
+          {
+            if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)<2000)
+            {
+              fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
+            }
+          }
+          
+        }               
         PTC_flag=1;
         app_PTC_en_switch(ENABLE);
       }
-  }
-  
+  }  
   else 
   { 
     ptcRunTime++;
@@ -253,8 +283,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
     if(compareTemp+2.0<MIN_TEMPRATURE_LASER)
     {
       if(ptcRunTime>17)//duty=%90)
-      {     
-        fan_stop(FAN38_COMPRESSOR_NUM);          
+      {                   
         app_PTC_en_switch(DISABLE);
       } 
     }
@@ -272,8 +301,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
         app_PTC_en_switch(DISABLE);
       }
       if(compareTemp >=MIN_TEMPRATURE_LASER) 
-      {
-        fan_start(FAN38_COMPRESSOR_NUM);
+      {       
         app_PTC_en_switch(DISABLE);
         PTC_flag=0;
       }        

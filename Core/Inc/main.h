@@ -248,9 +248,9 @@ void Error_Handler(void);
 #define IWDG_USED  
 #endif
 
-#ifdef DEBUG_MSG_UART 
+#ifndef DEBUG_MSG_UART 
 #define DEBUG_MSG_UART  /*use printf*/
-#ifndef USE_RTT_DEBUG
+#ifdef USE_RTT_DEBUG
 #include "SEGGER_RTT.h"
 #define DEBUG_PRINTF(fmt, ...) SEGGER_RTT_printf(0, fmt, ##__VA_ARGS__)
 #else 

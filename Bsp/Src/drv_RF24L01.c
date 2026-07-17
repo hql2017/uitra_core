@@ -704,7 +704,7 @@
       rf24_rxLen = NRF24L01_RxPacket( g_RF24L01RxBuffer );		
       if( rf24_rxLen>7 )
       {	
-        #if 0       
+        #if 0      
         for(uint8_t i=0;i<rf24_rxLen;i++)
         {
           DEBUG_PRINTF(" %02x", g_RF24L01RxBuffer[i]);
@@ -714,8 +714,7 @@
         sEnvParam.JT_ID=g_RF24L01RxBuffer[1]|(g_RF24L01RxBuffer[2]<<8)|(g_RF24L01RxBuffer[3]<<16)|(g_RF24L01RxBuffer[4]<<24);
         if(g_RF24L01RxBuffer[0]=='['&&g_RF24L01RxBuffer[7]==']'&&sEnvParam.JT_ID==u_sys_param.sys_config_param.jtId)
         {  
-          sEnvParam.JT_bat=g_RF24L01RxBuffer[6];        
-           
+          sEnvParam.JT_bat=g_RF24L01RxBuffer[6];    
           if(g_RF24L01RxBuffer[5]==KEY_LONG_PRESS)
           {
             if(timeout[1]>100)

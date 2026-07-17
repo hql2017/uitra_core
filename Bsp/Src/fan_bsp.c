@@ -183,6 +183,17 @@ void app_fan_feed_count(unsigned char fan_number)
 		fanParam.fan_pulse_count[0]=0;
 	}
 }
+//fan 运行速度
+ unsigned short int fan_real_spd(unsigned char fanNumber)
+{
+	unsigned short int retValue;
+	if(fanNumber==1)
+	{
+		retValue=fanParam.fan_speed[1];
+	}
+	else retValue=fanParam.fan_speed[0];
+	return retValue;
+}
 /************************************************************************//**
 * @brief 
 * @param 无

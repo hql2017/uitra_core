@@ -17,6 +17,8 @@
  extern void cacul_fan_freq(unsigned int timeMs);
 extern unsigned short int fan_get_set_spd(unsigned char fanNumber);
 
+extern unsigned short int fan_real_spd(unsigned char fanNumber);
+
  #define FAN38_COMPRESSOR_NUM  2//38风扇
  #define FAN25_NUM 1//25风扇
  #endif /* FAN_BSP_H_ */

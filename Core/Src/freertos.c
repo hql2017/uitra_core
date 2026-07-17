@@ -773,8 +773,8 @@ void auxTask02(void *argument)
 			led_tick=osKernelGetTickCount();	
       app_fan_manage(led_tick);		      
 			HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
-      app_sram_status_monitor(); 
-      //DEBUG_PRINTF("sta_code=%08x k1=%.1f\r\n",sGenSta.genaration_io_status,sEnvParam.eth_k1_temprature);
+      app_sram_status_monitor();
+     
       //DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure); 
 		}	  
 		/**********************RGB****************************/		
@@ -977,7 +977,7 @@ void laserWorkTask04(void *argument)
       } 
       if(laser_ctr_param.timerEnableFlag==0||laser_ctr_param.timerCtr==0)
       {
-        sGenSta.laser_run_B5_timer_status=0;
+        if(osTimerIsRunning(laserWorkTimer01Handle)==pdFALSE) sGenSta.laser_run_B5_timer_status=0;
       }             
       if(recKeyMessage==key_jt_long_press&&sGenSta.laser_run_B5_timer_status==0&&sGenSta.laser_run_B0_pro_hot_status!=0)
       {  
@@ -1064,15 +1064,14 @@ void laserWorkTask04(void *argument)
 									if(fisrt_pulse_cali<DAC_MIN_VOLTAGE_F) fisrt_pulse_cali=DAC_MIN_VOLTAGE_F;       
 									AD5541A_SetVoltage(local_f, 4.096); 
 									fisrt_pulse_cali=0; 
-								} 
-								
+								} 								
 							}
 							#endif
               if(sEnvParam.laser_1064_energy>laser_ctr_param.laserEnerge*1.30)   
               {
                 sGenSta.laser_param_B01_energe_status=1;//2; //over load
               }      
-              else sGenSta.laser_param_B01_energe_status = 1;
+              else sGenSta.laser_param_B01_energe_status = 1;              
             }
             else 
             {
@@ -1352,6 +1351,7 @@ void laserProhotTask09(void *argument)
   uint16_t laser_freq,laser_Voltage;					
 	uint8_t local_proHotCtr=0;			
 	float local_f = 1.0,l_jdq_set_voltage,l_jdq_set_current;
+	
   float outVoltage;
   U_G3200W_CTR_MESSAGE u_g3200w_ctr_tx_message;
   osStatus_t gwb_ctr_tx_status;
@@ -1434,8 +1434,10 @@ void laserProhotTask09(void *argument)
       if(gwb_ctr_tx_status==osOK)     
       {
         DEBUG_PRINTF("GWB3200W set  vol=%.1fV  charge cSet=%.1f \r\n",local_f,LASER_JDQ_CURRENT_LIMIT_F);
+
       }
       else 
+
       {
         DEBUG_PRINTF("GWB3200W set vol and current fail!resend once\r\n");
         osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
@@ -1487,7 +1489,9 @@ void laserProhotTask09(void *argument)
         DEBUG_PRINTF("charge ok jdq—v%f %d timeMs=%d\r\n",outVoltage,laser_Voltage,timeout);            
         rgbMessage = RGB_LASER_PREPARE_OK;     
         osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);        	      
-        sGenSta.laser_run_B0_pro_hot_status = 1; 
+        sGenSta.laser_run_B0_pro_hot_status = 1;
+        osTimerStart(laserWorkTimer01Handle,SYS_1_SECOND_TICKS);//lock jt 1s
+        sGenSta.laser_run_B5_timer_status = 1;//wait jt release
         osEventFlagsSet(laserEvent02Handle,EVENTS_LASER_1064_PREPARE_OK_BIT|EVENTS_LASER_JT_ENABLE_BIT);                      
       } 
       else
