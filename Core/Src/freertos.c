@@ -1046,12 +1046,13 @@ void laserWorkTask04(void *argument)
           {   
             app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback);  
             //float ene_moni_cali= u_sys_param.sys_config_param.laser_pulse_width_us*0.00088+laser_ctr_param.laserEnerge*0.00009-0.0065; 
-            float ene_average_p= (e_feedback*0.001)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power               
+            float ene_average_p= (e_feedback*0.0025)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power
+            //float ene_average_p= (e_feedback*0.001)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power               
             sEnvParam.laser_1064_energy=ene_average_p/laser_ctr_param.laserFreq;
             DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV pulseCount=%d rdb=%d 980=%d\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback,u_sys_param.sys_config_param.laser_pulse_count,u_sys_param.sys_config_param.RDB_use_timeS,u_sys_param.sys_config_param.laser_use_timeS);              
             if(sEnvParam.laser_1064_energy>0&&laser_ctr_param.laserEnerge>0)
             {   
-								#if 0
+							#if 0
 							//动态调整
 							if(sEnvParam.laser_1064_energy>5+laser_ctr_param.laserEnerge||sEnvParam.laser_1064_energy+5<laser_ctr_param.laserEnerge)
 							{
@@ -1063,8 +1064,7 @@ void laserWorkTask04(void *argument)
 								else if(sEnvParam.laser_1064_energy+5<laser_ctr_param.laserEnerge)
 								{
 									fisrt_pulse_cali+=0.05;	
-									local_f+=	fisrt_pulse_cali;						
-							
+									local_f+=	fisrt_pulse_cali;													
 								}
 								if(sGenSta.laser_run_B1_laser_out_status!=0&&fisrt_pulse_cali!=0) // genera
 								{
@@ -1083,7 +1083,7 @@ void laserWorkTask04(void *argument)
             }
             else 
             {
-              sGenSta.laser_param_B01_energe_status =1;// 0;//err
+              sGenSta.laser_param_B01_energe_status = 1;// 0;//err
             }              
           }
           #else 
@@ -1144,7 +1144,7 @@ void fastAuxTask05(void *argument)
   /* Infinite loop */
   float  treatmentWaterC; 
   float  recVoltage,recCurrent;  
-   app_air_pump_switch(DISABLE);  
+  app_air_pump_switch(DISABLE);  
   for(;;)
   {		
     /***********NTC,laser_energe,iBus,Vbus,vBus,air_pump_pressure气泵气压，参数*******************/     
@@ -1163,8 +1163,7 @@ void fastAuxTask05(void *argument)
     // 循环水位
     #else
       sEnvParam.cool_water_depth=(u_sys_param.sys_config_param.cool_water_depth_high+u_sys_param.sys_config_param.cool_water_depth_low)>>1;
-    #endif
-   
+    #endif   
 		app_fresh_laser_status_param();	
    
     osDelay(5);
@@ -1641,7 +1640,7 @@ void jdqGWB3200wTask12(void *argument)
     osStatus_t jdq_sta = osSemaphoreAcquire(jdqHeart100msBinarySem05Handle,0);     
     if(jdq_sta==osOK)
     {
-      osStatus_t gwb_status= osMessageQueueGet(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_message.data,NULL,0);
+      osStatus_t gwb_status = osMessageQueueGet(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_message.data,NULL,0);
       if(gwb_status==osOK)
       {
         if(u_g3200w_ctr_message.msg.cmdCode==GWB_3200_REG_VOLTAGE_CURRENT_DISPLAY)
@@ -1650,7 +1649,7 @@ void jdqGWB3200wTask12(void *argument)
         }
         else if( u_g3200w_ctr_message.msg.cmdCode==GWB_3200_REG_RUN_STOP)
         {
-          unsigned char cmd= u_g3200w_ctr_message.msg.buff[0];
+          unsigned char cmd = u_g3200w_ctr_message.msg.buff[0];
           app_jdq_bus_power_on_off(cmd);  
         }
         else if(u_g3200w_ctr_message.msg.cmdCode==GWB_3200_REG_SET_VOLTAGE_CURRENT)
@@ -1699,7 +1698,7 @@ void tmcMaxRunTimesCallback03(void *argument)
 void jdqHeart100msCallback04(void *argument)
 {
   /* USER CODE BEGIN jdqHeart100msCallback04 */
-  static unsigned int aux_heart_count=0;
+  static unsigned int aux_heart_count = 0;
   osSemaphoreRelease(jdqHeart100msBinarySem05Handle);
   aux_heart_count+=100;
   if(aux_heart_count>=1000){
@@ -1713,9 +1712,9 @@ void jdqHeart100msCallback04(void *argument)
   {  
     if(u_sys_param.sys_config_param.beep!=0&&beepHeart>5)
     {
-        beepHeart=0;
-        uint16_t s_music_num = MUSIC_LASER_WORK;
-        osMessageQueuePut(musicQueue03Handle,&s_music_num,0,0);
+      beepHeart=0;
+      uint16_t s_music_num = MUSIC_LASER_WORK;
+      osMessageQueuePut(musicQueue03Handle,&s_music_num,0,0);
     }  
   } 
   #endif    
@@ -1762,7 +1761,7 @@ void app_sys_genaration_status_manage(void)
     osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO1_BIT); 
   } 
   #if 0
-  //堵气阀
+  //堵气阀  
   if(app_get_io_status(In2_deflate_air_solenoid)==SUCCESS)
   {      
     osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO2_BIT);
@@ -1814,7 +1813,7 @@ void app_sys_genaration_status_manage(void)
   //治疗水OK就绪信号 
 	if(app_get_io_status(In7_water_ready_ok)==SUCCESS&&sEnvParam.treatment_water_depth!=0)
 	{  
-     osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO7_BIT);
+    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO7_BIT);
 	}
 	else 
   {      
@@ -1880,16 +1879,15 @@ void app_sys_genaration_status_manage(void)
       DEBUG_PRINTF("emergency!\r\n");   
       osSemaphoreRelease(laserCloseSem05Handle);  
     } 
-  }
-  //治疗水瓶液位 低有效
+  } //治疗水瓶液位 低有效
   if(HAL_GPIO_ReadPin(TREATMENT_WATER_DEPTH_in_GPIO_Port,TREATMENT_WATER_DEPTH_in_Pin)==GPIO_PIN_RESET)
   {
-    sEnvParam.treatment_water_depth=1;   
+    sEnvParam.treatment_water_depth = 1;   
     osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_15_WATER_AIR_PREPARE_BIT ); 
   }
   else
   {
-    sEnvParam.treatment_water_depth=0;
+    sEnvParam.treatment_water_depth = 0;
     osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_15_WATER_AIR_PREPARE_BIT );
   } 
   if(sEnvParam.cool_water_depth<u_sys_param.sys_config_param.cool_water_depth_low||sEnvParam.cool_water_depth>u_sys_param.sys_config_param.cool_water_depth_high)
@@ -2004,15 +2002,13 @@ void app_set_default_sys_config_param(void)
       DEBUG_PRINTF("load default sys param\r\n");		 
     }
     else 
-    {
-      //check param
-      u_sys_param.sys_config_param.synchronousFlag=0;//请求配置      
+    {//check param
+      u_sys_param.sys_config_param.synchronousFlag = 0;//请求配置      
       if(u_sys_param.sys_config_param.cool_temprature_target>280||u_sys_param.sys_config_param.cool_temprature_target<210)
       {
         u_sys_param.sys_config_param.cool_temprature_target=240;
       } 
-      memcpy(u_sys_default_param.data,u_sys_param.data,sizeof(SYS_CONFIG_PARAM));      
-      
+      memcpy(u_sys_default_param.data,u_sys_param.data,sizeof(SYS_CONFIG_PARAM));   
       laser_ctr_param.airPressureLevel=1;
       laser_ctr_param.treatmentWaterLevel=0; 
       laser_ctr_param.ledLightLevel=20;
@@ -2103,7 +2099,7 @@ void app_set_default_sys_config_param(void)
     //air_pressure=MID_AIR_PUMP_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa;
   }    
   if(air_level!=sGenSta.air_level_status) //= laser_ctr_param.airPressureLevel&&((eventFlag&EVENTS_AUX_STATUS_IO6_BIT)== EVENTS_AUX_STATUS_IO6_BIT)&&sGenSta.laser_run_B0_pro_hot_status!=0)//
-  {    
+  {  
     sGenSta.air_level_status=air_level; 
     if(sEnvParam.air_gzp_enviroment_pressure_kpa>100.0)
     {
@@ -2119,13 +2115,13 @@ void app_set_default_sys_config_param(void)
     }
     else 
     {
-      duty_cali=0;
+      duty_cali = 0;
       app_air_pum_pwm_set(duty);
     }           
   }
   #if 1
   //本机取消气瓶
-  sGenSta.laser_param_B23_air_pump_pressure_status=1;
+  sGenSta.laser_param_B23_air_pump_pressure_status = 1;
   #else 
   if(sEnvParam.air_pump_pressure+10<(MIN_AIR_PUMP_PRESSURE + sEnvParam.air_gzp_enviroment_pressure_kpa) )	
   {
@@ -2168,7 +2164,7 @@ void app_set_default_sys_config_param(void)
       if(ret_vol<LASER_1064_MIN_ENERGE_V) ret_vol=LASER_1064_MIN_ENERGE_V;
       if(ret_vol>LASER_1064_MAX_ENERGE_V) ret_vol=LASER_1064_MAX_ENERGE_V;
     */    
-    ret_vol= LASER_JDQ_VOLTAGE;
+    ret_vol = LASER_JDQ_VOLTAGE;
     return ret_vol;
   }
   
@@ -2191,16 +2187,16 @@ void app_laser_preapare_semo(void)
   *****************************************************************************/
  void app_treatment_water_prepare(unsigned char *ctrflag,unsigned int runtimeMs)
  {
-  if(*ctrflag!=0)
-  {
-    tmc2226_start(TMC_WATER_OUT_DIR_VALUE,3,CONTINUOUS_STEPS_COUNT); 
-    osTimerStart(tmcMaxRunTimer03Handle,20*SYS_1_MINUTES_TICK);    
-  }
-  else 
-  {   
-    osTimerStop(tmcMaxRunTimer03Handle); 
-    tmc2226_stop();   
-  }
+    if(*ctrflag!=0)
+    {
+      tmc2226_start(TMC_WATER_OUT_DIR_VALUE,3,CONTINUOUS_STEPS_COUNT); 
+      osTimerStart(tmcMaxRunTimer03Handle,20*SYS_1_MINUTES_TICK);    
+    }
+    else 
+    {   
+      osTimerStop(tmcMaxRunTimer03Handle); 
+      tmc2226_stop();   
+    }
 }
   /************************************************************************//**
   * @brief 消毒、清洗指令
@@ -2221,9 +2217,8 @@ void app_laser_preapare_semo(void)
     }     
     else
     {      
-     
-        osTimerStop(cleanTimer02Handle);
-        tmc2226_stop();       
+      osTimerStop(cleanTimer02Handle);
+      tmc2226_stop();       
     }   
  }
 /***************************************************************************//**
@@ -2234,9 +2229,8 @@ void app_laser_preapare_semo(void)
 *******************************************************************************/
 unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int buffLen) 
 {
-	unsigned short int retLen = 0;
+	  unsigned short int retLen = 0;
     unsigned short i = 0;
-
     while (i < buffLen)
     {
         // need at least 3 bytes to read header+length
@@ -2264,18 +2258,18 @@ unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int
                     }
                     else
                     {
-                        i++;
+                      i++;
                     }
                 }
                 else
                 {
-                    retLen = i;
-                    break;
+                  retLen = i;
+                  break;
                 }
             }
             else
             {
-                i++;
+              i++;
             }
         }
         else
@@ -2283,7 +2277,6 @@ unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int
             i++;
         }
     }
-
     if (i == buffLen)
     {
         retLen = i;
@@ -2580,7 +2573,7 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
   }
   sumtaskSize+=taskSize;
   sumtaskSpace+=taskSpace;
-  taskState=osThreadGetState(myTask02Handle);
+  taskState = osThreadGetState(myTask02Handle);
   taskSize= myTask02_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask02Handle); 
   //DEBUG_PRINTF("myTask02 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
@@ -2647,7 +2640,7 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
   sumtaskSize+=taskSize;
   sumtaskSpace+=taskSpace;
   taskState=osThreadGetState(myTask08Handle);
-  taskSize= myTask08_attributes.stack_size ;
+  taskSize= myTask08_attributes.stack_size;
   taskSpace=osThreadGetStackSpace(myTask08Handle); 
  // DEBUG_PRINTF("myTask08 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)

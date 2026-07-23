@@ -154,7 +154,7 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 328 * 4,
+  .stack_size = 384 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for myTask02 */
@@ -769,25 +769,22 @@ void auxTask02(void *argument)
 {
   /* USER CODE BEGIN auxTask02 */
   /* Infinite loop */
-  uint32_t led_tick;
 	uint16_t rgbRun=1; 
   fan_init();
-  led_tick=osKernelGetTickCount();
   sGenSta.laser_param_B01_energe_status=1;//激光能量状态，0未加载；1待机；2开启；3异常；
   for(;;)
   {
-		if(osKernelGetTickCount()>led_tick+1000)
-		{     
+    osStatus_t m_sta=osSemaphoreAcquire(aux1SHeartBinarySem06Handle,5);
+    if(m_sta==osOK)
+    {
       /***********环境气压、温度监测*******************/ 	 
-      unsigned char  status=app_gzp6816d_listen(osKernelGetTickCount(),&sEnvParam.air_gzp_enviroment_pressure_kpa,&sEnvParam.enviroment_temprature);    
-      if(status!=0) sEnvParam.air_gzp_enviroment_pressure_kpa =95.0;//error        
-			led_tick=osKernelGetTickCount();	
-      app_fan_manage(led_tick);		      
-			HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
+      unsigned char  status=app_gzp6816d_listen(1000,&sEnvParam.air_gzp_enviroment_pressure_kpa,&sEnvParam.enviroment_temprature);    
+      if(status!=0) sEnvParam.air_gzp_enviroment_pressure_kpa =95.0;//error    
+      app_fan_manage(1000);		      
+      HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
       app_sram_status_monitor();
-     
       //DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure); 
-		}	  
+    }		 
 		/**********************RGB****************************/		
 		osStatus_t rgb_s=osMessageQueueGet(rgbQueue02Handle,&rgbRun,0,5);	 
     switch(rgbRun)
@@ -1644,7 +1641,7 @@ void jdqGWB3200wTask12(void *argument)
     osStatus_t jdq_sta = osSemaphoreAcquire(jdqHeart100msBinarySem05Handle,0);     
     if(jdq_sta==osOK)
     {
-      osStatus_t gwb_status= osMessageQueueGet(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_message.data,NULL,0);
+      osStatus_t gwb_status = osMessageQueueGet(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_message.data,NULL,0);
       if(gwb_status==osOK)
       {
         if(u_g3200w_ctr_message.msg.cmdCode==GWB_3200_REG_VOLTAGE_CURRENT_DISPLAY)
@@ -1653,7 +1650,7 @@ void jdqGWB3200wTask12(void *argument)
         }
         else if( u_g3200w_ctr_message.msg.cmdCode==GWB_3200_REG_RUN_STOP)
         {
-          unsigned char cmd= u_g3200w_ctr_message.msg.buff[0];
+          unsigned char cmd = u_g3200w_ctr_message.msg.buff[0];
           app_jdq_bus_power_on_off(cmd);  
         }
         else if(u_g3200w_ctr_message.msg.cmdCode==GWB_3200_REG_SET_VOLTAGE_CURRENT)
@@ -1702,8 +1699,13 @@ void tmcMaxRunTimesCallback03(void *argument)
 void jdqHeart100msCallback04(void *argument)
 {
   /* USER CODE BEGIN jdqHeart100msCallback04 */
+  static unsigned int aux_heart_count = 0;
   osSemaphoreRelease(jdqHeart100msBinarySem05Handle);
-
+  aux_heart_count+=100;
+  if(aux_heart_count>=1000){
+    aux_heart_count=0;
+    osSemaphoreRelease(aux1SHeartBinarySem06Handle);
+  }
   #if 0
   static unsigned char beepHeart;
   beepHeart++;
@@ -1711,9 +1713,9 @@ void jdqHeart100msCallback04(void *argument)
   {  
     if(u_sys_param.sys_config_param.beep!=0&&beepHeart>5)
     {
-        beepHeart=0;
-        uint16_t s_music_num = MUSIC_LASER_WORK;
-        osMessageQueuePut(musicQueue03Handle,&s_music_num,0,0);
+      beepHeart=0;
+      uint16_t s_music_num = MUSIC_LASER_WORK;
+      osMessageQueuePut(musicQueue03Handle,&s_music_num,0,0);
     }  
   } 
   #endif    
@@ -1760,7 +1762,7 @@ void app_sys_genaration_status_manage(void)
     osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO1_BIT); 
   } 
   #if 0
-  //堵气阀
+  //堵气阀  
   if(app_get_io_status(In2_deflate_air_solenoid)==SUCCESS)
   {      
     osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO2_BIT);
@@ -1812,7 +1814,7 @@ void app_sys_genaration_status_manage(void)
   //治疗水OK就绪信号 
 	if(app_get_io_status(In7_water_ready_ok)==SUCCESS&&sEnvParam.treatment_water_depth!=0)
 	{  
-     osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO7_BIT);
+    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO7_BIT);
 	}
 	else 
   {      
@@ -1878,16 +1880,15 @@ void app_sys_genaration_status_manage(void)
       DEBUG_PRINTF("emergency!\r\n");   
       osSemaphoreRelease(laserCloseSem05Handle);  
     } 
-  }
-  //治疗水瓶液位 低有效
+  } //治疗水瓶液位 低有效
   if(HAL_GPIO_ReadPin(TREATMENT_WATER_DEPTH_in_GPIO_Port,TREATMENT_WATER_DEPTH_in_Pin)==GPIO_PIN_RESET)
   {
-    sEnvParam.treatment_water_depth=1;   
+    sEnvParam.treatment_water_depth = 1;   
     osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_15_WATER_AIR_PREPARE_BIT ); 
   }
   else
   {
-    sEnvParam.treatment_water_depth=0;
+    sEnvParam.treatment_water_depth = 0;
     osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_15_WATER_AIR_PREPARE_BIT );
   } 
   if(sEnvParam.cool_water_depth<u_sys_param.sys_config_param.cool_water_depth_low||sEnvParam.cool_water_depth>u_sys_param.sys_config_param.cool_water_depth_high)
@@ -2002,15 +2003,13 @@ void app_set_default_sys_config_param(void)
       DEBUG_PRINTF("load default sys param\r\n");		 
     }
     else 
-    {
-      //check param
-      u_sys_param.sys_config_param.synchronousFlag=0;//请求配置      
+    {//check param
+      u_sys_param.sys_config_param.synchronousFlag = 0;//请求配置      
       if(u_sys_param.sys_config_param.cool_temprature_target>280||u_sys_param.sys_config_param.cool_temprature_target<210)
       {
         u_sys_param.sys_config_param.cool_temprature_target=240;
       } 
-      memcpy(u_sys_default_param.data,u_sys_param.data,sizeof(SYS_CONFIG_PARAM));      
-      
+      memcpy(u_sys_default_param.data,u_sys_param.data,sizeof(SYS_CONFIG_PARAM));   
       laser_ctr_param.airPressureLevel=1;
       laser_ctr_param.treatmentWaterLevel=0; 
       laser_ctr_param.ledLightLevel=20;
@@ -2101,7 +2100,7 @@ void app_set_default_sys_config_param(void)
     //air_pressure=MID_AIR_PUMP_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa;
   }    
   if(air_level!=sGenSta.air_level_status) //= laser_ctr_param.airPressureLevel&&((eventFlag&EVENTS_AUX_STATUS_IO6_BIT)== EVENTS_AUX_STATUS_IO6_BIT)&&sGenSta.laser_run_B0_pro_hot_status!=0)//
-  {    
+  {  
     sGenSta.air_level_status=air_level; 
     if(sEnvParam.air_gzp_enviroment_pressure_kpa>100.0)
     {
@@ -2117,13 +2116,13 @@ void app_set_default_sys_config_param(void)
     }
     else 
     {
-      duty_cali=0;
+      duty_cali = 0;
       app_air_pum_pwm_set(duty);
     }           
   }
   #if 1
   //本机取消气瓶
-  sGenSta.laser_param_B23_air_pump_pressure_status=1;
+  sGenSta.laser_param_B23_air_pump_pressure_status = 1;
   #else 
   if(sEnvParam.air_pump_pressure+10<(MIN_AIR_PUMP_PRESSURE + sEnvParam.air_gzp_enviroment_pressure_kpa) )	
   {
@@ -2166,7 +2165,7 @@ void app_set_default_sys_config_param(void)
       if(ret_vol<LASER_1064_MIN_ENERGE_V) ret_vol=LASER_1064_MIN_ENERGE_V;
       if(ret_vol>LASER_1064_MAX_ENERGE_V) ret_vol=LASER_1064_MAX_ENERGE_V;
     */    
-    ret_vol= LASER_JDQ_VOLTAGE;
+    ret_vol = LASER_JDQ_VOLTAGE;
     return ret_vol;
   }
   
@@ -2189,16 +2188,16 @@ void app_laser_preapare_semo(void)
   *****************************************************************************/
  void app_treatment_water_prepare(unsigned char *ctrflag,unsigned int runtimeMs)
  {
-  if(*ctrflag!=0)
-  {
-    tmc2226_start(TMC_WATER_OUT_DIR_VALUE,3,CONTINUOUS_STEPS_COUNT); 
-    osTimerStart(tmcMaxRunTimer03Handle,20*SYS_1_MINUTES_TICK);    
-  }
-  else 
-  {   
-    osTimerStop(tmcMaxRunTimer03Handle); 
-    tmc2226_stop();   
-  }
+    if(*ctrflag!=0)
+    {
+      tmc2226_start(TMC_WATER_OUT_DIR_VALUE,3,CONTINUOUS_STEPS_COUNT); 
+      osTimerStart(tmcMaxRunTimer03Handle,20*SYS_1_MINUTES_TICK);    
+    }
+    else 
+    {   
+      osTimerStop(tmcMaxRunTimer03Handle); 
+      tmc2226_stop();   
+    }
 }
   /************************************************************************//**
   * @brief 消毒、清洗指令
@@ -2219,9 +2218,8 @@ void app_laser_preapare_semo(void)
     }     
     else
     {      
-     
-        osTimerStop(cleanTimer02Handle);
-        tmc2226_stop();       
+      osTimerStop(cleanTimer02Handle);
+      tmc2226_stop();       
     }   
  }
 /***************************************************************************//**
@@ -2232,9 +2230,8 @@ void app_laser_preapare_semo(void)
 *******************************************************************************/
 unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int buffLen) 
 {
-	unsigned short int retLen = 0;
+	  unsigned short int retLen = 0;
     unsigned short i = 0;
-
     while (i < buffLen)
     {
         // need at least 3 bytes to read header+length
@@ -2262,18 +2259,18 @@ unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int
                     }
                     else
                     {
-                        i++;
+                      i++;
                     }
                 }
                 else
                 {
-                    retLen = i;
-                    break;
+                  retLen = i;
+                  break;
                 }
             }
             else
             {
-                i++;
+              i++;
             }
         }
         else
@@ -2281,7 +2278,6 @@ unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int
             i++;
         }
     }
-
     if (i == buffLen)
     {
         retLen = i;
@@ -2517,7 +2513,7 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
     else 
     { 
       //reestart   
-      osThreadTerminate(*thread_id);
+      if(*thread_id!=defaultTaskHandle) osThreadTerminate(*thread_id);
       if(*thread_id==myTask03Handle)
       {
         myTask03Handle = osThreadNew(keyScanTask03, NULL, &myTask03_attributes);
@@ -2578,7 +2574,7 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
   }
   sumtaskSize+=taskSize;
   sumtaskSpace+=taskSpace;
-  taskState=osThreadGetState(myTask02Handle);
+  taskState = osThreadGetState(myTask02Handle);
   taskSize= myTask02_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(myTask02Handle); 
   //DEBUG_PRINTF("myTask02 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
@@ -2645,7 +2641,7 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
   sumtaskSize+=taskSize;
   sumtaskSpace+=taskSpace;
   taskState=osThreadGetState(myTask08Handle);
-  taskSize= myTask08_attributes.stack_size ;
+  taskSize= myTask08_attributes.stack_size;
   taskSpace=osThreadGetStackSpace(myTask08Handle); 
  // DEBUG_PRINTF("myTask08 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)

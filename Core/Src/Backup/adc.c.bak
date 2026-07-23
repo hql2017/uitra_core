@@ -177,7 +177,7 @@ void MX_ADC2_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_15;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_387CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_64CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
@@ -344,7 +344,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
     hdma_adc2.Init.MemInc = DMA_MINC_ENABLE;
     hdma_adc2.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
     hdma_adc2.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-    hdma_adc2.Init.Mode = DMA_CIRCULAR;
+    hdma_adc2.Init.Mode = DMA_NORMAL;
     hdma_adc2.Init.Priority = DMA_PRIORITY_LOW;
     hdma_adc2.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
     hdma_adc2.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
@@ -656,8 +656,6 @@ void  HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
      if (ts_cal2 == ts_cal1) {
          return 0.0f; 
      }
- 
-
      if(adc_raw < ts_cal1) {
          return 30.0f; 
      } else if(adc_raw > ts_cal2) {
@@ -728,8 +726,7 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
    {
     DEBUG_PRINTF(" %d",ad2Buff[i]);
    }
-   DEBUG_PRINTF(" leve=%d ad2=%d\r\n",ad2vale,ad2hle);
-   
+   DEBUG_PRINTF(" leve=%d ad2=%d\r\n",ad2vale,ad2hle);   
    #endif 
   }
   else if(adChannel==AD1_OCP_Ibus_INDEX)
@@ -752,6 +749,7 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
   }  
   else if(adChannel==AD1_WATER_PRESSER_INDEX)
   {//相对气压kPa    
+    
     temp=((((advalue[AD1_WATER_PRESSER_INDEX]-D_A_MIN)*AD_VREF_VOLTAGE)>>16) +22);
     *vBuff=temp*0.1654131+P_A_MIN;//0.150723+P_A_MIN;//(441/3000);//water pressure  ,dio
     //DEBUG_PRINTF("air_pressure=%.2f v=%dmV ad=%x\r\n", *vBuff,temp,advalue[AD1_AIR_PRESSER_INDEX]);
@@ -760,22 +758,22 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
   {//cpu 温度   12bit 0~4095      
     #if 1
     //均值
-    static unsigned short int local_index=0;  
+    static unsigned short int local_index = 0;  
     if(local_index>7) local_index=0;
-    ad3_buff[local_index]=  HAL_ADC_GetValue(&hadc3);
+    ad3_buff[local_index] =  HAL_ADC_GetValue(&hadc3);
     local_index++;
-    temp=0;
+    temp = 0;
     for(uint8_t i=0;i<8;i++)
     {
-      if(ad3_buff[i]>2000) temp+=300;
+      if(ad3_buff[i]>2000)  temp+=300;
       else temp+=ad3_buff[i];
     }
     ad3value=temp>>3; 
     #else
     ad3value=  HAL_ADC_GetValue(&hadc3);
     #endif  
-     //DEBUG_PRINTF("mcu ad=%x\r\n", temp);
-    *vBuff=ADC3_CalculateTemperature(ad3value);   
+    //DEBUG_PRINTF("mcu ad=%x\r\n", temp);
+    *vBuff = ADC3_CalculateTemperature(ad3value);   
     HAL_ADC_Start(&hadc3);     
   }    
 }
