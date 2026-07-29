@@ -105,6 +105,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+
   //SCB->CACR|=1<<2;//DCATCH
   /* USER CODE END Init */
 
@@ -115,7 +116,6 @@ int main(void)
   PeriphCommonClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -135,7 +135,7 @@ int main(void)
   MX_TIM3_Init();
   MX_ADC1_Init();
   MX_TIM16_Init();
-  //MX_IWDG1_Init();
+  MX_IWDG1_Init();
   MX_ADC2_Init();
   MX_TIM8_Init();
   MX_SPI1_Init();

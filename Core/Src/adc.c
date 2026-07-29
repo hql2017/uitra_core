@@ -584,7 +584,8 @@ void filter_ad1(void)
       }
 			ad2vale=(uint16_t) kalman_filter_update(&kalmEnergeAd, ad2hle[idx]); 
 			ad2hle[idx]=ad2vale;//滤波结果覆盖原始值,保持水平缓慢变化,避免突变;
-      levelIdx = (levelIdx + 1) & 0x07; /* keep wrapping but idx uses &0x07 */
+
+      levelIdx = (levelIdx + 1) & 0x07; /* keep wrapping but idx uses &0x07 */     
       sum = 0;
       for(i = 0; i < 8; i++)
       {   
@@ -596,18 +597,10 @@ void filter_ad1(void)
           sum += ad2hle[i];  
         }     
       } 
-      ad2vale = (unsigned short int)(sum >> 3);   
+      ad2vale = (unsigned short int)(sum >> 3); 
+        
       #endif 
-      #if 0
-      //kalman_filter_update(&kalmAd2, sum>>3);
-      //ad2vale= kalmAd2.estimate;    
-      DEBUG_PRINTF("laserAD=\r\n");
-      for(int i=0;i<MAX_AD2_ENERGE_BUFF_LENGTH;i++)
-      {
-        DEBUG_PRINTF(" %d",ad2Buff[i]);
-      }
-      DEBUG_PRINTF("leve=%d ad2=%d\r\n",ad2vale,ad2hle);   
-     #endif 
+    
      
   }
   /**
@@ -748,8 +741,7 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
     //DEBUG_PRINTF("air_pressure=%.2f v=%dmV ad=%x\r\n", *vBuff,temp,advalue[AD1_AIR_PRESSER_INDEX]);
   }  
   else if(adChannel==AD1_WATER_PRESSER_INDEX)
-  {//相对气压kPa    
-    
+  {//相对气压kPa        
     temp=((((advalue[AD1_WATER_PRESSER_INDEX]-D_A_MIN)*AD_VREF_VOLTAGE)>>16) +22);
     *vBuff=temp*0.1654131+P_A_MIN;//0.150723+P_A_MIN;//(441/3000);//water pressure  ,dio
     //DEBUG_PRINTF("air_pressure=%.2f v=%dmV ad=%x\r\n", *vBuff,temp,advalue[AD1_AIR_PRESSER_INDEX]);

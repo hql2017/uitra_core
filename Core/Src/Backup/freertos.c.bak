@@ -53,7 +53,6 @@
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
-typedef StaticTask_t osStaticThreadDef_t;
 typedef StaticQueue_t osStaticMessageQDef_t;
 typedef StaticEventGroup_t osStaticEventGroupDef_t;
 /* USER CODE BEGIN PTD */
@@ -154,7 +153,7 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 384 * 4,
+  .stack_size = 312 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for myTask02 */
@@ -166,14 +165,9 @@ const osThreadAttr_t myTask02_attributes = {
 };
 /* Definitions for myTask03 */
 osThreadId_t myTask03Handle;
-uint32_t myTask03Buffer[ 160 ];
-osStaticThreadDef_t myTask03ControlBlock;
 const osThreadAttr_t myTask03_attributes = {
   .name = "myTask03",
-  .cb_mem = &myTask03ControlBlock,
-  .cb_size = sizeof(myTask03ControlBlock),
-  .stack_mem = &myTask03Buffer[0],
-  .stack_size = sizeof(myTask03Buffer),
+  .stack_size = 160 * 4,
   .priority = (osPriority_t) osPriorityNormal7,
 };
 /* Definitions for myTask04 */
@@ -626,7 +620,7 @@ void StartDefaultTask(void *argument)
     float temp_t_f=Get_pt_tempture();
 		if(temp_t_f<60.0&&temp_t_f>-40.0)
 		{
-			sEnvParam.eth_k1_temprature= temp_t_f;
+			sEnvParam.eth_k1_temprature = temp_t_f;
 			sEnvParam.eth_k2_temprature = temp_t_f; 			
 		}
 		else 
@@ -689,11 +683,11 @@ void StartDefaultTask(void *argument)
     {                
       DEBUG_PRINTF("adc load:air_pressure_ad_channel ok=%.2fkPa\r\n",sEnvParam.air_pump_pressure); 
     }   
-    load_sta=0;
+    load_sta = 0;
     float s_jdq_set_voltage,s_jdq_set_current;      
     DEBUG_PRINTF("load laser jdq power system ... \r\n");  
     jdq_init(); 
-  #ifdef JDQ_PWR_GWB_3200W 
+    #ifdef JDQ_PWR_GWB_3200W 
     HAL_Delay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
     HAL_Delay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
     app_jdq_bus_get_v_c_req();
@@ -936,6 +930,7 @@ void laserWorkTask04(void *argument)
   osStatus_t laser_close_sem;
   U_G3200W_CTR_MESSAGE g_ctr_tx_msg;
   osStatus_t gwb_ctr_tx_sta;
+  int32_t e_cali_timeout=0;
   for(;;)
   {  
     event=osEventFlagsWait(laserEvent02Handle,EVENTS_LASER_PREPARE_OK_ALL_BITS_MASK,osFlagsNoClear,portMAX_DELAY);
@@ -998,7 +993,7 @@ void laserWorkTask04(void *argument)
        
           #if 0
           //test
-          local_f= laser_ctr_param.ledLightLevel*0.025+DAC_MIN_VOLTAGE_F;             
+          local_f = laser_ctr_param.ledLightLevel*0.025+DAC_MIN_VOLTAGE_F;             
           #endif
           if(pLaserConfig->proCali==0&&laser_ctr_param.ctrTestMode==0)
           {               
@@ -1017,7 +1012,7 @@ void laserWorkTask04(void *argument)
           }
           else
           {
-            laser_ctr_param.laserFreq=10;
+            laser_ctr_param.laserFreq = 10;
           }
           DEBUG_PRINTF("e=%dev=%.3f freq=%d timeU=%d\r\n",laser_ctr_param.laserEnerge,local_f,laser_ctr_param.laserFreq,u_sys_param.sys_config_param.laser_pulse_width_us); 
           if(local_f<1.8) laser_ctr_param.lowEnergeMode=1;
@@ -1046,44 +1041,51 @@ void laserWorkTask04(void *argument)
           {   
             app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback);  
             //float ene_moni_cali= u_sys_param.sys_config_param.laser_pulse_width_us*0.00088+laser_ctr_param.laserEnerge*0.00009-0.0065; 
-            float ene_average_p= (e_feedback*0.001)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power               
+            float ene_average_p= (e_feedback*0.0026)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power
+            //float ene_average_p= (e_feedback*0.001)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power               
             sEnvParam.laser_1064_energy=ene_average_p/laser_ctr_param.laserFreq;
             DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV pulseCount=%d rdb=%d 980=%d\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback,u_sys_param.sys_config_param.laser_pulse_count,u_sys_param.sys_config_param.RDB_use_timeS,u_sys_param.sys_config_param.laser_use_timeS);              
-            if(sEnvParam.laser_1064_energy>0&&laser_ctr_param.laserEnerge>0)
+            if(sEnvParam.laser_1064_energy>0&&laser_ctr_param.laserEnerge>0&&statusJT==osOK)
             {   
-								#if 0
-							//动态调整
+							#if 1	//动态调整
 							if(sEnvParam.laser_1064_energy>5+laser_ctr_param.laserEnerge||sEnvParam.laser_1064_energy+5<laser_ctr_param.laserEnerge)
-							{
+							{                
 							  if(sEnvParam.laser_1064_energy>5+laser_ctr_param.laserEnerge)
 								{
-									fisrt_pulse_cali+=0.05;
-									local_f-=	fisrt_pulse_cali;	
+                  e_cali_timeout++;   
+                  if(e_cali_timeout>3)  {
+                    e_cali_timeout=0;
+                    fisrt_pulse_cali+=0.025;
+                    local_f-=	fisrt_pulse_cali;	
+                  }  
 								}
 								else if(sEnvParam.laser_1064_energy+5<laser_ctr_param.laserEnerge)
 								{
-									fisrt_pulse_cali+=0.05;	
-									local_f+=	fisrt_pulse_cali;						
-							
+                  e_cali_timeout--;
+                  if(e_cali_timeout<-3)  {
+                    e_cali_timeout=0;
+                    fisrt_pulse_cali+=0.025;	
+                    local_f+=	fisrt_pulse_cali;	
+                  }									
 								}
-								if(sGenSta.laser_run_B1_laser_out_status!=0&&fisrt_pulse_cali!=0) // genera
+								if(sGenSta.laser_run_B1_laser_out_status!=0&&fisrt_pulse_cali!=0) //genera
 								{
 									if(fisrt_pulse_cali>DAC_MAX_VOLTAGE_F) fisrt_pulse_cali=DAC_MAX_VOLTAGE_F;
 									if(fisrt_pulse_cali<DAC_MIN_VOLTAGE_F) fisrt_pulse_cali=DAC_MIN_VOLTAGE_F;       
 									AD5541A_SetVoltage(local_f, 4.096); 
-									fisrt_pulse_cali=0; 
+									fisrt_pulse_cali = 0; 
 								} 								
 							}
 							#endif
-              if(sEnvParam.laser_1064_energy>laser_ctr_param.laserEnerge*1.30)   
+              if(sEnvParam.laser_1064_energy>ENERGE_MAX_VALUE+30)//laser_ctr_param.laserEnerge*1.30)   
               {
-                sGenSta.laser_param_B01_energe_status=1;//2; //over load
+                sGenSta.laser_param_B01_energe_status=2; //over load
               }      
               else sGenSta.laser_param_B01_energe_status = 1;              
             }
             else 
             {
-              sGenSta.laser_param_B01_energe_status =1;// 0;//err
+              sGenSta.laser_param_B01_energe_status = 1;// 0;//err
             }              
           }
           #else 
@@ -1144,7 +1146,7 @@ void fastAuxTask05(void *argument)
   /* Infinite loop */
   float  treatmentWaterC; 
   float  recVoltage,recCurrent;  
-   app_air_pump_switch(DISABLE);  
+  app_air_pump_switch(DISABLE);  
   for(;;)
   {		
     /***********NTC,laser_energe,iBus,Vbus,vBus,air_pump_pressure气泵气压，参数*******************/     
@@ -1158,16 +1160,14 @@ void fastAuxTask05(void *argument)
 		app_air_pump_manage(laser_ctr_param.airPressureLevel);    
 		/***********aux genaration状态检查*******************/
     #if 0
-    //sEnvParam.cool_water_depth=100;//mcp
-    sEnvParam.cool_water_depth= app_mcp61_c_value()*10;//real depth =0.1pf*10
+    //sEnvParam.cool_water_depth = 100;//mcp
+    sEnvParam.cool_water_depth   = app_mcp61_c_value()*10;//real depth =0.1pf*10
     // 循环水位
     #else
       sEnvParam.cool_water_depth=(u_sys_param.sys_config_param.cool_water_depth_high+u_sys_param.sys_config_param.cool_water_depth_low)>>1;
-    #endif
-   
-		app_fresh_laser_status_param();	
-   
-    osDelay(5);
+    #endif   
+		app_fresh_laser_status_param();	   
+    osDelay(10);
   }
   /* USER CODE END fastAuxTask05 */
 }
@@ -1280,7 +1280,7 @@ void canReceiveTask07(void *argument)
     if(laser_ctr_param.ledLightLevel!=0) 
     {
       if(sGenSta.laser_run_B3_laser_pilot_lamp_status==0)
-      {
+      {        
         app_auxiliary_bulb_pwm(laser_ctr_param.ledLightLevel,ENABLE);
         sGenSta.laser_run_B3_laser_pilot_lamp_status=1;	
       }	
@@ -1368,7 +1368,7 @@ void laserProhotTask09(void *argument)
 		laser_freq = laser_ctr_param.laserFreq;
 		laser_Voltage = app_laser_1064_energe_to_voltage(laser_ctr_param.laserEnerge); 
     local_f =laser_Voltage*1.0;  
-    timeout=0;
+    timeout = 0;
     do
     {
       osDelay(JDQ_RS485_FRAME_MIN_MS); 
@@ -1384,7 +1384,7 @@ void laserProhotTask09(void *argument)
         osDelay(JDQ_RS485_FRAME_MIN_MS);		
         jdq_reley_internal_load( JDG_INTERNAL_LOAD_CONNECT_TO_GND);       
       }         
-      timeout=0;
+      timeout = 0;
       do
       {  
         osDelay(JDQ_RS485_FRAME_MIN_MS);
@@ -1427,7 +1427,7 @@ void laserProhotTask09(void *argument)
         }       
       }while(app_jdq_gwb_pwr_flag()==0);  
       osDelay(2*JDQ_RS485_FRAME_MIN_MS);    
-      u_g3200w_ctr_tx_message.msg.cmdCode=GWB_3200_REG_SET_VOLTAGE_CURRENT;
+      u_g3200w_ctr_tx_message.msg.cmdCode = GWB_3200_REG_SET_VOLTAGE_CURRENT;
       u_g3200w_ctr_tx_message.msg.cmdLen=4;
       temp_int = (unsigned short int)(local_f*100);
       u_g3200w_ctr_tx_message.msg.buff[0]=(temp_int>>8)&0xFF;
@@ -1439,10 +1439,8 @@ void laserProhotTask09(void *argument)
       if(gwb_ctr_tx_status==osOK)     
       {
         DEBUG_PRINTF("GWB3200W set  vol=%.1fV  charge cSet=%.1f \r\n",local_f,LASER_JDQ_CURRENT_LIMIT_F);
-
       }
       else 
-
       {
         DEBUG_PRINTF("GWB3200W set vol and current fail!resend once\r\n");
         osDelay(JDQ_RS485_FRAME_MAX_DELAY_MS); 
@@ -1503,9 +1501,9 @@ void laserProhotTask09(void *argument)
       {
         DEBUG_PRINTF("charge fail jdq—v%f %d \r\n",outVoltage,laser_Voltage); 
         sGenSta.laser_run_B0_pro_hot_status = 0; 
-        u_g3200w_ctr_tx_message.msg.cmdCode=GWB_3200_REG_RUN_STOP;
-        u_g3200w_ctr_tx_message.msg.cmdLen=1;
-        u_g3200w_ctr_tx_message.msg.buff[0]=0;
+        u_g3200w_ctr_tx_message.msg.cmdCode = GWB_3200_REG_RUN_STOP;
+        u_g3200w_ctr_tx_message.msg.cmdLen  = 1;
+        u_g3200w_ctr_tx_message.msg.buff[0] = 0;
         gwb_ctr_tx_status= osMessageQueuePut(jdqGwb3200CtrMessageQueue04Handle,u_g3200w_ctr_tx_message.data,NULL,JDQ_RS485_FRAME_MIN_MS);
         if(gwb_ctr_tx_status!=osOK)            
         {
@@ -1581,6 +1579,7 @@ void ge2117ManageTask10(void *argument)
     }      		       
   }
   /* USER CODE END ge2117ManageTask10 */
+
 }
 
 /* USER CODE BEGIN Header_musicTask11 */
@@ -1744,8 +1743,7 @@ void jdqHeart100msCallback04(void *argument)
   }
   #endif
  }
- /*************************************************************
-  * ***********//**
+ /************************************************************************//**
   * @brief 系统一般状态信号管理
   * @param 无
   * @note   周期性更新事件正常标志
@@ -2361,8 +2359,8 @@ unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int
    }
    else if(music_num==MUSIC_SYS_ON)
    {  
-      HAL_TIMEx_PWMN_Start(&htim15,TIM_CHANNEL_1);   
       app_beep_pwm(music_tab_c[6],50);
+      HAL_TIMEx_PWMN_Start(&htim15,TIM_CHANNEL_1); 
       osDelay(300);
       app_beep_pwm(music_tab_c[16],50);
       osDelay(300);
@@ -2373,9 +2371,9 @@ unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int
    else if(music_num==MUSIC_LASER_WORK)
    {
       if( laser_ctr_param.beep!=0)
-      {
-        HAL_TIMEx_PWMN_Start(&htim15,TIM_CHANNEL_1);   
+      {          
         app_beep_pwm(music_tab_c[16],50);
+        HAL_TIMEx_PWMN_Start(&htim15,TIM_CHANNEL_1); 
         osDelay(200);     
         app_beep_pwm(0,0);        
       }      
@@ -2408,7 +2406,6 @@ unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int
    osDelay(50);	
 	 jdq_reley_charge(JDG_EX_CONNECT_TO_160V);//	
    osDelay(1000);		
-
  }
  #ifdef JDQ_PWR_GWB_3200W
  /***************************************************************************//**
@@ -2420,7 +2417,7 @@ unsigned short int app_hmi_package_check(unsigned char* pBuff,unsigned short int
 void app_jdq_gwb3200_status_manage_handle(unsigned  int timeMs)
 {
 	static unsigned  int heatTime;
-  heatTime+=	timeMs;
+  heatTime +=	timeMs;
 	if(heatTime>SYS_1_MINUTES_TICK )	
 	{
 		app_jdq_restart();
@@ -2449,7 +2446,7 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
   float freq_e=1.0;
   float  e_pulse=0;//脉宽补偿
   float  e_T=0;  //温度补偿
-  #if 0
+  #if 1
   if(laser_ctr_param.laserFreq>50) freq_e=0.924-laser_ctr_param.laserFreq*0.0003;
   else if(laser_ctr_param.laserFreq>30) freq_e=0.949-laser_ctr_param.laserFreq*0.0005;
   else  if(laser_ctr_param.laserFreq>10) freq_e=1-laser_ctr_param.laserFreq*0.0017;
@@ -2505,18 +2502,22 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
   *****************************************************************************/
   void app_task_status_error_handle( osThreadId_t *thread_id )
   {    
-    if(*thread_id==myTask02Handle)
+    if(*thread_id==defaultTaskHandle)
     {
-      IS3_init();
-      //myTask02Handle = osThreadNew(auxTask02, NULL, &myTask02_attributes);
+
     }
     else 
     { 
       //reestart   
-      if(*thread_id!=defaultTaskHandle) osThreadTerminate(*thread_id);
+      osThreadTerminate(*thread_id);
       if(*thread_id==myTask03Handle)
       {
         myTask03Handle = osThreadNew(keyScanTask03, NULL, &myTask03_attributes);
+      }
+      else if(*thread_id==myTask02Handle)
+      {
+        IS3_init();
+        //myTask02Handle = osThreadNew(auxTask02, NULL, &myTask02_attributes);
       }
       else if(*thread_id==myTask04Handle)
       {
@@ -2551,7 +2552,6 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
         myTask11Handle = osThreadNew(musicTask11, NULL, &myTask11_attributes);
       }
     }
-
   }
     /************************************************************************//**
   * @brief 内存使用状态
@@ -2566,12 +2566,7 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
   taskState=osThreadGetState(defaultTaskHandle);
   taskSize= defaultTask_attributes.stack_size ;
   taskSpace=osThreadGetStackSpace(defaultTaskHandle); 
-  //DEBUG_PRINTF("defaultTask s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
-  if(taskState==osThreadError||taskSpace<50)
-  {  
-    if( taskSpace<50) DEBUG_PRINTF(" out of memory 1!\r\n");
-    app_task_status_error_handle(&defaultTaskHandle );
-  }
+  //DEBUG_PRINTF("defaultTask s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace); 
   sumtaskSize+=taskSize;
   sumtaskSpace+=taskSpace;
   taskState = osThreadGetState(myTask02Handle);
@@ -2591,7 +2586,7 @@ float  app_energe_vdac(unsigned short int energe,unsigned short int pulseWidthUs
  // DEBUG_PRINTF("myTask03 s=%d Size=%d Space=%d \r\n",taskState,taskSize,taskSpace);
   if(taskState==osThreadError||taskSpace<50)
   {  
-    if( taskSpace<50) DEBUG_PRINTF(" out of memory3!\r\n");
+    if(taskSpace<50) DEBUG_PRINTF(" out of memory3!\r\n");
     app_task_status_error_handle( &myTask02Handle);
   }
   sumtaskSize+=taskSize;

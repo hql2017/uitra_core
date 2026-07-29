@@ -92,8 +92,6 @@ double kalman_filter_update(KalmanFilter* kf, double measurement) {
 	return maxValue;
 } 
 
-
-
  void DWT_Init(void)
 {
     CoreDebug->DEMCR|=CoreDebug_DEMCR_TRCENA_Msk;
@@ -107,7 +105,8 @@ double kalman_filter_update(KalmanFilter* kf, double measurement) {
     volatile uint32_t ticks=nus*(SystemCoreClock/1000000);//nus需要的节拍数 
     while(tcnt<ticks)
     {
-        tcnt=  DWT->CYCCNT- start;
+		if((DWT->CYCCNT)<start) tcnt= DWT->CYCCNT+4294967296-start; //防止溢出
+        else tcnt=  DWT->CYCCNT- start;
     }                                   
 }
 void delay_ms(volatile uint32_t nms)
