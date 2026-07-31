@@ -435,8 +435,7 @@ extern void app_jdq_rs485_receive_data(void);
   */
 PUTCHAR_PROTOTYPE
 {
-	if (HAL_UART_Transmit(&hlpuart1, (uint8_t *)&ch, 1, 0xFFFF) != HAL_OK)
-	
+	if (HAL_UART_Transmit(&hlpuart1, (uint8_t *)&ch, 1, 0xFFFF) != HAL_OK)	
   {
     Error_Handler();
   }

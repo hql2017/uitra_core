@@ -929,7 +929,7 @@ void laserWorkTask04(void *argument)
   osStatus_t laser_close_sem;
   U_G3200W_CTR_MESSAGE g_ctr_tx_msg;
   osStatus_t gwb_ctr_tx_sta;
-  int32_t e_cali_timeout=0;
+  int32_t e_cali_timeout= 0;
   for(;;)
   {  
     event=osEventFlagsWait(laserEvent02Handle,EVENTS_LASER_PREPARE_OK_ALL_BITS_MASK,osFlagsNoClear,portMAX_DELAY);    
@@ -1061,12 +1061,12 @@ void laserWorkTask04(void *argument)
           osMessageQueuePut(rgbQueue02Handle,&rgbMessage,0,0);
           DEBUG_PRINTF("stop 1064 stop\r\n");          
           sGenSta.laser_param_B456_jt_status = recKeyMessage;
-        } 
+        }         
       }                       
     }     
     else
     {
-      if(recKeyMessage==key_jt_release)  sGenSta.laser_param_B456_jt_status=key_jt_release;      
+      if(recKeyMessage==key_jt_release)  sGenSta.laser_param_B456_jt_status = key_jt_release;      
     } 
     laser_close_sem = osSemaphoreAcquire(laserCloseSem05Handle,5);
     if(laser_close_sem==osOK&&sGenSta.laser_run_B0_pro_hot_status!=0)
