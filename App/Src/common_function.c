@@ -91,6 +91,26 @@ double kalman_filter_update(KalmanFilter* kf, double measurement) {
 	}	
 	return maxValue;
 } 
+/****
+  * @brief 找出最小值
+  * @param dataBuff
+  * @note   
+  * @retval Min value
+  */
+ unsigned  short int match_min(unsigned  short int *dataBuff,unsigned  short int length )
+ {
+	unsigned  short int minValue,i;	
+	if(length<1) return 0;	
+	minValue=65535;	
+	for(i=0;i<length;i++)
+	{		
+		if(minValue>dataBuff[i])
+		{
+			minValue = dataBuff[i];	
+		}			
+	}	
+	return minValue;
+} 
 
  void DWT_Init(void)
 {
@@ -105,7 +125,7 @@ double kalman_filter_update(KalmanFilter* kf, double measurement) {
     volatile uint32_t ticks=nus*(SystemCoreClock/1000000);//nus需要的节拍数 
     while(tcnt<ticks)
     {
-		if((DWT->CYCCNT)<start) tcnt= DWT->CYCCNT+4294967296-start; //防止溢出
+		if((DWT->CYCCNT)<start) tcnt= DWT->CYCCNT+(4294967296-start); //防止溢出
         else tcnt=  DWT->CYCCNT- start;
     }                                   
 }

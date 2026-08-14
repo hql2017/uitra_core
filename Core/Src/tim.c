@@ -29,6 +29,7 @@ void tim_triger_ad(TIM_HandleTypeDef *htim)
   if (HAL_TIMEx_MasterConfigSynchronization(htim, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
+    DEBUG_PRINTF("tim_triger_ad error\r\n");
   }
 }
 

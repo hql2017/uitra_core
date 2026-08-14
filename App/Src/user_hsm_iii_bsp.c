@@ -13,98 +13,98 @@
  osThreadId  laserTaskHandle;
  void hmiTask(void const *argument);
  void laserTask(void const *argument);
-/*½ÓÊÕÊý¾ÝÖ¡Ê¹ÓÃÖÐ¶Ï·½Ê½½ÓÊÕÊý¾ÝÖ¡£¬²¢½âÎöÊý¾ÝÄÚÈÝ¡£ */
+/*ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡Ê¹ï¿½ï¿½ï¿½Ð¶Ï·ï¿½Ê½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¡ï¿½ */
 #define MAX_LWRB_UART_QUEN  256
 static uint8_t lwrb_rx_buff[MAX_LWRB_UART_QUEN];  // 
 static lwrb_t rs232_lwrb;//
 static uint8_t lwrb_len=0;
-static uint8_t RS232_rx_data[8];  // ½ÓÊÕ»º³åÇø
+static uint8_t RS232_rx_data[8];  // ï¿½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½ï¿½ï¿½
 uint32_t foot_Switch_mark = 0;
-Frame_t frame;//·¢ËÍÐ­Òé½á¹¹ÌåÊý¾Ý
+Frame_t frame;//ï¿½ï¿½ï¿½ï¿½Ð­ï¿½ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-uint8_t RS232_tx_data[32] = {0x19,  //[0] Ê¾ÀýÊý¾Ý
-															0xEC,  //[1] Ê¾ÀýÊý¾Ý
-															0x00,  //[2] Ô¤ÁôIO1×´Ì¬
-															0x00,  //[3] Ô¤ÁôIO2×´Ì¬
-															0x00,  //[4] Ê¾ÀýÊý¾Ý
-															0x00,  //[5] Ê¾ÀýÊý¾Ý
-															0x00,  //[6] Ê¾ÀýÊý¾Ý
-															0x00,  //[7] Ê¾ÀýÊý¾Ý
+uint8_t RS232_tx_data[32] = {0x19,  //[0] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0xEC,  //[1] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[2] Ô¤ï¿½ï¿½IO1×´Ì¬
+															0x00,  //[3] Ô¤ï¿½ï¿½IO2×´Ì¬
+															0x00,  //[4] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[5] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[6] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[7] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 															//		
-															0x01,  //[8] Ê¾ÀýÊý¾Ý
-															0x00,  //[9] Ê¾ÀýÊý¾Ý
-															0x00,  //[10] Ê¾ÀýÊý¾Ý
-															0x01,  //[11] Ô¤È¼×´Ì¬0Ê§°Ü£¬1³É¹¦
-															0x00,  //[12] Ê¾ÀýÊý¾Ý
-															0x00,  //[13] Ê¾ÀýÊý¾Ý
-															0x00,  //[14] Ê¾ÀýÊý¾Ý
-															0x00,  //[15] Ê¾ÀýÊý¾Ý
+															0x01,  //[8] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[9] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[10] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x01,  //[11] Ô¤È¼×´Ì¬0Ê§ï¿½Ü£ï¿½1ï¿½É¹ï¿½
+															0x00,  //[12] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[13] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[14] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[15] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 															//	
-															0x00,  //[16] Ê¾ÀýÊý¾Ý
-															0x00,  //[17] Ê¾ÀýÊý¾Ý
-															0x00,  //[18] Ê¾ÀýÊý¾Ý
-															0x00,  //[19] Ê¾ÀýÊý¾Ý
-															0x00,  //[20] Ê¾ÀýÊý¾Ý
-															0x00,  //[21] Ê¾ÀýÊý¾Ý
-															0x00,  //[22] Ê¾ÀýÊý¾Ý
-															0x00,  //[23] Ê¾ÀýÊý¾Ý
+															0x00,  //[16] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[17] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[18] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[19] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[20] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[21] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[22] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[23] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 															//		
-															0x00,  //[24] Ê¾ÀýÊý¾Ý
-															0x00,  //[25] Ê¾ÀýÊý¾Ý
-															0x00,  //[26] Ê¾ÀýÊý¾Ý
-															0x00,  //[27] Ê¾ÀýÊý¾Ý
-															0x00,  //[28] Ê¾ÀýÊý¾Ý
-															0x00,  //[29] Ê¾ÀýÊý¾Ý
-															0x00,  //[30] Ê¾ÀýÊý¾Ý
-															0x00,  //[31] Ê¾ÀýÊý¾Ý
+															0x00,  //[24] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[25] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[26] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[27] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[28] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[29] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[30] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+															0x00,  //[31] Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 															};
-/* A°å·¢ËÍÊý¾Ýµ½B°å,0x11Õý³£ 0x1EÒì³£ */
+/* Aï¿½å·¢ï¿½ï¿½ï¿½ï¿½ï¿½Ýµï¿½Bï¿½ï¿½,0x11ï¿½ï¿½ï¿½ï¿½ 0x1Eï¿½ì³£ */
 
 DEVICE_STATUS               device_status;
 LOCAL_LASER_CONFIG_PARARM   laser_config_param;	
 
-//Ð­ÒéÊý¾Ý
+//Ð­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 void INIT_Fill_Frame(void) {
-    // ÆðÊ¼±êÖ¾ (0x55AA)
-    frame.headerH = 0x55; // ¸ß×Ö½Ú
-    frame.headerL = 0xAA; // µÍ×Ö½Ú
+    // ï¿½ï¿½Ê¼ï¿½ï¿½Ö¾ (0x55AA)
+    frame.headerH = 0x55; // ï¿½ï¿½ï¿½Ö½ï¿½
+    frame.headerL = 0xAA; // ï¿½ï¿½ï¿½Ö½ï¿½
 
-    // Ð­ÒéÀàÐÍºÍÖ¸ÁîÀàÐÍ
-    frame.protocol_type = 0x00; // Ê¾ÀýÖµ
-    frame.cmd_type = 0x01;      // Ê¾ÀýÖµ
+    // Ð­ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    frame.protocol_type = 0x00; // Ê¾ï¿½ï¿½Öµ
+    frame.cmd_type = 0x01;      // Ê¾ï¿½ï¿½Öµ
 
-    // ±£ÁôÊý¾Ý (0x1234)
-    frame.SEQH = 0x00; // ¸ß×Ö½Ú
-    frame.SEQL = 0x00; // µÍ×Ö½Ú
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (0x1234)
+    frame.SEQH = 0x00; // ï¿½ï¿½ï¿½Ö½ï¿½
+    frame.SEQL = 0x00; // ï¿½ï¿½ï¿½Ö½ï¿½
 
-    // Êý¾Ý³¤¶È (0x0020)
-    frame.data_lengthH = 0x00; // ¸ß×Ö½Ú
-    frame.data_lengthL = 0x20; // µÍ×Ö½Ú
+    // ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½ (0x0020)
+    frame.data_lengthH = 0x00; // ï¿½ï¿½ï¿½Ö½ï¿½
+    frame.data_lengthL = 0x20; // ï¿½ï¿½ï¿½Ö½ï¿½
 
-    // Êý¾ÝÄÚÈÝ
-    memset(frame.data, 0,32);// sizeof(frame.data)); // ³õÊ¼»¯Îª 0
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    memset(frame.data, 0,32);// sizeof(frame.data)); // ï¿½ï¿½Ê¼ï¿½ï¿½Îª 0
 	
-		//Ð£ÑéºÍ
+		//Ð£ï¿½ï¿½ï¿½
 		frame.checksum = Calculate_Checksum(&frame); //0x00;
 }
 
-// Ìî³ä data[32] Êý¾Ý
+// ï¿½ï¿½ï¿½ data[32] ï¿½ï¿½ï¿½ï¿½
 void Fill_Data(Frame_t *myframe, uint8_t *data) {
-    // ½«Êý¾Ý¿½±´µ½½á¹¹ÌåÖÐ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½
     memcpy(myframe->data, data, 32);
 
-    // ¸üÐÂÐ£ÑéºÍ
+    // ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
     myframe->checksum = Calculate_Checksum(myframe);
 }
 
-/*¼ÆËãÐ£ÑéºÍ*/
+/*ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½*/
 uint8_t Calculate_Checksum(Frame_t *userframe) {
     uint8_t checksum = 0;
     uint8_t *data = (uint8_t*)userframe;
-    for (size_t i = 0; i < sizeof(Frame_t) - 1; i++) { // ²»°üº¬Ð£ÑéºÍ×Ö¶Î
+    for (size_t i = 0; i < sizeof(Frame_t) - 1; i++) { // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ï¿½Ö¶ï¿½
         checksum += data[i];
     }
-    return checksum; // ·µ»ØÐ£ÑéºÍµÄ·´Âë
+    return checksum; // ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ÍµÄ·ï¿½ï¿½ï¿½
 }
 
 void send_data_to_TFT(uint8_t *data,uint8_t len)
@@ -112,69 +112,69 @@ void send_data_to_TFT(uint8_t *data,uint8_t len)
 		Frame_t sFram;
 		sFram.data_lengthH=0x55;
 		sFram.data_lengthL=0xAA;
-		sFram.protocol_type=0x00;//ÉÏÐÐÖ¸Áî
-		sFram.cmd_type=0x01;//ÉÏÐÐÖ¸Áî
+		sFram.protocol_type=0x00;//ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+		sFram.cmd_type=0x01;//ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
 		sFram.SEQH=0x00;
 		sFram.SEQL=0x00;
 		sFram.data_lengthH=len/256;
 		sFram.data_lengthL=len%256;
 	//*(sFram.data)=*data;
 	//Fill_Data(&frame, data);
-	//Ìî³ä±¾µØÊý¾Ý		
-		if(len>32) len=32;//¹Ì¶¨32Î»
+	//ï¿½ï¿½ä±¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½		
+		if(len>32) len=32;//ï¿½Ì¶ï¿½32Î»
 		memcpy(sFram.data,data,len);
 		sFram.checksum=Calculate_Checksum(&sFram);	
-		HAL_UART_Transmit(&hlpuart1,(uint8_t *)&sFram,sizeof(Frame_t),1000);	//·¢ËÍ½ÓÊÕµ½µÄÊý¾Ý			
+		HAL_UART_Transmit(&hlpuart1,(uint8_t *)&sFram,sizeof(Frame_t),1000);	//ï¿½ï¿½ï¿½Í½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½			
 }
 
-// ¼ÆËãÐ£ÑéºÍ
+// ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½
 uint8_t Calculate_Checksum_Rx(uint8_t *data, size_t length) {
     uint8_t checksum = 0;
     for (size_t i = 0; i < length; i++) {
         checksum += data[i];
     }
-    return checksum; // ·µ»ØÐ£ÑéºÍµÄ·´Âë
+    return checksum; // ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ÍµÄ·ï¿½ï¿½ï¿½
 }
 
-// ÅÐ¶ÏÖ¡Í·Êý¾ÝÊÇ·ñÎª 0x55AA0001
+// ï¿½Ð¶ï¿½Ö¡Í·ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½Îª 0x55AA0001
 bool Check_Header(uint8_t *data) {
     uint16_t header = (data[0] << 8) | data[1];
-    return (header == 0x55AA); // ÅÐ¶ÏÊÇ·ñµÈÓÚ 0x55AA
+    return (header == 0x55AA); // ï¿½Ð¶ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ 0x55AA
 }
-// ÅÐ¶ÏÐ£ÑéºÍÊÇ·ñÒ»ÖÂ
+// ï¿½Ð¶ï¿½Ð£ï¿½ï¿½ï¿½ï¿½Ç·ï¿½Ò»ï¿½ï¿½
 bool Verify_Checksum(uint8_t *data, size_t length) {
-    uint8_t calculated_checksum = Calculate_Checksum_Rx(data, length - 1); // ÅÅ³ýÐ£ÑéºÍ×Ö¶Î
-    return (calculated_checksum == data[length - 1]); // ±È½Ï¼ÆËãÖµÓë½ÓÊÕÖµ
+    uint8_t calculated_checksum = Calculate_Checksum_Rx(data, length - 1); // ï¿½Å³ï¿½Ð£ï¿½ï¿½ï¿½ï¿½Ö¶ï¿½
+    return (calculated_checksum == data[length - 1]); // ï¿½È½Ï¼ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½Öµ
 }
-//¼¤¹â¹¤×÷×´Ì¬´¦Àí
+//ï¿½ï¿½ï¿½â¹¤ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½ï¿½
 void laser_status_handle(void)
 {		
-	//laser_menu_change_flag=1;//×´Ì¬±ä¸ü±êÖ¾
+	//laser_menu_change_flag=1;//×´Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½Ö¾
 }
 
-//Êý¾Ý½âÎö,¼ÌµçÆ÷
+//ï¿½ï¿½ï¿½Ý½ï¿½ï¿½ï¿½,ï¿½Ìµï¿½ï¿½ï¿½
 void reg0_1_relay_handle(uint16_t info)
 {	
 	uint8_t temp[8]={0};
-	//?¨°??¡À???????
-	if(info==0x02)//???¨²
+	//?ï¿½ï¿½??ï¿½ï¿½???????
+	if(info==0x02)//???ï¿½ï¿½
 	{	
-		device_status.relay_stauts=0x0002;//?¨¹??¡Á???		
+		device_status.relay_stauts=0x0002;//?ï¿½ï¿½??ï¿½ï¿½???		
 	}
-	else if(info==0x00)//???¨²
-	{//??¡À??????¡Â
-		device_status.relay_stauts=0x0000;//?¨¹??¡Á???
+	else if(info==0x00)//???ï¿½ï¿½
+	{//??ï¿½ï¿½??????ï¿½ï¿½
+		device_status.relay_stauts=0x0000;//?ï¿½ï¿½??ï¿½ï¿½???
 	}	
 	else
 	{
-		device_status.relay_stauts=info;//?¨¹??¡Á???
+		device_status.relay_stauts=info;//?ï¿½ï¿½??ï¿½ï¿½???
 	}	
 //	if((laser_config_param.relay_control_info&0x0001)!=flag_rgb)		
-	temp[0]=(info&0x01);//??????????,?????¡§1KHz
+	temp[0]=(info&0x01);//??????????,?????ï¿½ï¿½1KHz
 	//CAN_APP_SEND_DATA(CAN_SET_MCU2_GX_LED_MODE,temp,CAN_MCU2_STATUS_ID);
-  //return ack£»		
+  //return ackï¿½ï¿½		
 }
-//Êý¾Ý½âÎö,¼ÌµçÆ÷
+//ï¿½ï¿½ï¿½Ý½ï¿½ï¿½ï¿½,ï¿½Ìµï¿½ï¿½ï¿½
 void reg2_lowVoltage_handle(uint8_t lowVoltageInfo)
 {	
 	uint8_t i;
@@ -186,16 +186,16 @@ void reg2_lowVoltage_handle(uint8_t lowVoltageInfo)
 	}	
 }
 
-//ÊÇ·ñÇå³ýÂö³å¼ÆÊý
+//ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 void reg3_pulse_handle(uint8_t pulseCount)
 {
-//	//´ò¿ª¸ßÑ¹µçÔ´ºÍ·çÉÈ½Ó´¥Æ÷,ºÍÐ­Òé²»Í¬
+//	//ï¿½ò¿ª¸ï¿½Ñ¹ï¿½ï¿½Ô´ï¿½Í·ï¿½ï¿½È½Ó´ï¿½ï¿½ï¿½,ï¿½ï¿½Ð­ï¿½é²»Í¬
 //    if(data[3] == 0x01)
 //		{			
-//			HV_POWER_ON;//´ò¿ª¸ßÑ¹µçÔ´ºÍ·çÉÈ½Ó´¥Æ÷
+//			HV_POWER_ON;//ï¿½ò¿ª¸ï¿½Ñ¹ï¿½ï¿½Ô´ï¿½Í·ï¿½ï¿½È½Ó´ï¿½ï¿½ï¿½
 //		}
 //		else
-//			HV_POWER_OFF;//´ò¿ª¸ßÑ¹µçÔ´ºÍ·çÉÈ½Ó´¥Æ÷
+//			HV_POWER_OFF;//ï¿½ò¿ª¸ï¿½Ñ¹ï¿½ï¿½Ô´ï¿½Í·ï¿½ï¿½È½Ó´ï¿½ï¿½ï¿½
 	if(pulseCount&0x01)//1
 	{		  
 	}
@@ -203,33 +203,33 @@ void reg3_pulse_handle(uint8_t pulseCount)
 	{
 	}	
 }
- //reg4,Ð­ÒéÀïÃæÃ»ÓÃ£¬ÐèÒªµ÷ÊÔ
-//reg5¡ª¡ª8Èä¶¯±ÃÆµÂÊ
-//reg9¡ª¡ª12qmcsÊä³öÆµÂÊ
+ //reg4,Ð­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½Ã£ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½
+//reg5ï¿½ï¿½ï¿½ï¿½8ï¿½ä¶¯ï¿½ï¿½Æµï¿½ï¿½
+//reg9ï¿½ï¿½ï¿½ï¿½12qmcsï¿½ï¿½ï¿½Æµï¿½ï¿½
 void reg5_12_SMCS_QMSC_frequency_handle(uint32_t SMCS_freq,uint32_t QMSC_freq)
 {
-	//¸Ä±äÈä¶¯±ÃÆµÂÊ
+	//ï¿½Ä±ï¿½ï¿½ä¶¯ï¿½ï¿½Æµï¿½ï¿½
 }
 
 
-//reg13¡ª¡ª16,NL ,NHµçÑ¹
+//reg13ï¿½ï¿½ï¿½ï¿½16,NL ,NHï¿½ï¿½Ñ¹
 void reg13_16_NL_NM_voltage_handle(uint16_t NL,uint16_t NM)
 {
 
 }
-//¼¤¹âÆµÂÊ
+//ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½
 void reg17_18_JG_frequency_handle(uint16_t JG_freq)
 {
 	
 }
 
-//³äµçÂö³å£¬Êä³öÂö³å
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½å£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 void reg19_22_CHG_START_pulse_handle(uint16_t CHG_pulse,uint16_t START_pulse)
 {
 	
 }
 
-//³äµçÂö³å£¬Êä³öÂö³å
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½å£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 void reg23_TEC_temprature_set_handle(uint8_t temprature)
 {
 		//CAN_APP_SEND_DATA(CAN_MCU2_DUPLEX_TEC,(uint8_t *)&temprature,CAN_MCU2_STATUS_ID);	
@@ -242,10 +242,10 @@ void Parse_hmi_handle(uint8_t *data, size_t length)
 	laser_config_param.laser_type_flag=data[2];
 	reg2_lowVoltage_handle(laser_config_param.laser_type_flag);	
 	laser_config_param.soft_control_mm=data[3];
-	device_status.soft_stauts=0x02;	//?????¨¦?¡è?¡§??
-//if(laser_config_param.relay_control_info==0x02) device_status.soft_stauts=0x02;	//?????¨¦?¡è?¡§??
-//if(laser_config_param.relay_control_info==0x00)  device_status.soft_stauts=0x00;//?????¨ª??
-//data[4]ÔÝÊ±Ã»ÓÃ
+	device_status.soft_stauts=0x02;	//?????ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½??
+//if(laser_config_param.relay_control_info==0x02) device_status.soft_stauts=0x02;	//?????ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½??
+//if(laser_config_param.relay_control_info==0x00)  device_status.soft_stauts=0x00;//?????ï¿½ï¿½??
+//data[4]ï¿½ï¿½Ê±Ã»ï¿½ï¿½
 	laser_config_param.RDB_freq=(data[5]<<24)|(data[6]<<16)|(data[7]<<8)|(data[8]);
 	device_status.H_coolant_status=0x01;//test	
 	laser_config_param.QB_freq=(data[9]<<24)|(data[10]<<16)|(data[11]<<8)|(data[12]);
@@ -267,7 +267,7 @@ void Parse_hmi_handle(uint8_t *data, size_t length)
 	laser_status_handle();			
 //	printf("info%d\n",device_status.soft_stauts);
 }
-// ÆÁÄ»Êý¾Ý½âÎöÊý¾Ý
+// ï¿½ï¿½Ä»ï¿½ï¿½ï¿½Ý½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
 uint32_t Parse_Data(uint8_t *data, uint32_t length) 
 {	
@@ -306,11 +306,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {			
 	if(UartHandle->Instance==hlpuart1.Instance)
 	{		
-		lwrb_len=lwrb_write(&rs232_lwrb, RS232_rx_data, 1);//·ÅÈë»º´æ				
-		if(HAL_UART_Receive_IT(&hlpuart1, RS232_rx_data,1)!=HAL_OK)//sizeof(Frame_t))!=HAL_OK)
+		lwrb_len=lwrb_write(&rs232_lwrb, RS232_rx_data, 1);			
+		if(HAL_UART_Receive_IT(&hlpuart1, RS232_rx_data,1)!=HAL_OK)
 		{
 			/*Transfer error in reception process */
-			Error_Handler();			
+			Error_Handler();	
+			DEBUG_PRINTF("LPUART1 HAL_UART_Receive_IT error\r\n");		
 		}			
 	}		
 }		
@@ -374,7 +375,7 @@ void laserTask(void const *argument)
 		osDelay(1);
 	}
 }
-/*ÖØ¶¨Ïòpritf();*/
+/*ï¿½Ø¶ï¿½ï¿½ï¿½pritf();*/
 /* support printf function, usemicrolib is unnecessary */
 #if (__ARMCC_VERSION > 6000000)
   __asm (".global __use_no_semihosting\n\t");

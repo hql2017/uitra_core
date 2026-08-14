@@ -223,7 +223,6 @@ ErrorStatus FDCAN3_Send_Msg(uint8_t* msg,uint16_t targetID)
 void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 {	
   unsigned char buff[8];
-
   if((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) != 0)
   {	 
     /* Retrieve Rx messages from RX FIFO0 */    
@@ -232,8 +231,7 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
       Error_Handler();
       DEBUG_PRINTF("HAL_FDCAN_GetRxMessage---------------EEROR\n");
     }
-  }
-	 
+  }	 
 }
 /***************************************************************************//**
  * @brief 发送数据包
