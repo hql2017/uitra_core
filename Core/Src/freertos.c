@@ -595,7 +595,7 @@ void StartDefaultTask(void *argument)
     DEBUG_PRINTF("load enciroment airpressure system...\r\n");
     GZP6816D_init();    
     GZP6816D_start_sampling(); 	
-    timeout=0;
+    timeout = 0;
     do
     { 
       HAL_Delay(300);
@@ -1752,6 +1752,11 @@ void jdqHeart100msCallback04(void *argument)
   {
     app_fan_feed_count(1);
   }  
+  if(GPIO_Pin==LASER_1064_COUNT_in_Pin)
+  {
+    //u_sys_param.sys_config_param.laser_pulse_count++;
+    pulse_adc_start(MAX_AD2_ENERGE_BUFF_LENGTH);
+  } 
   #ifdef ONE_WIRE_BUS_JT_SLAVE 
   if(GPIO_Pin==FOOT_SWITCH_IN_Pin)
   {  

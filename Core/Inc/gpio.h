@@ -66,6 +66,7 @@ extern app_key_message  app_key_value_analysis(unsigned  int keyValue);
 extern  void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTimeMs);
 extern void app_intake_valve_air_solenoid(FunctionalState flag);
 extern void app_deflate_air_solenoid(FunctionalState flag);
+extern void app_opa_gain_control_switch( FunctionalState flag);
 extern ErrorStatus app_remote_key_sta(void);
 /* USER CODE END Prototypes */
 

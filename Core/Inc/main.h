@@ -112,6 +112,8 @@ void Error_Handler(void);
 #define auxiliary_bulb_pwm_GPIO_Port GPIOE
 #define TREATMENT_WATER_DEPTH_in_Pin GPIO_PIN_10
 #define TREATMENT_WATER_DEPTH_in_GPIO_Port GPIOE
+#define LASER_1064_COUNT_in_Pin GPIO_PIN_11
+#define LASER_1064_COUNT_in_GPIO_Port GPIOE
 #define water_cycle_ok_Pin GPIO_PIN_13
 #define water_cycle_ok_GPIO_Port GPIOE
 #define LCD_12V_ON_Pin GPIO_PIN_14
@@ -142,8 +144,8 @@ void Error_Handler(void);
 #define TMC2226_index_in_GPIO_Port GPIOD
 #define TMC2226_ERROR_out_Pin GPIO_PIN_14
 #define TMC2226_ERROR_out_GPIO_Port GPIOD
-#define FOOT_SWITCH_IN_Pin GPIO_PIN_15
-#define FOOT_SWITCH_IN_GPIO_Port GPIOD
+#define OPA_GAIN_CONTROL_out_Pin GPIO_PIN_15
+#define OPA_GAIN_CONTROL_out_GPIO_Port GPIOD
 #define KEY_PWR_SWITCH_Pin GPIO_PIN_6
 #define KEY_PWR_SWITCH_GPIO_Port GPIOC
 #define HV_ONE_PULSE_out_Pin GPIO_PIN_7
@@ -158,8 +160,8 @@ void Error_Handler(void);
 #define TMC_TCD_LPUART1_TX_GPIO_Port GPIOA
 #define TMC_TCD_LPUART1_RX_Pin GPIO_PIN_10
 #define TMC_TCD_LPUART1_RX_GPIO_Port GPIOA
-#define LASER1064_COUNT_in_Pin GPIO_PIN_15
-#define LASER1064_COUNT_in_GPIO_Port GPIOA
+#define FOOT_SWITCH_IN_Pin GPIO_PIN_15
+#define FOOT_SWITCH_IN_GPIO_Port GPIOA
 #define S31FL3193_IIC5_SDA_Pin GPIO_PIN_10
 #define S31FL3193_IIC5_SDA_GPIO_Port GPIOC
 #define S31FL3193_IIC5_SCL_Pin GPIO_PIN_11

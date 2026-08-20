@@ -364,8 +364,6 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
   *         you can add your own implementation.
   * @retval None
   */
- extern void app_mer_receive_data_handle(void);
-
 extern void app_jdq_rs485_receive_data(void);
  extern void app_ge2117_receive_data_handle(void);
  void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
@@ -375,7 +373,8 @@ extern void app_jdq_rs485_receive_data(void);
       if(HAL_UART_Receive_IT(&hlpuart1, &lp_rec_byte,1)!=HAL_OK)
       {
         /*Transfer error in reception process */
-        Error_Handler();			
+        Error_Handler();	
+        DEBUG_PRINTF("LPUART1 HAL_UART_Receive_IT error\r\n");		
       }			
    }	
  if(UartHandle->Instance==huart5.Instance)	
@@ -435,10 +434,9 @@ extern void app_jdq_rs485_receive_data(void);
   */
 PUTCHAR_PROTOTYPE
 {
-	if (HAL_UART_Transmit(&hlpuart1, (uint8_t *)&ch, 1, 0xFFFF) != HAL_OK)
-	
+	if (HAL_UART_Transmit(&hlpuart1, (uint8_t *)&ch, 1,100)!=HAL_OK)// 0xFFFF) != HAL_OK)	
   {
-    Error_Handler();
+   // Error_Handler();    
   }
 	return ch;
 }

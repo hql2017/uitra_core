@@ -65,8 +65,8 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOE, LCD_12V_ON_Pin|TMC2226_EN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, RS485_DIR_out_Pin|TMC2226_DIR_out_Pin|PTC_EN_Pin|JDQ_STAND_Pin
-                          |JDQ_READY_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, RS485_DIR_out_Pin|TMC2226_DIR_out_Pin|OPA_GAIN_CONTROL_out_Pin|PTC_EN_Pin
+                          |JDQ_STAND_Pin|JDQ_READY_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(H_AIR_PUMP_PWR_EN_GPIO_Port, H_AIR_PUMP_PWR_EN_Pin, GPIO_PIN_SET);
@@ -114,10 +114,16 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : RS485_DIR_out_Pin TMC2226_DIR_out_Pin H_AIR_PUMP_PWR_EN_Pin PTC_EN_Pin
-                           JDQ_STAND_Pin JDQ_READY_Pin */
-  GPIO_InitStruct.Pin = RS485_DIR_out_Pin|TMC2226_DIR_out_Pin|H_AIR_PUMP_PWR_EN_Pin|PTC_EN_Pin
-                          |JDQ_STAND_Pin|JDQ_READY_Pin;
+  /*Configure GPIO pin : LASER_1064_COUNT_in_Pin */
+  GPIO_InitStruct.Pin = LASER_1064_COUNT_in_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(LASER_1064_COUNT_in_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RS485_DIR_out_Pin TMC2226_DIR_out_Pin OPA_GAIN_CONTROL_out_Pin H_AIR_PUMP_PWR_EN_Pin
+                           PTC_EN_Pin JDQ_STAND_Pin JDQ_READY_Pin */
+  GPIO_InitStruct.Pin = RS485_DIR_out_Pin|TMC2226_DIR_out_Pin|OPA_GAIN_CONTROL_out_Pin|H_AIR_PUMP_PWR_EN_Pin
+                          |PTC_EN_Pin|JDQ_STAND_Pin|JDQ_READY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -158,7 +164,7 @@ void MX_GPIO_Init(void)
   /************************************************************************//**
   * @brief 气泵开关
   * @param  flag-使能信号
-  * @note   高电平有效
+  * @note   低电平有效
   * @retval None
   ****************************************************************************/
  #include "tim.h"
@@ -167,12 +173,12 @@ void app_air_pump_switch( FunctionalState flag)
   if(flag==DISABLE)
   {  
     HAL_TIM_PWM_Stop(&htim3,TIM_CHANNEL_4);
-    HAL_GPIO_WritePin(H_AIR_PUMP_PWR_EN_GPIO_Port,H_AIR_PUMP_PWR_EN_Pin,GPIO_PIN_RESET);//电源   
+    HAL_GPIO_WritePin(H_AIR_PUMP_PWR_EN_GPIO_Port,H_AIR_PUMP_PWR_EN_Pin,GPIO_PIN_SET);  
   } 
   else
   {
     HAL_TIM_PWM_Start(&htim3,TIM_CHANNEL_4);
-    HAL_GPIO_WritePin(H_AIR_PUMP_PWR_EN_GPIO_Port,H_AIR_PUMP_PWR_EN_Pin,GPIO_PIN_SET);//电源
+    HAL_GPIO_WritePin(H_AIR_PUMP_PWR_EN_GPIO_Port,H_AIR_PUMP_PWR_EN_Pin,GPIO_PIN_RESET);
   }    
 }
   /************************************************************************//**
@@ -207,6 +213,17 @@ void app_air_pump_switch( FunctionalState flag)
  {
    if(flag==DISABLE)  HAL_GPIO_WritePin(LCD_12V_ON_GPIO_Port,LCD_12V_ON_Pin,GPIO_PIN_SET);
    else HAL_GPIO_WritePin(LCD_12V_ON_GPIO_Port,LCD_12V_ON_Pin,GPIO_PIN_RESET);
+ }
+   /************************************************************************//**
+  * @brief  光脉冲信号增益
+  * @param  flag-使能信号         
+  * @note   ENABLE：高倍数；DISABLE:低倍数
+  * @retval None
+  *****************************************************************************/
+ void app_opa_gain_control_switch( FunctionalState flag)
+ {
+   if(flag==DISABLE)  HAL_GPIO_WritePin(OPA_GAIN_CONTROL_out_GPIO_Port,OPA_GAIN_CONTROL_out_Pin,GPIO_PIN_RESET);
+   else HAL_GPIO_WritePin(OPA_GAIN_CONTROL_out_GPIO_Port,OPA_GAIN_CONTROL_out_Pin,GPIO_PIN_SET);
  }
   /************************************************************************//**
   * @brief 治疗水加热开关 treatment water 
