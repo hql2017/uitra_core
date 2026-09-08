@@ -12,6 +12,14 @@
  #define RGB_G_STANDBY            1//ll
  #define RGB_LASER_PREPARE_OK      2//激光准备OK
  #define RGB_LASER_WORK_STATUS     3//激光工作指示灯
+
+
+ #define RGB_COLOR_VALUE_RED      0xFF0000//red
+ #define RGB_COLOR_VALUE_GREEN     0x00FF00//green
+ #define RGB_COLOR_VALUE_BLUE    0x0000FF//blue
+ #define RGB_COLOR_VALUE_ORANGE    0xFF6400//orange
+ #define RGB_COLOR_VALUE_PURPLE    0xC800FF//purple
+
  #ifndef  FL3236_USED//12路
  #define  FL3236_USED 
  #define Addr_GND_GND   0x78
@@ -40,7 +48,7 @@
  void is_12_all_gLED(void);
  void is_12_all_rLED(void);
  void is_12_all_bLED(void);
- void is_12_all_rgb(unsigned short int rgbValue);//混合色
+ void is_12_all_rgb(unsigned  int rgbValue);//混合色
  uint8_t   One_breath(void);
  #endif
  void app_is3_rgb_config(unsigned char reg,unsigned char *data);

@@ -26,12 +26,11 @@
 #define AD_VREF_VOLTAGE  3000
 
 #define MAX_AD_BUFF_LENGTH  160//32*5
-#define MAX_AD_BUFF_BYTES_LENGTH  320//MAX_AD_BUFF_LENGTH*2 //字节长度
+#define MAX_AD_BUFF_BYTES_LENGTH 320//MAX_AD_BUFF_LENGTH*2 //字节长度
 /* USER CODE END 0 */
 
 ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
-ADC_HandleTypeDef hadc3;
 DMA_HandleTypeDef hdma_adc1;
 DMA_HandleTypeDef hdma_adc2;
 
@@ -83,7 +82,7 @@ void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_18;
+  sConfig.Channel = ADC_CHANNEL_8;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_64CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
@@ -97,7 +96,7 @@ void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_17;
+  sConfig.Channel = ADC_CHANNEL_14;
   sConfig.Rank = ADC_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -115,7 +114,7 @@ void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_14;
+  sConfig.Channel = ADC_CHANNEL_17;
   sConfig.Rank = ADC_REGULAR_RANK_4;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -124,7 +123,7 @@ void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_8;
+  sConfig.Channel = ADC_CHANNEL_18;
   sConfig.Rank = ADC_REGULAR_RANK_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -189,64 +188,6 @@ void MX_ADC2_Init(void)
   /* USER CODE BEGIN ADC2_Init 2 */
   HAL_ADCEx_Calibration_Start(&hadc2,ADC_CALIB_OFFSET,ADC_SINGLE_ENDED);
   /* USER CODE END ADC2_Init 2 */
-
-}
-/* ADC3 init function */
-void MX_ADC3_Init(void)
-{
-
-  /* USER CODE BEGIN ADC3_Init 0 */
-
-  /* USER CODE END ADC3_Init 0 */
-
-  ADC_ChannelConfTypeDef sConfig = {0};
-
-  /* USER CODE BEGIN ADC3_Init 1 */
-
-  /* USER CODE END ADC3_Init 1 */
-
-  /** Common config
-  */
-  hadc3.Instance = ADC3;
-  hadc3.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV4;
-  hadc3.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc3.Init.DataAlign = ADC3_DATAALIGN_RIGHT;
-  hadc3.Init.ScanConvMode = ADC_SCAN_DISABLE;
-  hadc3.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-  hadc3.Init.LowPowerAutoWait = DISABLE;
-  hadc3.Init.ContinuousConvMode = DISABLE;
-  hadc3.Init.NbrOfConversion = 1;
-  hadc3.Init.DiscontinuousConvMode = DISABLE;
-  hadc3.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc3.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc3.Init.DMAContinuousRequests = DISABLE;
-  hadc3.Init.SamplingMode = ADC_SAMPLING_MODE_NORMAL;
-  hadc3.Init.ConversionDataManagement = ADC_CONVERSIONDATA_DR;
-  hadc3.Init.Overrun = ADC_OVR_DATA_PRESERVED;
-  hadc3.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
-  hadc3.Init.OversamplingMode = DISABLE;
-  hadc3.Init.Oversampling.Ratio = ADC3_OVERSAMPLING_RATIO_2;
-  if (HAL_ADC_Init(&hadc3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC3_SAMPLETIME_640CYCLES_5;
-  sConfig.SingleDiff = ADC_SINGLE_ENDED;
-  sConfig.OffsetNumber = ADC_OFFSET_NONE;
-  sConfig.Offset = 0;
-  sConfig.OffsetSign = ADC3_OFFSET_SIGN_NEGATIVE;
-  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC3_Init 2 */
-  HAL_ADCEx_Calibration_Start(&hadc3,ADC_CALIB_OFFSET,ADC_SINGLE_ENDED);
-  /* USER CODE END ADC3_Init 2 */
 
 }
 
@@ -364,17 +305,6 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
 
   /* USER CODE END ADC2_MspInit 1 */
   }
-  else if(adcHandle->Instance==ADC3)
-  {
-  /* USER CODE BEGIN ADC3_MspInit 0 */
-
-  /* USER CODE END ADC3_MspInit 0 */
-    /* ADC3 clock enable */
-    __HAL_RCC_ADC3_CLK_ENABLE();
-  /* USER CODE BEGIN ADC3_MspInit 1 */
-
-  /* USER CODE END ADC3_MspInit 1 */
-  }
 }
 
 void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
@@ -450,17 +380,6 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
 
   /* USER CODE END ADC2_MspDeInit 1 */
   }
-  else if(adcHandle->Instance==ADC3)
-  {
-  /* USER CODE BEGIN ADC3_MspDeInit 0 */
-
-  /* USER CODE END ADC3_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_ADC3_CLK_DISABLE();
-  /* USER CODE BEGIN ADC3_MspDeInit 1 */
-
-  /* USER CODE END ADC3_MspDeInit 1 */
-  }
 }
 
 /* USER CODE BEGIN 1 */
@@ -485,7 +404,7 @@ void app_start_multi_channel_adc(void)
 	tim_triger_ad(&htim6);//low power 
   HAL_ADC_Start_DMA(&hadc1,(unsigned int*)adBuff,MAX_AD_BUFF_LENGTH);  //5*32   
   kalman_filter_init(&kalmEnergeAd, 0, 0.1);  
-  HAL_ADC_Start(&hadc3); 
+ // HAL_ADC_Start(&hadc3); 
 }
 /**
   * @brief pulse_adc_start
@@ -532,7 +451,7 @@ void pulse_adc_start(unsigned char Len)
 void filter_ad1(void)
 {
   long unsigned int sum[5]={0};  	
-	SCB_InvalidateDCache_by_Addr(adBuff, MAX_AD_BUFF_BYTES_LENGTH); 
+	SCB_InvalidateDCache_by_Addr((void*)adBuff, MAX_AD_BUFF_BYTES_LENGTH); 
   for(unsigned int i=0;i<32;i++)
   {   
     sum[0]+=adBuff[i*5];
@@ -740,11 +659,14 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
     //DEBUG_PRINTF("air_pressure=%.2f v=%dmV ad=%x\r\n", *vBuff,temp,advalue[AD1_AIR_PRESSER_INDEX]);
   }  
   else if(adChannel==AD1_WATER_PRESSER_INDEX)
-  {//相对气压kPa        
+  {     
     temp=((((advalue[AD1_WATER_PRESSER_INDEX]-D_A_MIN)*AD_VREF_VOLTAGE)>>16) +22);
-    *vBuff=temp*0.1654131+P_A_MIN;//0.150723+P_A_MIN;//(441/3000);//water pressure  ,dio
+    //*vBuff=temp*0.1654131+P_A_MIN;//0.150723+P_A_MIN;//(441/3000);//water pressure  ,dio
+     //*vBuff=(temp*0.1654131+P_A_MIN)/2.20;///water pressure  ,增益2.20
+     *vBuff=temp*0.073052+P_A_MIN*0.445;///water pressure  ,增益2.20
     //DEBUG_PRINTF("air_pressure=%.2f v=%dmV ad=%x\r\n", *vBuff,temp,advalue[AD1_AIR_PRESSER_INDEX]);
   } 
+	/*
   else if(adChannel==AD3_MCU_TEMPRATURE_INDEX)
   {//cpu 温度   12bit 0~4095      
     #if 1
@@ -767,5 +689,6 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
     *vBuff = ADC3_CalculateTemperature(ad3value);   
     HAL_ADC_Start(&hadc3);     
   }    
+	*/
 }
 /* USER CODE END 1 */

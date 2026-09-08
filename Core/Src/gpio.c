@@ -53,7 +53,7 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, ADS1118_CS_out_Pin|RF24_SDN_out_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOE, ADS1118_CS_out_Pin|RF24_SDN_out_Pin|PTC_EN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, PWR_SYS_ON_Pin|EEROM_W_EN_out_Pin|S31FL3193_SDB_out_Pin, GPIO_PIN_SET);
@@ -62,20 +62,20 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, MCU_SYS_health_LED_Pin|RF24_SP6_CS_out_Pin|HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, LCD_12V_ON_Pin|TMC2226_EN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(LCD_12V_ON_GPIO_Port, LCD_12V_ON_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, RS485_DIR_out_Pin|TMC2226_DIR_out_Pin|OPA_GAIN_CONTROL_out_Pin|PTC_EN_Pin
-                          |JDQ_STAND_Pin|JDQ_READY_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, RS485_DIR_out_Pin|TMC2226_DIR_out_Pin|OPA_GAIN_CONTROL_out_Pin|JDQ_STAND_Pin
+                          |JDQ_READY_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(H_AIR_PUMP_PWR_EN_GPIO_Port, H_AIR_PUMP_PWR_EN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOD, H_AIR_PUMP_PWR_EN_Pin|TMC2226_EN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, DAC_LD_Pin|DAC_CS_Pin|circulating_water_pump_EN_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : ADS1118_CS_out_Pin RF24_SDN_out_Pin LCD_12V_ON_Pin TMC2226_EN_Pin */
-  GPIO_InitStruct.Pin = ADS1118_CS_out_Pin|RF24_SDN_out_Pin|LCD_12V_ON_Pin|TMC2226_EN_Pin;
+  /*Configure GPIO pins : ADS1118_CS_out_Pin RF24_SDN_out_Pin LCD_12V_ON_Pin PTC_EN_Pin */
+  GPIO_InitStruct.Pin = ADS1118_CS_out_Pin|RF24_SDN_out_Pin|LCD_12V_ON_Pin|PTC_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -121,18 +121,18 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(LASER_1064_COUNT_in_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : RS485_DIR_out_Pin TMC2226_DIR_out_Pin OPA_GAIN_CONTROL_out_Pin H_AIR_PUMP_PWR_EN_Pin
-                           PTC_EN_Pin JDQ_STAND_Pin JDQ_READY_Pin */
+                           TMC2226_EN_Pin JDQ_STAND_Pin JDQ_READY_Pin */
   GPIO_InitStruct.Pin = RS485_DIR_out_Pin|TMC2226_DIR_out_Pin|OPA_GAIN_CONTROL_out_Pin|H_AIR_PUMP_PWR_EN_Pin
-                          |PTC_EN_Pin|JDQ_STAND_Pin|JDQ_READY_Pin;
+                          |TMC2226_EN_Pin|JDQ_STAND_Pin|JDQ_READY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : circulating_water_pump_status_in_Pin RF24_IRQ_in_Pin TMC2226_index_in_Pin TMC2226_ERROR_out_Pin
-                           Hyperbaria_OFF_Signal_Pin EMERGENCY_LASER_STOP_STATUS_in_Pin treatment_water_high_pressure_off_status_in_Pin */
-  GPIO_InitStruct.Pin = circulating_water_pump_status_in_Pin|RF24_IRQ_in_Pin|TMC2226_index_in_Pin|TMC2226_ERROR_out_Pin
-                          |Hyperbaria_OFF_Signal_Pin|EMERGENCY_LASER_STOP_STATUS_in_Pin|treatment_water_high_pressure_off_status_in_Pin;
+  /*Configure GPIO pins : circulating_water_pump_status_in_Pin cool_water_ready_ok_Pin RF24_IRQ_in_Pin TMC2226_index_in_Pin
+                           TMC2226_ERROR_out_Pin Hyperbaria_OFF_Signal_Pin EMERGENCY_LASER_STOP_STATUS_in_Pin treatment_water_high_pressure_off_status_in_Pin */
+  GPIO_InitStruct.Pin = circulating_water_pump_status_in_Pin|cool_water_ready_ok_Pin|RF24_IRQ_in_Pin|TMC2226_index_in_Pin
+                          |TMC2226_ERROR_out_Pin|Hyperbaria_OFF_Signal_Pin|EMERGENCY_LASER_STOP_STATUS_in_Pin|treatment_water_high_pressure_off_status_in_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
@@ -226,7 +226,7 @@ void app_air_pump_switch( FunctionalState flag)
    else HAL_GPIO_WritePin(OPA_GAIN_CONTROL_out_GPIO_Port,OPA_GAIN_CONTROL_out_Pin,GPIO_PIN_SET);
  }
   /************************************************************************//**
-  * @brief 治疗水加热开关 treatment water 
+  * @brief 循环水加热开关 
   * @param flag-使能信号
   * @note  高电平有效  
   * @retval None
@@ -235,6 +235,26 @@ void app_air_pump_switch( FunctionalState flag)
  {
    if(flag==DISABLE)  HAL_GPIO_WritePin(PTC_EN_GPIO_Port,PTC_EN_Pin,GPIO_PIN_RESET);
    else HAL_GPIO_WritePin(PTC_EN_GPIO_Port,PTC_EN_Pin,GPIO_PIN_SET);
+ }
+   /************************************************************************//**
+  * @brief 冷却液位 
+  * @param 无
+  * @note  低电平表示有水,高电平表示水位低
+  * @retval None
+  *****************************************************************************/
+ ErrorStatus app_get_cool_water_depth(void)
+ {
+    ErrorStatus flag;     
+    GPIO_PinState pinS= HAL_GPIO_ReadPin(cool_water_ready_ok_GPIO_Port,cool_water_ready_ok_Pin);
+    if(pinS==GPIO_PIN_RESET)
+    {
+      flag=SUCCESS;
+    }
+    else
+    {
+      flag=ERROR;
+    }
+    return flag;
  }
   /************************************************************************//**
   * @brief 循环水水加热管理  water 
@@ -282,8 +302,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
             {
               fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
             }
-          }
-          
+          }          
         }               
         PTC_flag=1;
         app_PTC_en_switch(ENABLE);
@@ -583,7 +602,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   else if(IoNum==In3_chocke_air_solenoid)
   {//低报警，高正常
      //更换气泵，改变检测方式
-    if(HAL_GPIO_ReadPin(Hyperbaria_OFF_Signal_GPIO_Port,Hyperbaria_OFF_Signal_Pin)==GPIO_PIN_RESET)
+    if(HAL_GPIO_ReadPin(Hyperbaria_OFF_Signal_GPIO_Port,Hyperbaria_OFF_Signal_Pin)==GPIO_PIN_SET)
     {
       err=SUCCESS;
     }      
@@ -612,8 +631,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
     }    
   }  
   else if(IoNum==In7_water_ready_ok)//治疗水出口状态ok
-  {//低ok有效
-     
+  {//低ok有效     
     #if 1
     //改为检测水压,就绪    
     if(sEnvParam.treatment_water_pressure>MIN_TREATMENT_WATER_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa)

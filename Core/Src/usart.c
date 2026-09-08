@@ -373,7 +373,7 @@ extern void app_jdq_rs485_receive_data(void);
       if(HAL_UART_Receive_IT(&hlpuart1, &lp_rec_byte,1)!=HAL_OK)
       {
         /*Transfer error in reception process */
-        Error_Handler();	
+       // Error_Handler();	
         DEBUG_PRINTF("LPUART1 HAL_UART_Receive_IT error\r\n");		
       }			
    }	

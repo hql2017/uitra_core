@@ -153,7 +153,9 @@ static void ISI3_IIC_Write(unsigned char reg,unsigned char *data,unsigned short 
 	err=HAL_I2C_Mem_Write(&hi2c5,IS3_REAL_ADDR,reg,I2C_MEMADD_SIZE_8BIT,data,len,IS3_I2C_TIMEOUT);
   if(err!=HAL_OK)
   {
-    ISI3_IIC_err_handle();
+    RGB_shutdown(0 );
+    //ISI3_IIC_err_handle();
+    RGB_shutdown(1 );
     //error
   }	 
 }
@@ -227,7 +229,7 @@ void rgb_color_all(unsigned short int color)
   if(color==1)//绿色常亮
 	{
 		#ifdef  FL3236_USED//12路
-		is_12_all_rgb(0x07E0);//长亮不闪烁
+		is_12_all_rgb(0x00FF00);//长亮不闪烁
 		#else 
 			rgb_buff[1]=0;
 			rgb_buff[0]=(unsigned char)(u_sys_param.sys_config_param.rgb_light*2.55);//255;//++;   
@@ -238,18 +240,47 @@ void rgb_color_all(unsigned short int color)
 			ISI3_IIC_Write(IS3_T0_4_UPDATA,rgb_buff,1);//updata tim 
 		#endif
 	}
-	else if(color==2)//紫色常亮
+	else if(color==2)//常亮
 	{
 		#ifdef  FL3236_USED//12路
-		is_12_all_rgb(0xF81F);//长亮不闪烁
+		//is_12_all_rgb(RGB_COLOR_VALUE_PURPLE);//紫色
+    is_12_all_rgb(RGB_COLOR_VALUE_ORANGE);//橙色
 		#else 
 		rgb_buff[1]=(unsigned char)(u_sys_param.sys_config_param.rgb_light*2.55);//255;
-		rgb_buff[0]=0;;   
+		rgb_buff[0]=0;   
 		rgb_buff[2]=(unsigned char)(u_sys_param.sys_config_param.rgb_light*2.55);//255;		
 		rgb_buff[3]=0;//updata
 		ISI3_IIC_Write(IS3_REG_CHANNEL1_PWM,rgb_buff,4); 
 		rgb_buff[0]=0x00;
 		ISI3_IIC_Write(IS3_T0_4_UPDATA,rgb_buff,1);//updata tim 
+		#endif
+	}
+  else if(color==3)//红色常亮
+	{
+		#ifdef  FL3236_USED//12路
+		is_12_all_rgb(RGB_COLOR_VALUE_RED);//长亮不闪烁    
+		#else 
+			rgb_buff[1]=(unsigned char)(u_sys_param.sys_config_param.rgb_light*2.55);
+			rgb_buff[0]=0;   
+			rgb_buff[2]=0;//255;//++;;			
+			rgb_buff[3]=0;//updata
+			ISI3_IIC_Write(IS3_REG_CHANNEL1_PWM,rgb_buff,4); 
+			rgb_buff[0]=0x00;
+			ISI3_IIC_Write(IS3_T0_4_UPDATA,rgb_buff,1);//updata tim 
+		#endif
+	}
+  else if(color==4)//蓝色常亮
+	{
+		#ifdef  FL3236_USED//12路
+		is_12_all_rgb(RGB_COLOR_VALUE_BLUE);//长亮不闪烁 
+		#else 
+			rgb_buff[1]=0;
+			rgb_buff[0]=0;   
+			rgb_buff[2]=(unsigned char)(u_sys_param.sys_config_param.rgb_light*2.55);			
+			rgb_buff[3]=0;//255;//++;;//updata
+			ISI3_IIC_Write(IS3_REG_CHANNEL1_PWM,rgb_buff,4); 
+			rgb_buff[0]=0x00;
+			ISI3_IIC_Write(IS3_T0_4_UPDATA,rgb_buff,1);//updata tim 
 		#endif
 	}
 	else if(color==0)//关闭
@@ -468,8 +499,13 @@ uint8_t I2C_WriteByte(int DeviceAddress, int WriteAddress, int SendByte)
 	#if 1
   if(err!=HAL_OK)
   {
+    RGB_shutdown(0 );
     i_err_count++;
-    if(i_err_count>2) i_err_count=3;
+    if(i_err_count>2)
+		{
+			RGB_shutdown(1);
+			i_err_count=0;
+		}
     DEBUG_PRINTF("ISI i2c5 comunication Error!!\r\n");
   }
   #endif
@@ -524,8 +560,7 @@ void Green_Breath(unsigned char maxlight )//呼吸一次，约耗时465ms，单�
 {
   uint8_t i; 
   static unsigned char j;  
-  //for (j=0; j<128; j++)	//circle  
-  j++;
+  //for (j=0; j<128; j++)	//circle 
   j%=128;
   unsigned char runLight,m64Light;
   if(maxlight==0)
@@ -533,15 +568,16 @@ void Green_Breath(unsigned char maxlight )//呼吸一次，约耗时465ms，单�
     runLight=0;
   }
   else {
-    m64Light= (unsigned char)maxlight*2.56;
-    runLight=(unsigned char)(PWM_64_table[j]*(maxlight*0.01));
-    while(runLight<1)  //low light= 1
-    {   
-      j++; 
-      j%=128;
-      runLight=PWM_64_table[j]*(maxlight*0.01);
-    }
-  } 
+    if(maxlight<5) m64Light=15;
+    else m64Light= (unsigned char)(maxlight*2.55);
+    runLight=(PWM_64_table[j]);
+    if(runLight>=m64Light)   
+    {
+      j=127-j;
+      runLight=(PWM_64_table[j]);
+    }  
+    j++;  
+  }  
   for (i=0; i<12; i++) //R
   { // R  G  B   
     I2C_WriteByte(Addr_GND_GND,0x01+i*3,0);
@@ -564,9 +600,10 @@ void High_Breath( )//呼吸一次，
 		{
 			breath_falg=1;
 			for (i=0; i<12; i++) //R
-			{ // R  G  B  
-				I2C_WriteByte(Addr_GND_GND,1+i*3,(unsigned char )(u_sys_param.sys_config_param.rgb_light*2.55));   //B//PWM       
-				I2C_WriteByte(Addr_GND_GND,2+i*3,0);   //PWM 
+			{ // R  G  B 
+        //0xFF6400//orange
+        I2C_WriteByte(Addr_GND_GND,1+i*3,0);   //PWM  
+				I2C_WriteByte(Addr_GND_GND,2+i*3,(unsigned char )(u_sys_param.sys_config_param.rgb_light*1.00));   //G//PWM 
 				I2C_WriteByte(Addr_GND_GND,3+i*3,(unsigned char )(u_sys_param.sys_config_param.rgb_light*2.55)); //R
 			}    
 		}
@@ -601,16 +638,16 @@ void IS31FL3236A_Init(void)
     HAL_Delay(1);
     I2C_WriteByte(Addr_GND_GND,0x25,0x00);//update
     I2C_WriteByte(Addr_GND_GND,0x4B,0x01);
-    I2C_WriteByte(Addr_GND_GND,0x00,0x01);
+    I2C_WriteByte(Addr_GND_GND,0x00,0x01);//
     HAL_Delay(1);
 }
 //all rgb 
-void is_12_all_rgb(unsigned short int rgbValue)//混合色
-{
-   uint8_t   i,R,G,B;
-    R=((rgbValue>>11)&0x1F)*(u_sys_param.sys_config_param.rgb_light*0.01);
-    G=((rgbValue>>5)&0x3F)*(u_sys_param.sys_config_param.rgb_light*0.01);
-    B=(rgbValue&0x1F)*(u_sys_param.sys_config_param.rgb_light*0.01);
+void is_12_all_rgb(unsigned  int rgbValue)//混合色
+{//24bit 0 8R 8G 8B
+   uint8_t   i,R,G,B;//混合光占比（R:0~255;G：0~255；B：0-255）
+    R=((rgbValue>>16)&0xFF)*((u_sys_param.sys_config_param.rgb_light*0.01));
+    G=((rgbValue>>8)&0xFF)*((u_sys_param.sys_config_param.rgb_light*0.01));
+    B=(rgbValue&0xFF)*((u_sys_param.sys_config_param.rgb_light*0.01));   
     for (i=0; i<12; i++)
     {			//PWM
 			I2C_WriteByte(Addr_GND_GND,0x01+i*3,B);
@@ -624,7 +661,7 @@ void is_12_all_rgb(unsigned short int rgbValue)//混合色
 //all g 
 void is_12_all_gLED(void)
 {
-    uint8_t  i;
+    uint8_t   i;
     for (i=0; i<12; i++)
     {			//PWM
 			I2C_WriteByte(Addr_GND_GND,0x01+i*3,0x00);
@@ -650,7 +687,7 @@ void is_12_all_bLED(void)
 {
 	uint8_t   i;
 	for (i=0; i<12; i++)
-	{	//PWM
+	{			//PWM
 		I2C_WriteByte(Addr_GND_GND,0x01+i*3,u_sys_param.sys_config_param.rgb_light*2.55);//0x41);
 		I2C_WriteByte(Addr_GND_GND,0x02+i*3,0x00);
 		I2C_WriteByte(Addr_GND_GND,0x03+i*3,0x00);		

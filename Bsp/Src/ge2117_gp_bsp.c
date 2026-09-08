@@ -406,9 +406,9 @@ void app_ge2117_gp_ctr(float  circleWaterTmprature,unsigned int sysTimeS)
 	if(sysTimeS>geWksta.geTimeS)	
 	{
 		geWksta.geTimeS=sysTimeS;	
-		static float cpu_temprature=35.0; 
-		app_get_adc_value(AD3_MCU_TEMPRATURE_INDEX,&cpu_temprature);
-		DEBUG_PRINTF("CPU t=%.1f enviromentT=%.1f\r\n",cpu_temprature,sEnvParam.enviroment_temprature);			
+		static float cpu_temprature=65.0; 
+		//app_get_adc_value(AD3_MCU_TEMPRATURE_INDEX,&cpu_temprature);
+		//DEBUG_PRINTF("CPU t=%.1f enviromentT=%.1f\r\n",cpu_temprature,sEnvParam.enviroment_temprature);			
 		if(geWksta.geTimeS>10)
 		{ 
 			compareTemp=circleWaterTmprature-(u_sys_param.sys_config_param.cool_temprature_target*0.1);		

@@ -36,24 +36,20 @@ extern ADC_HandleTypeDef hadc1;
 
 extern ADC_HandleTypeDef hadc2;
 
-extern ADC_HandleTypeDef hadc3;
-
 /* USER CODE BEGIN Private defines */
 
-#define AD1_WATER_PRESSER_INDEX 0// PA4
-#define AD1_24V_VBUS_INDEX      1// PA1
+#define AD1_AIR_PRESSER_INDEX   4// PA4
+#define AD1_24V_VBUS_INDEX      3// PA1
 #define AD1_OCP_Ibus_INDEX      2// PA0
-#define AD1_NTC_INDEX           3// PA2
-#define AD1_AIR_PRESSER_INDEX   4// PC5
+#define AD1_NTC_INDEX           1// PA2
+#define AD1_WATER_PRESSER_INDEX  0// PC5
 #define AD2_LASER_1064_INDEX    5// 
-#define AD3_MCU_TEMPRATURE_INDEX    6// 
 #define  MAX_AD2_ENERGE_BUFF_LENGTH  220////(64.5cycle 1us)//一个时间约6us=2.96*2(387.5cycle 2.96us)
 
 /* USER CODE END Private defines */
 
 void MX_ADC1_Init(void);
 void MX_ADC2_Init(void);
-void MX_ADC3_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 void app_get_adc_value(unsigned char adChannel,float *vBuff);

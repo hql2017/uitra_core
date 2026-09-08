@@ -347,7 +347,6 @@ float  app_mcp61_c_value(void)
 { 
 	float ret ;
 	ret=mcp_sta.c_value1000pf*0.001;	//还原
-
 	return ret;
 }
 /***************************************************************************//**

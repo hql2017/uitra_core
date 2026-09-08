@@ -68,6 +68,7 @@ extern void app_intake_valve_air_solenoid(FunctionalState flag);
 extern void app_deflate_air_solenoid(FunctionalState flag);
 extern void app_opa_gain_control_switch( FunctionalState flag);
 extern ErrorStatus app_remote_key_sta(void);
+extern ErrorStatus app_get_cool_water_depth(void);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
