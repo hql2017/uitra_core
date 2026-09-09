@@ -147,8 +147,8 @@ static unsigned short int tmc_speed_list6[6]={100,150,200,250,300,350};//rpm  ,5
   */
  void tmc2226_dir(unsigned  char dir)
  {
-    if(dir==TMC_WATER_OUT_DIR_VALUE)  HAL_GPIO_WritePin(TMC2226_DIR_out_GPIO_Port, TMC2226_DIR_out_Pin, GPIO_PIN_RESET);
-    else HAL_GPIO_WritePin(TMC2226_DIR_out_GPIO_Port, TMC2226_DIR_out_Pin, GPIO_PIN_SET);
+    if(dir==TMC_WATER_OUT_DIR_VALUE)  HAL_GPIO_WritePin(TMC2226_DIR_out_GPIO_Port, TMC2226_DIR_out_Pin, GPIO_PIN_SET);
+    else HAL_GPIO_WritePin(TMC2226_DIR_out_GPIO_Port, TMC2226_DIR_out_Pin, GPIO_PIN_RESET);
  } 
 /**
   * @brief temc2226_init

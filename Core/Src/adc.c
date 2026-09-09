@@ -476,7 +476,7 @@ void filter_ad1(void)
   void app_in_energe_adc_value(void)
   {
       /* invalidate full buffer in bytes */
-      SCB_InvalidateDCache_by_Addr((void*)ad2Buff, sizeof(ad2Buff));
+      SCB_InvalidateDCache_by_Addr((void*)ad2Buff, MAX_AD2_ENERGE_BUFF_LENGTH*2);
       #if 0
       ad2vale = ad_square_value(ad2Buff,MAX_AD2_ENERGE_BUFF_LENGTH);
       #else
@@ -661,9 +661,7 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
   else if(adChannel==AD1_WATER_PRESSER_INDEX)
   {     
     temp=((((advalue[AD1_WATER_PRESSER_INDEX]-D_A_MIN)*AD_VREF_VOLTAGE)>>16) +22);
-    //*vBuff=temp*0.1654131+P_A_MIN;//0.150723+P_A_MIN;//(441/3000);//water pressure  ,dio
-     //*vBuff=(temp*0.1654131+P_A_MIN)/2.20;///water pressure  ,增益2.20
-     *vBuff=temp*0.073052+P_A_MIN*0.445;///water pressure  ,增益2.20
+    *vBuff=temp*0.1654131+P_A_MIN;//0.150723+P_A_MIN;//(441/3000);//water pressure  ,dio   
     //DEBUG_PRINTF("air_pressure=%.2f v=%dmV ad=%x\r\n", *vBuff,temp,advalue[AD1_AIR_PRESSER_INDEX]);
   } 
 	/*

@@ -778,7 +778,7 @@ void auxTask02(void *argument)
       app_fan_manage(1000);		      
       HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
       //app_sram_status_monitor();
-      DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure); 
+      //DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure); 
     }		 
 		/**********************RGB****************************/		
 		osStatus_t rgb_s=osMessageQueueGet(rgbQueue02Handle,&rgbRun,0,5);	
@@ -973,8 +973,16 @@ void laserWorkTask04(void *argument)
             laser_ctr_param.laserFreq = 10;
           }
           DEBUG_PRINTF("e=%dev=%.3f freq=%d timeU=%d\r\n",laser_ctr_param.laserEnerge,local_f,laser_ctr_param.laserFreq,u_sys_param.sys_config_param.laser_pulse_width_us); 
-          if(local_f<1.8) laser_ctr_param.lowEnergeMode=1;
-          else laser_ctr_param.lowEnergeMode=0; 
+          if(local_f<1.8) 
+          {
+            laser_ctr_param.lowEnergeMode=1;
+            //光电管增益
+            app_opa_gain_control_switch( ENABLE);
+          }
+          else{
+            app_opa_gain_control_switch( DISABLE);
+            laser_ctr_param.lowEnergeMode=0; 
+          } 
           fisrt_pulse_cali=local_f;
           //fisrt_pulse_cali=1.8;
           //fisrt_pulse_cali=local_f;// local_f*0.4+DAC_MIN_VOLTAGE_F*0.6;            
@@ -993,8 +1001,8 @@ void laserWorkTask04(void *argument)
           {   
             app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback); 
             float p_peak;
-            if( laser_ctr_param.lowEnergeMode==0)   p_peak = (e_feedback*0.0025);//peak  power
-            else p_peak = (e_feedback*0.0025)*0.5;//peak  power
+            if( laser_ctr_param.lowEnergeMode==0)   p_peak = (e_feedback*0.0020);//peak  power
+            else p_peak = (e_feedback*0.0020)*0.5;//peak  power
             //float ene_average_p= (p_peak)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power               
             //E=p_avg_peak/laser_ctr_param.laserFreq;
             sEnvParam.laser_1064_energy=p_peak*u_sys_param.sys_config_param.laser_pulse_width_us;
@@ -1768,9 +1776,8 @@ void jdqHeart100msCallback04(void *argument)
     app_fan_feed_count(1);
   }  
   if(GPIO_Pin==LASER_1064_COUNT_in_Pin)
-  {
-    AD5541A_SetVoltage_Load_enable();//恢复DAC值	 
-    //u_sys_param.sys_config_param.laser_pulse_count++;
+  {    	 
+    u_sys_param.sys_config_param.laser_pulse_count++;
     pulse_adc_start(MAX_AD2_ENERGE_BUFF_LENGTH);
   } 
   #ifdef ONE_WIRE_BUS_JT_SLAVE 
@@ -1854,8 +1861,8 @@ void app_sys_genaration_status_manage(void)
 	}
 	else 
   {    
-    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO7_BIT);  
-   // osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO7_BIT);
+    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO7_BIT);
+    //osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO7_BIT);
   }
   //水循环就绪信号
 	if(app_get_io_status(In8_water_circle_ok)==SUCCESS&&sEnvParam.cool_water_depth>u_sys_param.sys_config_param.cool_water_depth_low)
@@ -1926,8 +1933,9 @@ void app_sys_genaration_status_manage(void)
   }
   else
   {
-    sEnvParam.treatment_water_depth = 0;
-    osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_15_WATER_AIR_PREPARE_BIT );
+    sEnvParam.treatment_water_depth =1;// 0;
+    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_15_WATER_AIR_PREPARE_BIT );
+    //osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_15_WATER_AIR_PREPARE_BIT );
   } 
   if(sEnvParam.cool_water_depth==u_sys_param.sys_config_param.cool_water_depth_low)
   {//IO型水位
