@@ -282,16 +282,14 @@ float AD5541A_SetVoltage(float outVoltage, float vRef)
     code = (outVoltage / vRef) * 65536;
     /* Round to the nearest integer. */
     registerValue = (unsigned short)(code + 0.5);
-		
+	JDQ_LDAC_DISABLE;
 		
     /* Write to DAC register. */
     AD5541A_SetRegisterValue(registerValue);
     /* Calculate the voltage value that can be outtputed by the device. */
     actualVoltage = vRef * ((float)registerValue / 65536);
 	//**application new voltage
-	JDQ_LDAC_ENABLE;
-	delay_us(1);
-	JDQ_LDAC_DISABLE;    
+	JDQ_LDAC_ENABLE;		 
    return actualVoltage;
 }
 /***************************************************************************//**

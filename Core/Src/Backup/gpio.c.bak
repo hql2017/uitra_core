@@ -157,7 +157,7 @@ void MX_GPIO_Init(void)
   HAL_NVIC_SetPriority(EXTI1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI1_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 6, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
@@ -273,43 +273,43 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   compareTemp=circleWaterTmprature-(u_sys_param.sys_config_param.cool_temprature_target*0.1);   
   if(PTC_flag==0)
   {
-      if(compareTemp<MIN_TEMPRATURE_LASER)  
-      {
-        ptcRunTime=0;
-        if(sGenSta.laser_run_B0_pro_hot_status==0) 
-        {          
-          if(sEnvParam.enviroment_temprature>28.0)
-          {//给机箱散热
-            if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)!=2000)
-            {
-              fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
-            }
-          }
-          else 
-          { //queit
-            if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)>1000)  fan_spd_set(FAN38_COMPRESSOR_NUM,1000);
-          }
-        } 	
-        else
+    if(compareTemp<MIN_TEMPRATURE_LASER)  
+    {
+      ptcRunTime=0;
+      if(sGenSta.laser_run_B0_pro_hot_status==0) 
+      {          
+        if(sEnvParam.enviroment_temprature>28.0)
         {//给机箱散热
-          if(sEnvParam.enviroment_temprature>30.0)
+          if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)!=2000)
           {
-            if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)<3000)
-            {
-              fan_spd_set(FAN38_COMPRESSOR_NUM,3000);	
-            }
+            fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
           }
-          else //if(sEnvParam.enviroment_temprature>27.0)
+        }
+        else 
+        { //queit
+          if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)>1000)  fan_spd_set(FAN38_COMPRESSOR_NUM,1000);
+        }
+      } 	
+      else
+      {//给机箱散热
+        if(sEnvParam.enviroment_temprature>30.0)
+        {
+          if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)<3000)
           {
-            if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)<2000)
-            {
-              fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
-            }
-          }          
-        }               
-        PTC_flag=1;
-        app_PTC_en_switch(ENABLE);
-      }
+            fan_spd_set(FAN38_COMPRESSOR_NUM,3000);	
+          }
+        }
+        else //if(sEnvParam.enviroment_temprature>27.0)
+        {
+          if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)<2000)
+          {
+            fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
+          }
+        }          
+      }               
+      PTC_flag=1;
+      app_PTC_en_switch(ENABLE);
+    }
   }  
   else 
   { 
@@ -635,8 +635,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   }  
   else if(IoNum==In7_water_ready_ok)//治疗水出口状态ok
   {//低ok有效     
-    #if 1
-    //改为检测水压,就绪    
+    #if 1 //改为检测水压,就绪    
     if(sEnvParam.treatment_water_pressure>MIN_TREATMENT_WATER_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa)
     {
       err=SUCCESS;
@@ -650,7 +649,7 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   }
   else if(IoNum==In8_water_circle_ok)//水循环状态
   {//低ok有效     
-    if(HAL_GPIO_ReadPin(water_cycle_ok_GPIO_Port,water_cycle_ok_Pin)==GPIO_PIN_RESET)//&&water_c>1.001&&water_c<7.200)
+    if(HAL_GPIO_ReadPin(water_cycle_ok_GPIO_Port,water_cycle_ok_Pin)==GPIO_PIN_RESET)
     {
       err=SUCCESS;
     }   

@@ -40,7 +40,7 @@ typedef enum{
   In4_enviroment_tmprature_alert,//环境温度异常报警
   In5_h_air_error,//气泵电源异常
   In6_Hyperbaria_OFF_Signal,//气泵过压
-  In7_water_ready_ok,//治疗水状态ok
+  In7_water_ready_ok,//治疗水位状态ok
   In8_water_circle_ok,//循环水状态OK
   In9_emergency_ok,//急停开关,无异常
   IN_GENERATION_All

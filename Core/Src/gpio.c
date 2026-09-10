@@ -130,9 +130,9 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pins : circulating_water_pump_status_in_Pin cool_water_ready_ok_Pin RF24_IRQ_in_Pin TMC2226_index_in_Pin
-                           TMC2226_ERROR_out_Pin Hyperbaria_OFF_Signal_Pin EMERGENCY_LASER_STOP_STATUS_in_Pin treatment_water_high_pressure_off_status_in_Pin */
+                           TMC2226_ERROR_out_Pin EMERGENCY_LASER_STOP_STATUS_in_Pin Hyperbaria_OFF_Signal_Pin treatment_water_high_pressure_off_status_in_Pin */
   GPIO_InitStruct.Pin = circulating_water_pump_status_in_Pin|cool_water_ready_ok_Pin|RF24_IRQ_in_Pin|TMC2226_index_in_Pin
-                          |TMC2226_ERROR_out_Pin|Hyperbaria_OFF_Signal_Pin|EMERGENCY_LASER_STOP_STATUS_in_Pin|treatment_water_high_pressure_off_status_in_Pin;
+                          |TMC2226_ERROR_out_Pin|EMERGENCY_LASER_STOP_STATUS_in_Pin|Hyperbaria_OFF_Signal_Pin|treatment_water_high_pressure_off_status_in_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
@@ -273,43 +273,43 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   compareTemp=circleWaterTmprature-(u_sys_param.sys_config_param.cool_temprature_target*0.1);   
   if(PTC_flag==0)
   {
-      if(compareTemp<MIN_TEMPRATURE_LASER)  
-      {
-        ptcRunTime=0;
-        if(sGenSta.laser_run_B0_pro_hot_status==0) 
-        {          
-          if(sEnvParam.enviroment_temprature>28.0)
-          {//给机箱散热
-            if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)!=2000)
-            {
-              fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
-            }
-          }
-          else 
-          { //queit
-            if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)>1000)  fan_spd_set(FAN38_COMPRESSOR_NUM,1000);
-          }
-        } 	
-        else
+    if(compareTemp<MIN_TEMPRATURE_LASER)  
+    {
+      ptcRunTime=0;
+      if(sGenSta.laser_run_B0_pro_hot_status==0) 
+      {          
+        if(sEnvParam.enviroment_temprature>28.0)
         {//给机箱散热
-          if(sEnvParam.enviroment_temprature>30.0)
+          if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)!=2000)
           {
-            if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)<3000)
-            {
-              fan_spd_set(FAN38_COMPRESSOR_NUM,3000);	
-            }
+            fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
           }
-          else //if(sEnvParam.enviroment_temprature>27.0)
+        }
+        else 
+        { //queit
+          if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)>1000)  fan_spd_set(FAN38_COMPRESSOR_NUM,1000);
+        }
+      } 	
+      else
+      {//给机箱散热
+        if(sEnvParam.enviroment_temprature>30.0)
+        {
+          if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)<3000)
           {
-            if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)<2000)
-            {
-              fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
-            }
-          }          
-        }               
-        PTC_flag=1;
-        app_PTC_en_switch(ENABLE);
-      }
+            fan_spd_set(FAN38_COMPRESSOR_NUM,3000);	
+          }
+        }
+        else //if(sEnvParam.enviroment_temprature>27.0)
+        {
+          if(fan_get_set_spd(FAN38_COMPRESSOR_NUM)<2000)
+          {
+            fan_spd_set(FAN38_COMPRESSOR_NUM,2000);	
+          }
+        }          
+      }               
+      PTC_flag=1;
+      app_PTC_en_switch(ENABLE);
+    }
   }  
   else 
   { 
@@ -603,9 +603,9 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
      err=SUCCESS;
   }
   else if(IoNum==In3_chocke_air_solenoid)
-  {//低报警，高正常
+  {//高报警，低正常
      //更换气泵，改变检测方式
-    if(HAL_GPIO_ReadPin(Hyperbaria_OFF_Signal_GPIO_Port,Hyperbaria_OFF_Signal_Pin)==GPIO_PIN_SET)
+    if(HAL_GPIO_ReadPin(Hyperbaria_OFF_Signal_GPIO_Port,Hyperbaria_OFF_Signal_Pin)==GPIO_PIN_RESET)
     {
       err=SUCCESS;
     }      
@@ -633,14 +633,17 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
       err = SUCCESS;
     }    
   }  
-  else if(IoNum==In7_water_ready_ok)//治疗水出口状态ok
+  else if(IoNum==In7_water_ready_ok)//治疗水出水状态
   {//低ok有效     
-    #if 1
-    //改为检测水压,就绪    
-    if(sEnvParam.treatment_water_pressure>MIN_TREATMENT_WATER_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa)
-    {
-      err=SUCCESS;
-    }
+    #if 1 
+    //改为检测水压,和过压报警  
+    if(HAL_GPIO_ReadPin(treatment_water_high_pressure_off_status_in_GPIO_Port,treatment_water_high_pressure_off_status_in_Pin)==GPIO_PIN_RESET)
+    {//堵管报警,低正常，高报警            
+      if(sEnvParam.treatment_water_pressure>MIN_TREATMENT_WATER_PRESSURE+sEnvParam.air_gzp_enviroment_pressure_kpa)
+      {//正常出水
+        err=SUCCESS;
+      }    
+    }      
     #else 
     if(HAL_GPIO_ReadPin(treatment_water_ready_ok_in_GPIO_Port,treatment_water_ready_ok_in_Pin)==GPIO_PIN_RESET)
     {
@@ -649,11 +652,14 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
     #endif        
   }
   else if(IoNum==In8_water_circle_ok)//水循环状态
-  {//低ok有效     
-    if(HAL_GPIO_ReadPin(water_cycle_ok_GPIO_Port,water_cycle_ok_Pin)==GPIO_PIN_RESET)//&&water_c>1.001&&water_c<7.200)
-    {
+  {//低ok有效
+    if(HAL_GPIO_ReadPin(circulating_water_pump_status_in_GPIO_Port,circulating_water_pump_status_in_Pin)==GPIO_PIN_SET)
+   {//泵异常，高电平正常，低电平异常
+    if(HAL_GPIO_ReadPin(water_cycle_ok_GPIO_Port,water_cycle_ok_Pin)==GPIO_PIN_RESET)
+    {//水循环信号
       err=SUCCESS;
     }   
+   }    
   } 
   else if(IoNum==In9_emergency_ok)//紧急开关
   {//低正常，高停止    

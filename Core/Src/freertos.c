@@ -73,7 +73,7 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
 #define EVENTS_AUX_STATUS_IO4_BIT  0x01<<3
 #define EVENTS_AUX_STATUS_IO5_BIT  0x01<<4
 #define EVENTS_AUX_STATUS_IO6_BIT  0x01<<5
-#define EVENTS_AUX_STATUS_IO7_BIT  0x01<<6//治疗水容量ok
+#define EVENTS_AUX_STATUS_IO7_BIT  0x01<<6//治疗水流动ok
 #define EVENTS_AUX_STATUS_IO8_BIT  0x01<<7                                            
 #define EVENTS_AUX_STATUS_9_NTC_BIT                         0x0001<<8
 #define EVENTS_AUX_STATUS_10_IBUS_BIT                       0x0001<<9
@@ -81,7 +81,7 @@ U_SYS_CONFIG_PARAM u_sys_default_param;
 #define EVENTS_AUX_STATUS_12_K1_TEMPRATURE_BIT           		0x0001<<11
 #define EVENTS_AUX_STATUS_13_K2_TEMPRATURE_BIT           		0x0001<<12//激光器温度
 #define EVENTS_AUX_STATUS_14_EMERGENCY_KEY_BIT              0x0001<<13
-#define EVENTS_AUX_STATUS_15_WATER_AIR_PREPARE_BIT          0x0001<<14//水雾准备
+#define EVENTS_AUX_STATUS_15_TREATMEAT_WATER_DEPTH_BIT      0x0001<<14//治疗水位
 #define EVENTS_AUX_STATUS_16_COOL_WATER_BIT                 0x0001<<15//冷却液位正常
 
 #define EVENTS_AUX_STATUS_ALL_BITS     (EVENTS_AUX_STATUS_IO1_BIT|EVENTS_AUX_STATUS_IO2_BIT|EVENTS_AUX_STATUS_IO3_BIT|EVENTS_AUX_STATUS_IO4_BIT|EVENTS_AUX_STATUS_IO5_BIT\
@@ -778,7 +778,7 @@ void auxTask02(void *argument)
       app_fan_manage(1000);		      
       HAL_GPIO_TogglePin(MCU_SYS_health_LED_GPIO_Port,MCU_SYS_health_LED_Pin); 
       //app_sram_status_monitor();
-      //DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure); 
+      DEBUG_PRINTF("air_pressure=%.2fkPa water_pressure=%.2fkPa\r\n",sEnvParam.air_pump_pressure,sEnvParam.treatment_water_pressure); 
     }		 
 		/**********************RGB****************************/		
 		osStatus_t rgb_s=osMessageQueueGet(rgbQueue02Handle,&rgbRun,0,5);	
@@ -1198,15 +1198,7 @@ void fastAuxTask05(void *argument)
 		app_get_adc_value(AD1_AIR_PRESSER_INDEX,&sEnvParam.air_pump_pressure);
     app_get_adc_value(AD1_WATER_PRESSER_INDEX,&sEnvParam.treatment_water_pressure);	
 		app_air_pump_manage(laser_ctr_param.airPressureLevel);    
-		/***********aux genaration状态检查*******************/
-    #if 1  
-    //IO型水位
-    if(app_get_cool_water_depth()==SUCCESS) sEnvParam.cool_water_depth=u_sys_param.sys_config_param.cool_water_depth_high;
-    else  sEnvParam.cool_water_depth=u_sys_param.sys_config_param.cool_water_depth_low;  //缺水 
-    #else
-     //sEnvParam.cool_water_depth = 100;//mcp
-    sEnvParam.cool_water_depth   = app_mcp61_c_value()*10;//real depth =0.1pf*10     
-    #endif   
+		/***********更新激光状态*******************/
 		app_fresh_laser_status_param();	   
     osDelay(10);
   }
@@ -1845,7 +1837,7 @@ void app_sys_genaration_status_manage(void)
     osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO5_BIT);
   }
 	//气泵气压过高信号报警,低报警
-	if(app_get_io_status(In6_Hyperbaria_OFF_Signal)!=SUCCESS)
+	if(app_get_io_status(In6_Hyperbaria_OFF_Signal)==SUCCESS)
 	{ 
     osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO6_BIT);  
 	}
@@ -1853,26 +1845,19 @@ void app_sys_genaration_status_manage(void)
   {
     osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO6_BIT);
   }  
-  //治疗水OK就绪信号 
-  //通过水压传感器判断水位是否正常
-	if(app_get_io_status(In7_water_ready_ok)==SUCCESS&&sEnvParam.treatment_water_depth!=0)
+  //治疗出水OK信号   
+	if(app_get_io_status(In7_water_ready_ok)==SUCCESS)
 	{  
     osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO7_BIT);
 	}
 	else 
-  {    
-    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO7_BIT);
-    //osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO7_BIT);
+  {      
+    osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO7_BIT);
   }
   //水循环就绪信号
-	if(app_get_io_status(In8_water_circle_ok)==SUCCESS&&sEnvParam.cool_water_depth>u_sys_param.sys_config_param.cool_water_depth_low)
+	if(app_get_io_status(In8_water_circle_ok)==SUCCESS)
 	{ 
-    if(sEnvParam.cool_water_depth<u_sys_param.sys_config_param.cool_water_depth_high)
-    {  //水位低缺水   
-      osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO8_BIT);
-    } 
-	  else  osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO8_BIT);
-     
+    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_IO8_BIT);     
   }
 	else 
   {  
@@ -1925,26 +1910,45 @@ void app_sys_genaration_status_manage(void)
       DEBUG_PRINTF("emergency!\r\n");   
       osSemaphoreRelease(laserCloseSem05Handle);  
     } 
-  } //治疗水瓶液位 低有效
+  }   
+  //治疗水瓶水位
   if(HAL_GPIO_ReadPin(TREATMENT_WATER_DEPTH_in_GPIO_Port,TREATMENT_WATER_DEPTH_in_Pin)==GPIO_PIN_RESET)
-  {
-    sEnvParam.treatment_water_depth = 1;   
-    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_15_WATER_AIR_PREPARE_BIT ); 
-  }
-  else
-  {
-    sEnvParam.treatment_water_depth =1;// 0;
-    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_15_WATER_AIR_PREPARE_BIT );
-    //osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_15_WATER_AIR_PREPARE_BIT );
+  {//正常
+    sEnvParam.treatment_water_depth = 1;  
+    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_15_TREATMEAT_WATER_DEPTH_BIT);
+  }  
+  else {
+    osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_15_TREATMEAT_WATER_DEPTH_BIT); 
+    sEnvParam.treatment_water_depth = 0;  //缺水
   } 
-  if(sEnvParam.cool_water_depth==u_sys_param.sys_config_param.cool_water_depth_low)
-  {//IO型水位
-    osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_16_COOL_WATER_BIT);
+  
+  #if 1  
+  //IO型循环水位
+  if(app_get_cool_water_depth()==SUCCESS)
+  {
+    if(u_sys_param.sys_config_param.cool_water_depth_low<u_sys_param.sys_config_param.cool_water_depth_high)
+    {
+      sEnvParam.cool_water_depth=u_sys_param.sys_config_param.cool_water_depth_high;
+    }
+    else
+    {
+      sEnvParam.cool_water_depth=u_sys_param.sys_config_param.cool_water_depth_low+1;
+    }    
+  } 
+  else  sEnvParam.cool_water_depth=u_sys_param.sys_config_param.cool_water_depth_low;  
+  #else
+   //sEnvParam.cool_water_depth = 100;//mcp
+  sEnvParam.cool_water_depth   = app_mcp61_c_value()*10;//real depth =0.1pf*10     
+  #endif   
+  if( sEnvParam.cool_water_depth>u_sys_param.sys_config_param.cool_water_depth_low)
+  {
+    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_16_COOL_WATER_BIT);    
   }
   else 
-  {
-    osEventFlagsSet(auxStatusEvent01Handle,EVENTS_AUX_STATUS_16_COOL_WATER_BIT);
-  }
+  {//缺水
+    osEventFlagsClear(auxStatusEvent01Handle,EVENTS_AUX_STATUS_16_COOL_WATER_BIT);  
+  }  
+  
   //DEBUG_PRINTF("IO8~1=%d%d%d%d%d%d%d%d\r\n" ,sGenSta.water_circle_ok_status,sGenSta.water_ready_ok_status,\
     sGenSta.Hyperbaria_OFF_Signal_staus,sGenSta.h_air_error_status ,sGenSta.enviroment_tmprature_alert_status,\
     sGenSta.chocke_air_solenoid_status, sGenSta.deflate_air_solenoid_status,sGenSta.high_voltage_solenoid_status);

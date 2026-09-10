@@ -114,6 +114,7 @@ void Error_Handler(void);
 #define TREATMENT_WATER_DEPTH_in_GPIO_Port GPIOE
 #define LASER_1064_COUNT_in_Pin GPIO_PIN_11
 #define LASER_1064_COUNT_in_GPIO_Port GPIOE
+#define LASER_1064_COUNT_in_EXTI_IRQn EXTI15_10_IRQn
 #define water_cycle_ok_Pin GPIO_PIN_13
 #define water_cycle_ok_GPIO_Port GPIOE
 #define LCD_12V_ON_Pin GPIO_PIN_14
@@ -164,6 +165,7 @@ void Error_Handler(void);
 #define TMC_TCD_LPUART1_RX_GPIO_Port GPIOA
 #define FOOT_SWITCH_IN_Pin GPIO_PIN_15
 #define FOOT_SWITCH_IN_GPIO_Port GPIOA
+#define FOOT_SWITCH_IN_EXTI_IRQn EXTI15_10_IRQn
 #define S31FL3193_IIC5_SDA_Pin GPIO_PIN_10
 #define S31FL3193_IIC5_SDA_GPIO_Port GPIOC
 #define S31FL3193_IIC5_SCL_Pin GPIO_PIN_11
