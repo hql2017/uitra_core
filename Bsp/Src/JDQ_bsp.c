@@ -1017,7 +1017,7 @@ void   app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVolta
 	float evcali=(energeVoltage-num*0.1-1.4);
 	float timeus=(jdq_pulse_pro_timeUs[num]-jdq_pulse_pro_timeUs[num+1])*evcali*10.0;
 	timeLoad100ns=(unsigned  int)(( jdq_pulse_pro_timeUs[num]-timeus)*10)+pulse100ns;
-	#if 1
+	#if 0
 	//利用输入捕获动态调整脉宽
 	if(energeVoltage<1.8)
 	{
@@ -1046,9 +1046,7 @@ void   app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVolta
 		} 	
 		__HAL_TIM_ENABLE_IT(&htim2, TIM_IT_CC1);//enable IC channel 1
 		timeLoad100ns+=15;//margin time 1.5us
-	} 
-	#else 
-	__HAL_TIM_DISABLE_IT(&htim2, TIM_IT_CC1);//enable IC channel 1
+	} 	
 	#endif
 	if( timeLoad100ns > JDQ_MAX_CONTROL_PULSE_US_WIDTH*10)  timeLoad100ns = JDQ_MAX_CONTROL_PULSE_US_WIDTH*10;//check pulse timeUs0
 	if( timeLoad100ns <JDQ_MIN_CONTROL_PULSE_US_WIDTH*10 )  timeLoad100ns = JDQ_MIN_CONTROL_PULSE_US_WIDTH*10;//check pulse timeUs		
@@ -1087,8 +1085,7 @@ void   app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVolta
 	}
 	else 
 	{	
-		HAL_TIM_OC_Stop_IT(&htim2,TIM_CHANNEL_2);
-		__HAL_TIM_DISABLE_IT(&htim2, TIM_IT_CC1);//disable IC channel 1
+		HAL_TIM_OC_Stop_IT(&htim2,TIM_CHANNEL_2);		
 		HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_RESET); 				
 	}	
  }

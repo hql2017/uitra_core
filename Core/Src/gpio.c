@@ -592,7 +592,6 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   unsigned char DELAY_STATUS_VALUE=2;//防抖参数
   if(IoNum==In1_high_voltage_solenoid)
   {//低报警，高正常
-//if(HAL_GPIO_ReadPin(Solenoid_STATUS1_GPIO_Port,Solenoid_STATUS1_Pin)==GPIO_PIN_SET)
     {
       err=SUCCESS;
     }   
@@ -604,11 +603,8 @@ void app_circle_water_PTC_manage(float circleWaterTmprature,unsigned  int sysTim
   }
   else if(IoNum==In3_chocke_air_solenoid)
   {//高报警，低正常
-     //更换气泵，改变检测方式
-    if(HAL_GPIO_ReadPin(Hyperbaria_OFF_Signal_GPIO_Port,Hyperbaria_OFF_Signal_Pin)==GPIO_PIN_RESET)
-    {
-      err=SUCCESS;
-    }      
+    //新气泵，无需泄气电磁阀
+    err=SUCCESS;          
   }
   else if(IoNum==In4_enviroment_tmprature_alert)
   {//环境气压报警，高报警，低正常
