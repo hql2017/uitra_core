@@ -483,28 +483,13 @@ void filter_ad1(void)
       uint32_t sum = 0U;
       unsigned short int i = 0,j=0;
       static unsigned char levelIdx = 0; 
-      //90%计算峰值;//50%计算脉宽和功率;
-      unsigned short int max_value=match_max((unsigned short int *)ad2Buff,pulse_ad_count);
-    unsigned short int max_half_value=(unsigned short int)(max_value>>1);//50%;     
-    for(i = 0; i < pulse_ad_count; i++)
-    {
-      if(ad2Buff[i]>max_half_value);//&&ad2Buff[i]<max_value)//去掉最高值
-      {  
-        j++;
-        sum += ad2Buff[i];
-      }             
-    } 
+      //50%计算脉宽和功率;
+      //>95%峰值
+      unsigned short int max_value=match_max((unsigned short int *)ad2Buff,pulse_ad_count);       
       /* store running levels in a circular 8-slot buffer */
-      const unsigned char idx = levelIdx & 0x07;
-      if (j > 1) {
-        ad2hle[idx] = (unsigned short int)(sum /j);
-      } else {
-        ad2hle[idx] = (unsigned short int)sum;
-      }
-			ad2vale=(uint16_t) kalman_filter_update(&kalmEnergeAd, ad2hle[idx]); 
-			ad2hle[idx]=ad2vale;//滤波结果覆盖原始值,保持水平缓慢变化,避免突变;
-
-      levelIdx = (levelIdx + 1) & 0x07; /* keep wrapping but idx uses &0x07 */     
+      const unsigned char idx = levelIdx & 0x07;      
+			ad2hle[idx]=(uint16_t) kalman_filter_update(&kalmEnergeAd,max_value); 
+      #if 1			
       sum = 0;
       for(i = 0; i < 8; i++)
       {   
@@ -515,11 +500,15 @@ void filter_ad1(void)
         else {
           sum += ad2hle[i];  
         }     
-      } 
-      ad2vale = (unsigned short int)(sum >> 3); 
-        
+      } //平滑滤波
+      ad2vale = (unsigned short int)(sum >> 3);
+     // ad2hle[idx]=ad2vale;//滤波结果覆盖原始值,保持水平缓慢变化,避免突变;
+      #else
+      ad2vale=ad2hle[idx];
       #endif 
-    
+      
+      levelIdx = (levelIdx + 1) & 0x07; /* keep wrapping but idx uses &0x07 */            
+      #endif     
      
   }
   /**
@@ -630,7 +619,7 @@ void app_get_adc_value(unsigned char adChannel,float *vBuff)
   else  if(adChannel==AD2_LASER_1064_INDEX)
   {
     temp=(ad2vale*AD_VREF_VOLTAGE)>>16;  
-    *vBuff= temp*1.0 ;//LASER064ADAD,   
+    *vBuff= temp*1.0 ;   
    #if 0
    DEBUG_PRINTF("laserAD=");
    for(int i=0;i<MAX_AD2_ENERGE_BUFF_LENGTH;i++)

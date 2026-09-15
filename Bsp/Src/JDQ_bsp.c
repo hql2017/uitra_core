@@ -933,7 +933,8 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		if(htim->Channel ==	HAL_TIM_ACTIVE_CHANNEL_2)
 		{  
-			//DEBUG_PRINTF("tim2 oc=%d\r\n",__HAL_TIM_GetCounter(&htim2));			
+			//DEBUG_PRINTF("tim2 oc=%d\r\n",__HAL_TIM_GetCounter(&htim2));
+			if(laser_ctr_param.lowEnergeMode!=0) pulse_adc_start(MAX_AD2_ENERGE_BUFF_LENGTH);			
 			HAL_GPIO_WritePin(HV_ONE_PULSE_out_GPIO_Port, HV_ONE_PULSE_out_Pin, GPIO_PIN_SET); 	
 		}
 	}

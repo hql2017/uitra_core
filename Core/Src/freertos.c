@@ -998,8 +998,8 @@ void laserWorkTask04(void *argument)
           {  
             app_get_adc_value( AD2_LASER_1064_INDEX,&e_feedback); 
             float p_peak;
-            if( laser_ctr_param.lowEnergeMode==0)   p_peak = (e_feedback*0.0020);//peak  power
-            else p_peak = (e_feedback*0.0020);//peak  power
+            if( laser_ctr_param.lowEnergeMode==0)   p_peak = (e_feedback*0.00095);//peak  power
+            else p_peak = (e_feedback*0.00026);//peak  power 4倍
             //float ene_average_p= (p_peak)*u_sys_param.sys_config_param.laser_pulse_width_us*laser_ctr_param.laserFreq;//pavg  power               
             //E=p_avg_peak/laser_ctr_param.laserFreq;
             sEnvParam.laser_1064_energy=p_peak*u_sys_param.sys_config_param.laser_pulse_width_us;
@@ -1024,14 +1024,10 @@ void laserWorkTask04(void *argument)
               {
                 e_T=-0.01*(sEnvParam.eth_k1_temprature-24.0);
               } 
-            }               
-            float laser_energy_T_cali; 
-            laser_energy_T_cali = sEnvParam.laser_1064_energy*(1-e_T);
-            sEnvParam.laser_1064_energy=laser_energy_T_cali;
-            /**温度补偿结束 */
-            DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV pulseCount=%d rdb=%d 980=%d\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback,u_sys_param.sys_config_param.laser_pulse_count,u_sys_param.sys_config_param.RDB_use_timeS,u_sys_param.sys_config_param.laser_use_timeS);              
+            }          
             if(sEnvParam.laser_1064_energy>0&&laser_ctr_param.laserEnerge>0&&statusJT==osOK)
-            {   
+            { 
+              DEBUG_PRINTF("loac_f=%.1f energe=%.1f feedBck=%.1fmV pulseCount=%d rdb=%d 980=%d\r\n",local_f,sEnvParam.laser_1064_energy,e_feedback,u_sys_param.sys_config_param.laser_pulse_count,u_sys_param.sys_config_param.RDB_use_timeS,u_sys_param.sys_config_param.laser_use_timeS);   
 							if(sEnvParam.laser_1064_energy>5+laser_ctr_param.laserEnerge||sEnvParam.laser_1064_energy+5<laser_ctr_param.laserEnerge)
 							{                
 							  if(sEnvParam.laser_1064_energy>5+laser_ctr_param.laserEnerge)
@@ -1058,7 +1054,7 @@ void laserWorkTask04(void *argument)
 									if(fisrt_pulse_cali<DAC_MIN_VOLTAGE_F) fisrt_pulse_cali=DAC_MIN_VOLTAGE_F;
                   if(local_f<1.8) laser_ctr_param.lowEnergeMode = 1;
                   else laser_ctr_param.lowEnergeMode = 0;         
-								 // AD5541A_SetVoltage(local_f, 4.096);
+								  AD5541A_SetVoltage(local_f, 4.096);
 									fisrt_pulse_cali = 0; 
 								} 								
 							}
@@ -1765,7 +1761,10 @@ void jdqHeart100msCallback04(void *argument)
   }  
   if(GPIO_Pin==LASER_1064_COUNT_in_Pin)
   {  
-    pulse_adc_start(MAX_AD2_ENERGE_BUFF_LENGTH);
+    //counter=clock/u_sys_param.sys_config_param.laser_pulse_width_us;
+    //__HAL_TIM_SetAutoreload(&htim5,counter-1);		
+    //HAL_TIM_Base_Start_IT(&htim5);//光信号触发脉宽
+    if(laser_ctr_param.lowEnergeMode==0) pulse_adc_start(MAX_AD2_ENERGE_BUFF_LENGTH);
   } 
   #ifdef ONE_WIRE_BUS_JT_SLAVE 
   if(GPIO_Pin==FOOT_SWITCH_IN_Pin)
