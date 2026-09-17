@@ -24,7 +24,7 @@ float AD5541A_SetVoltage(float outVoltage, float vRef);
 extern void AD5541A_SetVoltage_Load_enable(void);
 extern void AD5541A_SetVoltage_Load_disable(void);
 extern void AD5541A_SetVoltage_noLoad(float outVoltage, float vRef);
-
+extern void   app_laser_pulse_width_set(unsigned short int pulse100ns,float energeVoltage);
 void app_laser_pulse_start(unsigned short int timeUs,unsigned short int freq,float energeVoltage);
 float app_jdq_voltage_monitor(void);
 void app_jdq_current_limit_charge(void);
