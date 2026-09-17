@@ -485,29 +485,24 @@ void filter_ad1(void)
       static unsigned char levelIdx = 0; 
       //50%计算脉宽和功率;
       //>95%峰值
-      unsigned short int max_value=match_max((unsigned short int *)ad2Buff,pulse_ad_count); 
-         
+      unsigned short int max_value=match_max((unsigned short int *)ad2Buff,pulse_ad_count);  
+      unsigned short int half_value   =  ( max_value>>1) ; 
       /* store running levels in a circular 8-slot buffer */
-      const unsigned char idx = levelIdx & 0x07;      
-			 
-      #if 1	
-      ad2hle[idx]=(uint16_t) kalman_filter_update(&kalmEnergeAd,max_value);		
-      sum = 0;
-      for(i = 0; i < 8; i++)
-      {   
-        if(ad2hle[i]==0)
-        {
-          sum += ad2hle[0];
-        }
-        else {
-          sum += ad2hle[i];  
-        }     
-      } //平滑滤波
-      ad2vale = (unsigned short int)(sum >> 3);
-     // ad2hle[idx]=ad2vale;//滤波结果覆盖原始值,保持水平缓慢变化,避免突变;
-      #else
-      ad2vale = ad2hle[idx];
-      #endif      
+      const unsigned char idx = levelIdx & 0x07; 
+      sum=0; 
+      for(i=0;i<pulse_ad_count;i++)
+      {
+          if(ad2Buff[i]>half_value)
+          {
+            j++;
+            sum+=ad2Buff[i];            
+          }
+      }  
+			 if(j>1) ad2hle[idx]=(sum/j);
+       else ad2hle[idx]=max_value;
+     
+      ad2vale =ad2hle[idx]=(uint16_t) kalman_filter_update(&kalmEnergeAd, ad2hle[idx]);
+         
       levelIdx = (levelIdx + 1) & 0x07; /* keep wrapping but idx uses &0x07 */            
       #endif     
      
